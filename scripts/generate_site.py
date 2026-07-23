@@ -216,6 +216,11 @@ def main():
 
     past_archives = collect_archive_dates(archive_dir, date)
     weekly_labels = collect_weekly_labels(docs_dir)
+    # 월/일요일에만 최신 주간 회고를 상단 배너로 노출한다(그 외 요일엔 하단 목록에서만 보임).
+    # 회고는 일요일 실행 순서상 이 날짜의 사이트 생성 "이후"에 만들어지므로, 당일이 아니라
+    # 다음날(월요일)부터 그 주 회고가 배너에 뜬다 — 의도된 동작.
+    weekday = datetime.strptime(date, "%Y-%m-%d").weekday()  # 0=월요일 ... 6=일요일
+    show_weekly_banner = weekday in (0, 6)
 
     # docs/index.html (오늘자, 항상 최신)
     index_html = template.render(
@@ -226,6 +231,7 @@ def main():
         glossary=glossary_lookup,
         archives=past_archives,
         weekly_labels=weekly_labels,
+        show_weekly_banner=show_weekly_banner,
         archive_link_prefix="archive/",
         weekly_link_prefix="weekly/",
         css_prefix="",
@@ -234,7 +240,8 @@ def main():
     )
     (docs_dir / "index.html").write_text(index_html, encoding="utf-8")
 
-    # docs/archive/<날짜>.html (누적 보관)
+    # docs/archive/<날짜>.html (누적 보관) — 배너는 "오늘자" 사이트에만 노출하고
+    # 과거 기록 페이지에는 넣지 않는다(그 날짜 시점 기준 배너라 의미가 없음).
     archive_html = template.render(
         date=date,
         generated_at=generated_at,
@@ -243,6 +250,7 @@ def main():
         glossary=glossary_lookup,
         archives=past_archives,
         weekly_labels=weekly_labels,
+        show_weekly_banner=False,
         archive_link_prefix="",
         weekly_link_prefix="../weekly/",
         css_prefix="../",

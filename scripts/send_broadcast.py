@@ -27,6 +27,11 @@ USER_AGENT = "ai-news-briefing-bot/1.0 (+https://www.dailyaithread.com)"
 def parse_args():
     p = argparse.ArgumentParser(description="구독자에게 오늘의 다이제스트를 이메일로 발송한다.")
     p.add_argument("--input", required=True, help="data/digest_<날짜>.json 경로")
+    p.add_argument(
+        "--weekly-input",
+        default=None,
+        help="(일요일에만) data/weekly_<주차>.json 경로 — 있으면 이메일 상단에 주간 회고 티저를 추가한다",
+    )
     return p.parse_args()
 
 
@@ -78,7 +83,29 @@ def fetch_confirmed_subscribers(supabase_url: str, service_role_key: str) -> lis
     return [row["email"] for row in rows if row.get("email")]
 
 
-def build_html(digest: dict, site_url: str, unsub_url: str) -> str:
+def build_weekly_teaser_block(weekly: dict, site_url: str) -> str:
+    """weekly_<주차>.json이 주어졌을 때(일요일 발송) 이메일 최상단에 넣을 주간 회고
+    티저 블록을 만든다. headline이 비어있으면(그 주는 회고를 건너뛴 경우) 빈 문자열을
+    반환해 아무것도 추가하지 않는다."""
+    headline = (weekly or {}).get("headline_ko", "").strip()
+    if not headline:
+        return ""
+    week_label = weekly.get("week_label", "")
+    link = f"{site_url}/weekly/{week_label}.html"
+    return (
+        '<div style="margin:0 0 20px;padding:16px 18px;background:#f5f4f1;'
+        'border-left:3px solid #121212;border-radius:0 4px 4px 0;">'
+        '<p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.1em;'
+        'text-transform:uppercase;color:#121212;">이번 주 종합</p>'
+        f'<p style="margin:0 0 10px;font-size:17px;font-weight:700;line-height:1.5;color:#121212;">'
+        f'{html.escape(headline)}</p>'
+        f'<a href="{link}" style="font-size:14px;font-weight:700;color:#a2201d;'
+        'text-decoration:none;">주간 회고 전체 보기 →</a>'
+        "</div>"
+    )
+
+
+def build_html(digest: dict, site_url: str, unsub_url: str, weekly_block: str = "") -> str:
     date = digest["date"]
     articles = digest["articles"]
     rows = []
@@ -121,6 +148,7 @@ def build_html(digest: dict, site_url: str, unsub_url: str) -> str:
         기사 {len(articles)}건의 헤드라인과 한 줄 요약입니다. 각 기사가 시사하는 점과 전체
         인사이트 분석은 위 링크에서 확인하세요.
       </p>
+      {weekly_block}
       {insight_block}
       <table style="width:100%;border-collapse:collapse;">{''.join(rows)}</table>
       <p style="margin-top:32px;font-size:12px;color:#999;">
@@ -172,9 +200,21 @@ def main():
         print("발송 대상 구독자가 없습니다.")
         return
 
+    weekly_block = ""
+    if args.weekly_input:
+        weekly_path = Path(args.weekly_input)
+        if weekly_path.exists():
+            weekly = json.loads(weekly_path.read_text(encoding="utf-8"))
+            weekly_block = build_weekly_teaser_block(weekly, site_url)
+
     subject = f"AI 뉴스 브리핑 — {digest['date']} (기사 {len(digest['articles'])}건)"
     html_by_email = {
-        email: build_html(digest, site_url, unsubscribe_url(site_url, env["SUBSCRIBE_TOKEN_SECRET"], email))
+        email: build_html(
+            digest,
+            site_url,
+            unsubscribe_url(site_url, env["SUBSCRIBE_TOKEN_SECRET"], email),
+            weekly_block=weekly_block,
+        )
         for email in subscribers
     }
 

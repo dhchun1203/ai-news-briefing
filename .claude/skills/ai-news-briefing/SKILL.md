@@ -141,7 +141,9 @@ python scripts/generate_site.py --input data/digest_<날짜>.json
 - `config/feeds.json`의 `type`(primary/press/community)을 기준으로 기사 카드에 "공식
   발표"/"보도"/"커뮤니티" 배지가 자동으로 붙는다 — Claude가 따로 지정할 필요 없다.
 - `docs/index.html` 하단에는 지난 아카이브 링크 목록과 검색창, 주간 회고 목록이 자동으로
-  추가된다.
+  추가된다. 오늘이 일요일이나 월요일이면(신규 독자 유입을 노린 홍보) 최신 주간 회고로
+  연결되는 배너가 본문 상단에도 추가로 노출된다 — 날짜만 보고 자동 계산하므로 Claude가
+  따로 지정할 필요 없다.
 - `templates/site-base.css`(공통), `site-mobile.css`(≤767px), `site-desktop.css`(≥768px)도
   `docs/`로 함께 복사된다. PC와 모바일은 서로 다른 CSS 파일이 `media` 속성으로 조건부
   적용되며 화면별로 가독성(글자 크기, 여백, 줄 간격)을 따로 튜닝한다.
@@ -212,6 +214,10 @@ Import해야 한다고 안내한다.
 ```
 python scripts/send_broadcast.py --input data/digest_<날짜>.json
 ```
+- (5단계에서 그 주 주간 회고를 생성했다면) `--weekly-input data/weekly_<week_label>.json`을
+  추가로 넘긴다. 그러면 이메일 최상단에 "이번 주 종합" 티저(주간 회고 헤드라인 + 전체 보기
+  링크)가 daily insight 티저보다 먼저 추가된다 — 신규 구독 전환과 주간 회고 노출을 함께
+  노린다. 5단계를 건너뛰었으면(그 주 흐름이 없어 생략) 이 옵션도 생략한다.
 - Supabase `subscribers` 테이블에서 `confirmed_at`이 있고 `unsubscribed_at`이 없는(=더블
   옵트인을 마친) 이메일만 조회해, 기사 제목+한 줄 요약(`summary_ko`)+원문 링크로 구성된
   가벼운 HTML 이메일을 Resend 배치 발송(`/emails/batch`, 최대 100통씩)으로 보낸다.

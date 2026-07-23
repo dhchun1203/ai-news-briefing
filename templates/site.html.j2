@@ -103,8 +103,8 @@
       <span class="lang-en">Get it in your inbox every morning</span>
     </p>
     <p class="subscribe-desc">
-      <span class="lang-ko">헤드라인과 한 줄 요약을 매일 이메일로 보내드려요.</span>
-      <span class="lang-en">Daily headlines and one-line summaries, delivered to your inbox.</span>
+      <span class="lang-ko">헤드라인과 한 줄 요약을 매일, 한 주를 정리하는 종합 회고를 매주 일요일에 보내드려요.</span>
+      <span class="lang-en">Daily headlines and summaries, plus a synthesis of the week every Sunday.</span>
     </p>
     <form class="subscribe-form" id="subscribe-form">
       <input type="email" name="email" required class="subscribe-input" placeholder="you@example.com" aria-label="이메일 주소">
@@ -129,6 +129,13 @@
       </a>
     {% endif %}
   </div>
+
+  {% if show_weekly_banner and weekly_labels %}
+  <a class="weekly-banner" href="{{ weekly_link_prefix }}{{ weekly_labels[0] }}.html">
+    <span class="lang-ko">이번 주 AI 흐름 정리 보기 → {{ weekly_labels[0] }} 주간 회고</span>
+    <span class="lang-en">This week's AI trends, summarized → {{ weekly_labels[0] }} Weekly Recap</span>
+  </a>
+  {% endif %}
 
   {% if not articles %}
   <p class="empty-state">
