@@ -52,6 +52,14 @@ python scripts/fetch_articles.py --lookback-days 12 --top-n 10
 {
   "date": "YYYY-MM-DD",
   "generated_at": "ISO8601 타임스탬프",
+  "glossary": [
+    {
+      "term_ko": "본문에 실제로 등장하는 한국어 용어 표기 그대로",
+      "term_en": "본문에 실제로 등장하는 영어 용어 표기 그대로",
+      "explanation_ko": "전문용어를 안 쓰고 처음 듣는 사람도 이해할 수 있게 쓴 한국어 설명 1~2문장.",
+      "explanation_en": "같은 설명의 자연스러운 영어 1~2문장."
+    }
+  ],
   "daily_insight": {
     "headline_ko": "오늘 10개 기사를 관통하는 가장 큰 메시지 한 문장 (한국어)",
     "headline_en": "같은 메시지의 자연스러운 영어 한 문장",
@@ -76,6 +84,10 @@ python scripts/fetch_articles.py --lookback-days 12 --top-n 10
 ```
 
 작성 원칙:
+- **가독성 최우선**: `summary`/`implication`/`daily_insight` 모두, 전문용어를 잘 모르는
+  일반 독자도 편하게 읽을 수 있는 쉬운 말로 쓴다. "그로킹", "RLHF", "MoE" 같은 업계 용어를
+  설명 없이 그냥 쓰지 않는다 — 가능하면 쉬운 말로 풀어 쓰고, 도저히 대체하기 어려운 핵심
+  용어라면 아래 "용어 사용 원칙"대로 `glossary`에 등록한다.
 - `summary_ko`/`summary_en`은 RSS 요약을 그대로 옮기지 말고, WebFetch로 읽은 원문을 기준으로
   압축한다. 숫자·고유명사 등 핵심 사실은 누락하지 않는다. 두 언어가 같은 사실을 담되, 각각
   해당 언어로 자연스럽게 읽히도록 쓴다(직역이 아니라 재작성).
@@ -91,6 +103,23 @@ python scripts/fetch_articles.py --lookback-days 12 --top-n 10
   `daily_insight` 전체를 생략해도 되고(그러면 섹션이 렌더링되지 않음), 억지로 엮지 않는다.
 - `title`은 번역하지 않고 원문 그대로 둔다 (실제 기사의 이름이므로).
 - 기사 배열 순서는 `data/articles_<날짜>.json`의 선별 순서(최신순)를 유지한다.
+
+**용어 사용 원칙 (glossary)**: `generate_site.py`가 `glossary`에 등록된 단어를 본문(요약·
+시사점·인사이트) 안에서 자동으로 찾아 클릭 가능한 버튼으로 바꿔준다. 클릭하면 우측에서
+패널이 열리며 설명이 뜬다 — Claude는 마크업을 직접 넣을 필요 없이, **아래만 지키면 된다**:
+1. `glossary[].term_ko`/`term_en`에 적은 단어를, 그 언어의 본문(`summary_ko`,
+   `implication_ko`, `daily_insight`의 한국어 필드 등)에 **정확히 같은 표기**로 등장시킨다
+   (예: `term_ko`를 "오픈웨이트"로 적었으면 본문에도 "오픈웨이트"라고 써야 자동으로
+   연결된다. "오픈 웨이트"처럼 띄어쓰기가 다르면 연결되지 않는다).
+2. **등록 기준은 넓게, 적극적으로 잡는다.** 판단 기준은 "개발자나 AI 업계 종사자가 아니면
+   모를 법한 용어인가"이다 — 이 기준에 걸리면 웬만하면 등록한다. 업계 약어(RAG, MoE, RLHF,
+   파인튜닝 등), 규제·법률 용어(Entity List 등), 보안 용어(제로데이 취약점, 권한 상승,
+   횡적 이동 등), AI 인프라 단위(토큰, GPU, 파라미터 등)처럼 뉴스를 이해하는 데 필요하지만
+   비개발자 독자는 설명 없이 넘어가기 어려운 단어는 놓치지 말고 잡는다. "등록을 아끼는 것"
+   보다 "잡아서 손해볼 것 없다"는 쪽으로
+   판단한다. 다만 같은 용어가 그날 다른 기사에서 이미 등록됐다면 중복 등록하지 않는다.
+3. `explanation_ko`/`explanation_en`도 쉬운 말로 쓴다 — 용어를 다른 전문용어로 설명하지
+   않는다.
 - 원문 접속이 막혀 WebFetch가 실패하면 `rss_summary`를 기반으로 두 언어 모두 작성하되,
   정보가 부족하다는 한계를 감안해 단정적인 표현은 피한다.
 
@@ -108,6 +137,9 @@ python scripts/generate_site.py --input data/digest_<날짜>.json
   모두 같은 HTML에 렌더링되고 클라이언트 JS가 `data-lang` 속성으로 표시/숨김만 전환하므로,
   `digest_<날짜>.json`에 `summary_ko`/`summary_en`/`implication_ko`/`implication_en`이
   모두 채워져 있어야 두 언어 모두 정상적으로 보인다.
+- `glossary`에 등록된 단어는 `generate_site.py`가 본문에서 자동으로 찾아 클릭 가능한
+  버튼으로 바꾸고, 클릭 시 우측에 슬라이드 패널로 설명을 보여준다. Claude가 할 일은
+  위 3단계처럼 `glossary`를 채우고 본문에 같은 표기로 쓰는 것뿐이다.
 
 ## 5. 배포
 ```

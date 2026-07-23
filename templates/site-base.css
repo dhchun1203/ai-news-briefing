@@ -51,7 +51,7 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   border-bottom: 1px solid var(--border);
 }
 
-.share-menu { position: relative; }
+.share-wrap { position: relative; }
 
 .share-button {
   background: none;
@@ -66,32 +66,27 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 }
 .share-button:hover { border-color: var(--text); }
 .share-button svg { display: block; }
-.share-button .icon-check { display: none; }
 
-.share-menu-list {
+.share-tooltip {
   position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  margin: 0;
-  list-style: none;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-  z-index: 20;
-}
-.share-menu-list[hidden] { display: none; }
-
-.share-menu-list li {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  background: var(--rule);
+  color: var(--bg);
   font-family: var(--sans);
-  color: var(--text);
-  cursor: pointer;
+  font-weight: 700;
   border-radius: 6px;
   white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 30;
 }
-.share-menu-list li:hover { background: var(--implication-bg); }
-.share-button.copied .icon-share { display: none; }
-.share-button.copied .icon-check { display: inline; color: var(--accent); }
+.share-tooltip.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 
 /* 좌우로 슬라이딩하는 스위치형 다크모드 토글: .theme-toggle이 트랙, .theme-toggle-thumb이
    슬라이딩하는 손잡이. 손잡이 안의 아이콘은 기존 방식대로 상태에 따라 교체된다. */
@@ -440,4 +435,71 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   color: var(--text-muted);
   font-family: var(--sans);
   border-top: 1px solid var(--border);
+}
+
+/* ---------- 용어 설명 (glossary 용어 클릭 시 우측 패널) ---------- */
+.term-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.term-link:hover { color: var(--text); }
+
+.term-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 40;
+}
+.term-panel-backdrop[hidden] { display: none; }
+
+.term-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+  z-index: 41;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  overflow-y: auto;
+}
+.term-panel.open { transform: translateX(0); }
+
+.term-panel-close {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--text);
+  line-height: 1;
+}
+.term-panel-close:hover { border-color: var(--text); }
+
+.term-panel-label {
+  font-family: var(--sans);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.term-panel-title {
+  font-family: var(--serif);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.term-panel-body {
+  font-family: var(--serif);
+  color: var(--text);
 }

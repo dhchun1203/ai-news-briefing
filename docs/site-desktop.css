@@ -10,8 +10,7 @@ body {
 
 .utility-bar { padding: 10px 24px; }
 .share-button { width: 34px; height: 34px; font-size: 1rem; }
-.share-menu-list { padding: 6px; min-width: 140px; }
-.share-menu-list li { padding: 8px 12px; font-size: 0.9rem; }
+.share-tooltip { font-size: 0.78rem; padding: 6px 12px; }
 .theme-toggle { width: 52px; height: 28px; --toggle-travel: 26px; }
 .theme-toggle-thumb { width: 20px; height: 20px; font-size: 0.72rem; }
 .lang-select-trigger { height: 34px; padding: 0 12px; gap: 6px; font-size: 0.85rem; }
@@ -83,3 +82,9 @@ body {
 .archive-list a { font-size: 0.95rem; padding-bottom: 1px; }
 
 .site-footer { font-size: 0.82rem; padding: 24px; }
+
+.term-panel { width: 380px; padding: 64px 30px 30px; }
+.term-panel-close { width: 30px; height: 30px; font-size: 1.1rem; top: 20px; right: 20px; position: absolute; }
+.term-panel-label { font-size: 0.72rem; margin: 0 0 10px; }
+.term-panel-title { font-size: 1.25rem; margin: 0 0 14px; }
+.term-panel-body { font-size: 1.02rem; line-height: 1.75; }

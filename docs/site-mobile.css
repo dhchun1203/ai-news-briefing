@@ -9,8 +9,7 @@ body {
 
 .utility-bar { padding: 8px 16px; }
 .share-button { width: 32px; height: 32px; font-size: 0.95rem; }
-.share-menu-list { padding: 5px; min-width: 130px; }
-.share-menu-list li { padding: 7px 10px; font-size: 0.85rem; }
+.share-tooltip { font-size: 0.74rem; padding: 5px 10px; }
 .theme-toggle { width: 46px; height: 25px; --toggle-travel: 22px; }
 .theme-toggle-thumb { width: 18px; height: 18px; font-size: 0.65rem; }
 .lang-select-trigger { height: 32px; padding: 0 10px; gap: 5px; font-size: 0.78rem; }
@@ -75,3 +74,9 @@ body {
 .archive-list a { font-size: 0.86rem; display: inline-block; padding-bottom: 1px; }
 
 .site-footer { font-size: 0.72rem; padding: 16px; }
+
+.term-panel { width: 86vw; max-width: 340px; padding: 56px 20px 24px; }
+.term-panel-close { width: 28px; height: 28px; font-size: 1rem; top: 14px; right: 14px; position: absolute; }
+.term-panel-label { font-size: 0.66rem; margin: 0 0 8px; }
+.term-panel-title { font-size: 1.08rem; margin: 0 0 10px; }
+.term-panel-body { font-size: 0.95rem; line-height: 1.65; }

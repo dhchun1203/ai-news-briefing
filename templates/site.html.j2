@@ -45,21 +45,14 @@
 <body>
 <header class="site-header">
   <div class="utility-bar">
-    <div class="share-menu" id="share-menu">
-      <button id="share-button" class="share-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="공유하기 / Share">
-        <span class="icon-share" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
-        </span>
-        <span class="icon-check" aria-hidden="true">&#10003;</span>
+    <div class="share-wrap" id="share-wrap">
+      <button id="share-button" class="share-button" type="button" aria-label="링크 복사 / Copy link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
       </button>
-      <ul class="share-menu-list" id="share-menu-list" role="menu" hidden>
-        <li role="menuitem" data-share="x">X (Twitter)</li>
-        <li role="menuitem" data-share="facebook">Facebook</li>
-        <li role="menuitem" data-share="copy">
-          <span class="lang-ko">링크 복사</span>
-          <span class="lang-en">Copy link</span>
-        </li>
-      </ul>
+      <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite">
+        <span class="lang-ko">복사되었습니다</span>
+        <span class="lang-en">Copied!</span>
+      </span>
     </div>
     <div class="lang-select" id="lang-select">
       <button type="button" class="lang-select-trigger" id="lang-select-trigger" aria-haspopup="listbox" aria-expanded="false">
@@ -151,15 +144,15 @@
       <span class="lang-en">Today's Insight</span>
     </p>
     <h2 class="insight-headline">
-      <span class="lang-ko">{{ daily_insight.headline_ko }}</span>
-      <span class="lang-en">{{ daily_insight.headline_en }}</span>
+      <span class="lang-ko">{{ daily_insight.headline_ko|safe }}</span>
+      <span class="lang-en">{{ daily_insight.headline_en|safe }}</span>
     </h2>
     <div class="insight-body">
       <div class="lang-ko">
-        {% for para in daily_insight.paragraphs_ko %}<p>{{ para }}</p>{% endfor %}
+        {% for para in daily_insight.paragraphs_ko %}<p>{{ para|safe }}</p>{% endfor %}
       </div>
       <div class="lang-en">
-        {% for para in daily_insight.paragraphs_en %}<p>{{ para }}</p>{% endfor %}
+        {% for para in daily_insight.paragraphs_en %}<p>{{ para|safe }}</p>{% endfor %}
       </div>
     </div>
     {% if daily_insight.watch_ko %}
@@ -168,8 +161,8 @@
         <span class="lang-ko">지켜볼 신호</span>
         <span class="lang-en">Signal to watch</span>
       </span>
-      <span class="lang-ko">{{ daily_insight.watch_ko }}</span>
-      <span class="lang-en">{{ daily_insight.watch_en }}</span>
+      <span class="lang-ko">{{ daily_insight.watch_ko|safe }}</span>
+      <span class="lang-en">{{ daily_insight.watch_en|safe }}</span>
     </p>
     {% endif %}
   </section>
@@ -205,16 +198,16 @@
           <span class="lang-ko">요약</span>
           <span class="lang-en">Summary</span>
         </h3>
-        <p class="lang-ko">{{ article.summary_ko }}</p>
-        <p class="lang-en">{{ article.summary_en }}</p>
+        <p class="lang-ko">{{ article.summary_ko|safe }}</p>
+        <p class="lang-en">{{ article.summary_en|safe }}</p>
       </div>
       <div class="article-implication">
         <h3 class="block-label">
           <span class="lang-ko">이 기사가 시사하는 점</span>
           <span class="lang-en">Why It Matters</span>
         </h3>
-        <p class="lang-ko">{{ article.implication_ko }}</p>
-        <p class="lang-en">{{ article.implication_en }}</p>
+        <p class="lang-ko">{{ article.implication_ko|safe }}</p>
+        <p class="lang-en">{{ article.implication_en|safe }}</p>
       </div>
     </article>
     {% endfor %}
@@ -241,6 +234,18 @@
     <span class="lang-en">Auto-generated daily at 08:00 KST · Last updated: {{ generated_at }}</span>
   </p>
 </footer>
+
+<div class="term-panel-backdrop" id="term-panel-backdrop" hidden></div>
+<aside class="term-panel" id="term-panel" aria-hidden="true">
+  <button type="button" class="term-panel-close" id="term-panel-close" aria-label="닫기 / Close">&times;</button>
+  <p class="term-panel-label">
+    <span class="lang-ko">용어 설명</span>
+    <span class="lang-en">Glossary</span>
+  </p>
+  <h3 class="term-panel-title" id="term-panel-title"></h3>
+  <p class="term-panel-body" id="term-panel-body"></p>
+</aside>
+<script type="application/json" id="glossary-data">{{ glossary|tojson }}</script>
 
 <script>
 (function () {
@@ -348,57 +353,60 @@
     });
   }
 
-  var shareWrap = document.getElementById("share-menu");
   var shareBtn = document.getElementById("share-button");
-  var shareList = document.getElementById("share-menu-list");
-  if (shareWrap && shareBtn && shareList) {
-    var closeShareMenu = function () {
-      shareList.hidden = true;
-      shareBtn.setAttribute("aria-expanded", "false");
-    };
-    var copyLink = function () {
+  var shareTooltip = document.getElementById("share-tooltip");
+  var shareTooltipTimer = null;
+  if (shareBtn) {
+    shareBtn.addEventListener("click", function () {
       if (!navigator.clipboard || !navigator.clipboard.writeText) return;
       navigator.clipboard.writeText(window.location.href).then(function () {
-        shareBtn.classList.add("copied");
-        setTimeout(function () { shareBtn.classList.remove("copied"); }, 1500);
+        if (!shareTooltip) return;
+        shareTooltip.classList.add("visible");
+        if (shareTooltipTimer) clearTimeout(shareTooltipTimer);
+        shareTooltipTimer = setTimeout(function () {
+          shareTooltip.classList.remove("visible");
+        }, 1600);
       }).catch(function () {});
+    });
+  }
+
+  var termPanel = document.getElementById("term-panel");
+  var termBackdrop = document.getElementById("term-panel-backdrop");
+  var termClose = document.getElementById("term-panel-close");
+  var termTitle = document.getElementById("term-panel-title");
+  var termBody = document.getElementById("term-panel-body");
+  var glossaryDataEl = document.getElementById("glossary-data");
+  var glossaryData = {};
+  if (glossaryDataEl) {
+    try { glossaryData = JSON.parse(glossaryDataEl.textContent || "{}"); } catch (e) {}
+  }
+  if (termPanel && termBackdrop && termTitle && termBody) {
+    var openTermPanel = function (term, entry) {
+      var lang = document.documentElement.getAttribute("data-lang") || "ko";
+      termTitle.textContent = term;
+      termBody.textContent = entry[lang] || entry.ko || entry.en || "";
+      termPanel.classList.add("open");
+      termPanel.setAttribute("aria-hidden", "false");
+      termBackdrop.hidden = false;
     };
-    shareBtn.addEventListener("click", function (e) {
-      e.stopPropagation();
-      // 모바일 등 Web Share API를 지원하는 환경에서는 OS 공유 시트를 바로 띄운다
-      // (카카오톡 등 설치된 앱이 자동으로 포함됨). 미지원 환경(주로 데스크톱)에서만
-      // 직접 만든 드롭다운(X / Facebook / 링크 복사)을 연다.
-      if (navigator.share) {
-        navigator.share({ title: document.title, url: window.location.href }).catch(function () {});
+    var closeTermPanel = function () {
+      termPanel.classList.remove("open");
+      termPanel.setAttribute("aria-hidden", "true");
+      termBackdrop.hidden = true;
+    };
+    document.addEventListener("click", function (e) {
+      var btn = e.target.closest && e.target.closest(".term-link");
+      if (btn) {
+        var term = btn.getAttribute("data-term");
+        var entry = glossaryData[term];
+        if (entry) openTermPanel(term, entry);
         return;
       }
-      var opening = shareList.hidden;
-      closeShareMenu();
-      if (opening) {
-        shareList.hidden = false;
-        shareBtn.setAttribute("aria-expanded", "true");
-      }
+      if (e.target === termBackdrop) closeTermPanel();
     });
-    Array.prototype.forEach.call(shareList.querySelectorAll("li[data-share]"), function (li) {
-      li.addEventListener("click", function () {
-        var kind = li.getAttribute("data-share");
-        var url = window.location.href;
-        var title = document.title;
-        if (kind === "x") {
-          window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(title) + "&url=" + encodeURIComponent(url), "_blank", "noopener,noreferrer");
-        } else if (kind === "facebook") {
-          window.open("https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url), "_blank", "noopener,noreferrer");
-        } else if (kind === "copy") {
-          copyLink();
-        }
-        closeShareMenu();
-      });
-    });
-    document.addEventListener("click", function (e) {
-      if (!shareWrap.contains(e.target)) closeShareMenu();
-    });
+    if (termClose) termClose.addEventListener("click", closeTermPanel);
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeShareMenu();
+      if (e.key === "Escape") closeTermPanel();
     });
   }
 })();

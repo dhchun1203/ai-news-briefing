@@ -106,10 +106,18 @@ link 태그 없음). 향후 Anthropic이 RSS를 공개하면 `config/feeds.json`
 
 ### 2. digest 스키마 (`data/digest_<날짜>.json`)
 `date`, `generated_at`, `articles[]`(title, link, source, published_at,
-summary_ko/en, implication_ko/en), 그리고 선택 필드 `daily_insight`(headline_ko/en,
-paragraphs_ko/en, watch_ko/en). 기사별 요약·시사점과 `daily_insight`(10개 기사를 가로질러
-읽어 종합한 "오늘의 인사이트")는 모두 Claude가 SKILL.md 3단계에서 직접 작성한다.
-`daily_insight`가 없는 날은 사이트에서 인사이트 섹션 자체가 렌더링되지 않는다.
+summary_ko/en, implication_ko/en), 선택 필드 `daily_insight`(headline_ko/en,
+paragraphs_ko/en, watch_ko/en), 선택 필드 `glossary[]`(term_ko, term_en, explanation_ko/en).
+기사별 요약·시사점, `daily_insight`(10개 기사를 가로질러 읽어 종합한 "오늘의 인사이트"),
+`glossary`(꼭 필요한 전문용어와 쉬운 설명)는 모두 Claude가 SKILL.md 3단계에서 직접
+작성한다. `daily_insight`가 없는 날은 사이트에서 인사이트 섹션 자체가 렌더링되지 않는다.
+
+**용어 설명(glossary)**: 요약·시사점·인사이트는 전문용어 없이 쉬운 말로 쓰는 게 기본
+원칙이고, 도저히 대체할 수 없는 핵심 용어만 `glossary`에 등록한다. `generate_site.py`가
+본문에서 그 용어(`term_ko`/`term_en`과 정확히 같은 표기)를 자동으로 찾아 클릭 가능한
+버튼으로 바꾸고, 클릭하면 화면 우측에 슬라이드 패널이 열려 쉬운 설명(`explanation_ko/en`)을
+보여준다. Claude는 별도 마크업 없이 `glossary`만 채우면 되고, 실제 HTML 삽입(정규식으로
+용어를 찾아 이스케이프 후 안전하게 감싸는 처리)은 스크립트가 담당한다.
 
 ### 3. 프로젝트 스킬: `.claude/skills/ai-news-briefing/SKILL.md`
 전체 워크플로(수집 → 원문 정독 → 요약/시사점 작성 → 사이트 생성 → 배포)를 하나의 스킬로
