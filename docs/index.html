@@ -62,10 +62,33 @@
       <span class="lang-ko">매일 아침 8시 · AI 기사 10건의 요약과 시사점</span>
       <span class="lang-en">Daily at 8AM KST · Summaries and takeaways from 10 AI articles</span>
     </p>
+    <p class="mission">
+      <span class="lang-ko">TechCrunch·VentureBeat 같은 업계 매체, OpenAI·Google DeepMind의 공식 발표, MarkTechPost·MIT Technology Review 같은 기술 전문 매체, Hacker News의 커뮤니티 신호까지 — 서로 다른 관점을 매일 교차 확인합니다. "무슨 일이 있었는지"보다 "왜 중요한지"를 짚어, 흩어진 뉴스를 하루 단위로 이어지는 흐름으로 읽을 수 있게 하는 것이 이 브리핑의 목표입니다.</span>
+      <span class="lang-en">We cross-check industry press (TechCrunch, VentureBeat), official lab announcements (OpenAI, Google DeepMind), technical outlets (MarkTechPost, MIT Technology Review), and community signal from Hacker News — deliberately mixing perspectives instead of trusting a single narrative. The goal isn't just what happened, but why it matters, so scattered daily headlines add up to a coherent read on where AI is heading.</span>
+    </p>
   </div>
 </header>
 
 <main class="content">
+  <section class="subscribe-box" aria-label="이메일 구독">
+    <p class="subscribe-title">
+      <span class="lang-ko">매일 아침 이메일로 받아보기</span>
+      <span class="lang-en">Get it in your inbox every morning</span>
+    </p>
+    <p class="subscribe-desc">
+      <span class="lang-ko">헤드라인과 한 줄 요약을 매일 이메일로 보내드려요.</span>
+      <span class="lang-en">Daily headlines and one-line summaries, delivered to your inbox.</span>
+    </p>
+    <form class="subscribe-form" id="subscribe-form">
+      <input type="email" name="email" required class="subscribe-input" placeholder="you@example.com" aria-label="이메일 주소">
+      <button type="submit" class="subscribe-submit">
+        <span class="lang-ko">구독하기</span>
+        <span class="lang-en">Subscribe</span>
+      </button>
+    </form>
+    <p class="subscribe-status" id="subscribe-status" role="status" aria-live="polite"></p>
+  </section>
+
   <div class="date-bar">
     <span class="date-label">2026-07-23</span>
     
@@ -446,6 +469,52 @@
     });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeList();
+    });
+  }
+
+  var subscribeForm = document.getElementById("subscribe-form");
+  var subscribeStatus = document.getElementById("subscribe-status");
+  if (subscribeForm && subscribeStatus) {
+    var messages = {
+      sending: { ko: "전송 중...", en: "Sending..." },
+      confirm: { ko: "확인 메일을 보냈어요. 받은편지함에서 링크를 눌러 구독을 완료해주세요.", en: "Check your inbox — click the confirmation link to finish subscribing." },
+      error: { ko: "문제가 발생했어요. 잠시 후 다시 시도해주세요.", en: "Something went wrong. Please try again." },
+      network: { ko: "네트워크 오류가 발생했어요. 다시 시도해주세요.", en: "Network error. Please try again." }
+    };
+    var currentLang = function () {
+      return document.documentElement.getAttribute("data-lang") || "ko";
+    };
+    var setStatus = function (key) {
+      subscribeStatus.textContent = messages[key][currentLang()];
+    };
+    subscribeForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var input = subscribeForm.querySelector('input[name="email"]');
+      var submitBtn = subscribeForm.querySelector(".subscribe-submit");
+      var email = input.value.trim();
+      submitBtn.disabled = true;
+      setStatus("sending");
+      fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email })
+      })
+        .then(function (r) {
+          return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+        })
+        .then(function (result) {
+          submitBtn.disabled = false;
+          if (result.ok) {
+            setStatus("confirm");
+            subscribeForm.reset();
+          } else {
+            setStatus("error");
+          }
+        })
+        .catch(function () {
+          submitBtn.disabled = false;
+          setStatus("network");
+        });
     });
   }
 })();

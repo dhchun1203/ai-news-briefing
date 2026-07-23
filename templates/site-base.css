@@ -150,6 +150,59 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 :root[data-lang="ko"] .lang-en { display: none; }
 :root[data-lang="en"] .lang-ko { display: none; }
 
+/* ---------- 이메일 구독 ---------- */
+.subscribe-box {
+  text-align: center;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.subscribe-title {
+  font-family: var(--serif);
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.subscribe-desc {
+  font-family: var(--sans);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.subscribe-form {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.subscribe-input {
+  flex: 1;
+  font-family: var(--sans);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+}
+.subscribe-input:focus { outline: none; border-color: var(--text); }
+
+.subscribe-submit {
+  font-family: var(--sans);
+  font-weight: 700;
+  border: 1px solid var(--rule);
+  background: var(--rule);
+  color: var(--bg);
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.subscribe-submit:hover { opacity: 0.85; }
+.subscribe-submit:disabled { opacity: 0.5; cursor: default; }
+
+.subscribe-status {
+  font-family: var(--sans);
+  color: var(--text-muted);
+}
+
 .header-inner {
   text-align: center;
   border-bottom: 3px double var(--rule);
@@ -168,6 +221,14 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.mission {
+  font-family: var(--serif);
+  color: var(--text-muted);
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ---------- 날짜 바 ---------- */

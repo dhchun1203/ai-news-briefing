@@ -24,6 +24,15 @@ body {
 
 .site-header h1 { font-size: 2.6rem; }
 .tagline { margin: 10px 0 0; font-size: 0.82rem; }
+.mission { margin: 14px auto 0; font-size: 0.92rem; line-height: 1.6; }
+
+.subscribe-box { padding: 24px 24px 26px; }
+.subscribe-title { font-size: 1.15rem; }
+.subscribe-desc { font-size: 0.88rem; margin-bottom: 16px; }
+.subscribe-form { max-width: 420px; gap: 8px; }
+.subscribe-input { padding: 10px 16px; font-size: 0.95rem; }
+.subscribe-submit { padding: 10px 20px; font-size: 0.9rem; }
+.subscribe-status { font-size: 0.82rem; min-height: 1.2em; margin-top: 10px; }
 
 .content {
   max-width: 820px;

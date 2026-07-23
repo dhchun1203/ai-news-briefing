@@ -4,3 +4,5 @@ __pycache__/
 .venv/
 .venv_test/
 .claude/settings.local.json
+.env
+.vercel/

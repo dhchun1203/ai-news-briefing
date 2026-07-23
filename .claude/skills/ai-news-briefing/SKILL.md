@@ -19,6 +19,11 @@ MIT Technology Review AI, Hacker News AI 등). 특정 매체를 고정 편애하
 - `config/feeds.json`의 피드 URL이 최근에 검증된 적이 있는지 확인한다. 반년 이상 검증 이력이
   없거나 실행 중 특정 피드가 계속 실패한다면, WebFetch나 `curl`로 URL이 여전히 유효한 RSS/Atom을
   반환하는지 재검증하고 필요하면 대체 URL로 교체한다.
+- 이메일 구독 발송(6단계)에 필요한 환경변수(`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `RESEND_API_KEY`, `RESEND_SENDER_EMAIL`, `SUBSCRIBE_TOKEN_SECRET`, `SITE_URL`)가 이 Routine의
+  Environment에 등록되어 있는지 확인한다. 아직 등록 전이라면(`README.md`의 "이메일 구독
+  설정" 참고) 6단계는 건너뛰고 나머지 단계는 정상 진행한 뒤, 완료 보고에 "이메일 구독
+  환경변수 미설정으로 발송 생략"이라고 명시한다.
 
 ## 1. 기사 수집
 ```
@@ -101,7 +106,20 @@ Vercel Git Integration이 `main` 브랜치 push를 감지해 `vercel.json`의
 단계는 커밋/푸시까지만 수행되고 배포는 되지 않으니, 사용자에게 vercel.com에서 저장소를
 Import해야 한다고 안내한다.
 
-## 6. 완료 보고
+## 6. 이메일 구독자에게 발송
+```
+python scripts/send_broadcast.py --input data/digest_<날짜>.json
+```
+- Supabase `subscribers` 테이블에서 `confirmed_at`이 있고 `unsubscribed_at`이 없는(=더블
+  옵트인을 마친) 이메일만 조회해, 기사 제목+한 줄 요약(`summary_ko`)+원문 링크로 구성된
+  가벼운 HTML 이메일을 Resend 배치 발송(`/emails/batch`, 최대 100통씩)으로 보낸다.
+- 웹사이트에는 있는 "시사하는 점"은 이메일에는 넣지 않는다 — 전체 브리핑 링크로 유도한다.
+- 필요한 환경변수: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`,
+  `RESEND_SENDER_EMAIL`, `SUBSCRIBE_TOKEN_SECRET`, `SITE_URL`. 하나라도 없으면 스크립트가
+  에러 메시지와 함께 종료하니 그대로 보고한다 (Routine Environment에 등록되어 있어야 함).
+- 구독자가 0명이면 "발송 대상 구독자가 없습니다"만 출력하고 정상 종료한다 — 실패가 아니다.
+
+## 7. 완료 보고
 다음을 요약해 보고한다: 수집 후보 수와 선별된 기사 수, 실패한 피드(있다면), 오늘 브리핑에
 포함된 기사 제목 10개와 출처, 원문 WebFetch가 실패해 rss_summary로 대체 작성한 기사가
-있었는지, 커밋/푸시 결과, `docs/index.html` 경로.
+있었는지, 커밋/푸시 결과, `docs/index.html` 경로, 이메일 발송 대상 인원 수.
