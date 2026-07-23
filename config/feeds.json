@@ -1,0 +1,16 @@
+{
+  "_comment": "AI 뉴스 RSS 피드 목록. 자유롭게 추가/삭제 가능. 각 URL은 서비스 개편으로 바뀔 수 있으니 주기적으로 유효성을 재검증할 것 (WebFetch나 curl로 200 응답 + item 존재 확인). Anthropic은 공식 RSS 피드를 제공하지 않아(2026-07-23 기준 www.anthropic.com/rss.xml 등 404) 제외했다.",
+  "feeds": [
+    { "name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/" },
+    { "name": "VentureBeat AI", "url": "https://venturebeat.com/category/ai/feed/" },
+    { "name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml" },
+    { "name": "MarkTechPost", "url": "https://www.marktechpost.com/feed/" },
+    { "name": "OpenAI News", "url": "https://openai.com/news/rss.xml" },
+    { "name": "Google DeepMind Blog", "url": "https://deepmind.google/blog/rss.xml" },
+    { "name": "Google AI Blog", "url": "https://blog.google/technology/ai/rss/" },
+    { "name": "Ars Technica AI", "url": "https://arstechnica.com/ai/feed/" },
+    { "name": "Wired AI", "url": "https://www.wired.com/feed/tag/ai/latest/rss" },
+    { "name": "MIT Technology Review AI", "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed" },
+    { "name": "Hacker News (AI)", "url": "https://hnrss.org/newest?q=AI" }
+  ]
+}

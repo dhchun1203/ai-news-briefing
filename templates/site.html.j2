@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 뉴스 브리핑 — {{ date }}{% if is_archive %} (지난 기록){% endif %}</title>
+<meta name="description" content="{{ date }}자 AI 뉴스 요약과 시사점">
+<link rel="stylesheet" href="{% if is_archive %}../site.css{% else %}site.css{% endif %}">
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <h1><a href="{% if is_archive %}../index.html{% else %}index.html{% endif %}">AI 뉴스 브리핑</a></h1>
+    <p class="tagline">매일 아침 8시, AI 기사 {{ articles|length }}건의 요약과 시사점</p>
+  </div>
+</header>
+
+<main class="content">
+  <div class="date-bar">
+    <span class="date-label">{{ date }}</span>
+    {% if is_archive %}
+      <span class="archive-badge">지난 기록</span>
+      <a class="back-link" href="{{ home_link }}">오늘자 브리핑 보기 →</a>
+    {% endif %}
+  </div>
+
+  {% if not articles %}
+  <p class="empty-state">오늘은 조건에 맞는 기사를 찾지 못했습니다.</p>
+  {% endif %}
+
+  <div class="article-list">
+    {% for article in articles %}
+    <article class="article-card">
+      <div class="article-meta">
+        <span class="source">{{ article.source }}</span>
+        <span class="dot">·</span>
+        <span class="published">{{ article.published_at[:10] }}</span>
+      </div>
+      <h2 class="article-title">
+        <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
+      </h2>
+      <div class="article-summary">
+        <h3 class="block-label">요약</h3>
+        <p>{{ article.summary }}</p>
+      </div>
+      <div class="article-implication">
+        <h3 class="block-label">이 기사가 시사하는 점</h3>
+        <p>{{ article.implication }}</p>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+
+  {% if archives %}
+  <section class="archive-section">
+    <h2 class="archive-title">지난 브리핑</h2>
+    <ul class="archive-list">
+      {% for a in archives %}
+      <li><a href="{{ archive_link_prefix }}{{ a }}.html">{{ a }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</main>
+
+<footer class="site-footer">
+  <p>매일 08:00 KST 자동 생성 · 마지막 생성: {{ generated_at }}</p>
+</footer>
+</body>
+</html>
