@@ -10,6 +10,8 @@ body {
 
 .utility-bar { padding: 10px 24px; }
 .share-button { width: 34px; height: 34px; font-size: 1rem; }
+.share-menu-list { padding: 6px; min-width: 140px; }
+.share-menu-list li { padding: 8px 12px; font-size: 0.9rem; }
 .theme-toggle { width: 52px; height: 28px; --toggle-travel: 26px; }
 .theme-toggle-thumb { width: 20px; height: 20px; font-size: 0.72rem; }
 .lang-select-trigger { height: 34px; padding: 0 12px; gap: 6px; font-size: 0.85rem; }

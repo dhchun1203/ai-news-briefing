@@ -51,6 +51,8 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   border-bottom: 1px solid var(--border);
 }
 
+.share-menu { position: relative; }
+
 .share-button {
   background: none;
   border: 1px solid var(--border);
@@ -65,6 +67,29 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .share-button:hover { border-color: var(--text); }
 .share-button svg { display: block; }
 .share-button .icon-check { display: none; }
+
+.share-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  margin: 0;
+  list-style: none;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  z-index: 20;
+}
+.share-menu-list[hidden] { display: none; }
+
+.share-menu-list li {
+  font-family: var(--sans);
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.share-menu-list li:hover { background: var(--implication-bg); }
 .share-button.copied .icon-share { display: none; }
 .share-button.copied .icon-check { display: inline; color: var(--accent); }
 

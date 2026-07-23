@@ -112,15 +112,17 @@ def build_html(digest: dict, site_url: str, unsub_url: str) -> str:
     return f"""
     <div style="max-width:600px;margin:0 auto;font-family:-apple-system,Arial,sans-serif;">
       <h1 style="font-size:22px;margin-bottom:4px;">AI 뉴스 브리핑 — {date}</h1>
-      <p style="color:#666;font-size:13px;margin-top:0;">
+      <p style="margin:14px 0 22px;">
+        <a href="{site_link}" style="display:inline-block;background-color:#a2201d;
+        color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;
+        padding:13px 26px;border-radius:6px;">오늘의 전체 브리핑 보기 (요약 + 시사점) →</a>
+      </p>
+      <p style="color:#666;font-size:13px;margin:0 0 20px;">
         기사 {len(articles)}건의 헤드라인과 한 줄 요약입니다. 각 기사가 시사하는 점과 전체
-        인사이트 분석은 전체 브리핑에서 확인하세요.
+        인사이트 분석은 위 링크에서 확인하세요.
       </p>
       {insight_block}
       <table style="width:100%;border-collapse:collapse;">{''.join(rows)}</table>
-      <p style="margin-top:24px;">
-        <a href="{site_link}" style="font-weight:700;color:#a2201d;">오늘의 전체 브리핑 보기 (요약 + 시사점) →</a>
-      </p>
       <p style="margin-top:32px;font-size:12px;color:#999;">
         더 이상 받고 싶지 않다면 <a href="{unsub_url}" style="color:#999;">구독취소</a>를 눌러주세요.
       </p>

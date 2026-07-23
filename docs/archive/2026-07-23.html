@@ -6,6 +6,12 @@
 <meta charset="UTF-8">
 <title>AI 뉴스 브리핑 — 2026-07-23 (지난 기록)</title>
 <meta name="description" content="2026-07-23자 AI 뉴스 요약과 시사점">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AI 뉴스 브리핑 — 2026-07-23 (지난 기록)">
+<meta property="og:description" content="2026-07-23자 AI 뉴스 요약과 시사점">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="AI 뉴스 브리핑 — 2026-07-23 (지난 기록)">
+<meta name="twitter:description" content="2026-07-23자 AI 뉴스 요약과 시사점">
 <script>
 (function () {
   function getCookie(name) {
@@ -34,16 +40,27 @@
 <link rel="stylesheet" href="../site-base.css">
 <link rel="stylesheet" href="../site-mobile.css" media="(max-width: 767px)">
 <link rel="stylesheet" href="../site-desktop.css" media="(min-width: 768px)">
+<script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 <header class="site-header">
   <div class="utility-bar">
-    <button id="share-button" class="share-button" type="button" aria-label="공유하기 / Share">
-      <span class="icon-share" aria-hidden="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
-      </span>
-      <span class="icon-check" aria-hidden="true">&#10003;</span>
-    </button>
+    <div class="share-menu" id="share-menu">
+      <button id="share-button" class="share-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="공유하기 / Share">
+        <span class="icon-share" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+        </span>
+        <span class="icon-check" aria-hidden="true">&#10003;</span>
+      </button>
+      <ul class="share-menu-list" id="share-menu-list" role="menu" hidden>
+        <li role="menuitem" data-share="x">X (Twitter)</li>
+        <li role="menuitem" data-share="facebook">Facebook</li>
+        <li role="menuitem" data-share="copy">
+          <span class="lang-ko">링크 복사</span>
+          <span class="lang-en">Copy link</span>
+        </li>
+      </ul>
+    </div>
     <div class="lang-select" id="lang-select">
       <button type="button" class="lang-select-trigger" id="lang-select-trigger" aria-haspopup="listbox" aria-expanded="false">
         <span class="lang-select-current lang-ko">한국어</span>
@@ -575,20 +592,57 @@
     });
   }
 
+  var shareWrap = document.getElementById("share-menu");
   var shareBtn = document.getElementById("share-button");
-  if (shareBtn) {
-    shareBtn.addEventListener("click", function () {
-      var shareData = { title: document.title, url: window.location.href };
+  var shareList = document.getElementById("share-menu-list");
+  if (shareWrap && shareBtn && shareList) {
+    var closeShareMenu = function () {
+      shareList.hidden = true;
+      shareBtn.setAttribute("aria-expanded", "false");
+    };
+    var copyLink = function () {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) return;
+      navigator.clipboard.writeText(window.location.href).then(function () {
+        shareBtn.classList.add("copied");
+        setTimeout(function () { shareBtn.classList.remove("copied"); }, 1500);
+      }).catch(function () {});
+    };
+    shareBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      // 모바일 등 Web Share API를 지원하는 환경에서는 OS 공유 시트를 바로 띄운다
+      // (카카오톡 등 설치된 앱이 자동으로 포함됨). 미지원 환경(주로 데스크톱)에서만
+      // 직접 만든 드롭다운(X / Facebook / 링크 복사)을 연다.
       if (navigator.share) {
-        navigator.share(shareData).catch(function () {});
+        navigator.share({ title: document.title, url: window.location.href }).catch(function () {});
         return;
       }
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(window.location.href).then(function () {
-          shareBtn.classList.add("copied");
-          setTimeout(function () { shareBtn.classList.remove("copied"); }, 1500);
-        }).catch(function () {});
+      var opening = shareList.hidden;
+      closeShareMenu();
+      if (opening) {
+        shareList.hidden = false;
+        shareBtn.setAttribute("aria-expanded", "true");
       }
+    });
+    Array.prototype.forEach.call(shareList.querySelectorAll("li[data-share]"), function (li) {
+      li.addEventListener("click", function () {
+        var kind = li.getAttribute("data-share");
+        var url = window.location.href;
+        var title = document.title;
+        if (kind === "x") {
+          window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(title) + "&url=" + encodeURIComponent(url), "_blank", "noopener,noreferrer");
+        } else if (kind === "facebook") {
+          window.open("https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url), "_blank", "noopener,noreferrer");
+        } else if (kind === "copy") {
+          copyLink();
+        }
+        closeShareMenu();
+      });
+    });
+    document.addEventListener("click", function (e) {
+      if (!shareWrap.contains(e.target)) closeShareMenu();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeShareMenu();
     });
   }
 })();
