@@ -8,8 +8,13 @@
 <meta name="description" content="{{ date }}자 AI 뉴스 요약과 시사점">
 <script>
 (function () {
+  function getCookie(name) {
+    var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
   try {
-    var t = localStorage.getItem("theme");
+    // 처음 방문(쿠키 없음)이면 시스템 설정과 무관하게 항상 라이트 모드로 뜬다.
+    var t = getCookie("theme");
     if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
     var l = localStorage.getItem("lang");
     if (l === "ko" || l === "en") {
@@ -63,8 +68,14 @@
       <span class="lang-en">Daily at 8AM KST · Summaries and takeaways from {{ articles|length }} AI articles</span>
     </p>
     <p class="mission">
-      <span class="lang-ko">TechCrunch·VentureBeat 같은 업계 매체, OpenAI·Google DeepMind의 공식 발표, MarkTechPost·MIT Technology Review 같은 기술 전문 매체, Hacker News의 커뮤니티 신호까지 — 서로 다른 관점을 매일 교차 확인합니다. "무슨 일이 있었는지"보다 "왜 중요한지"를 짚어, 흩어진 뉴스를 하루 단위로 이어지는 흐름으로 읽을 수 있게 하는 것이 이 브리핑의 목표입니다.</span>
-      <span class="lang-en">We cross-check industry press (TechCrunch, VentureBeat), official lab announcements (OpenAI, Google DeepMind), technical outlets (MarkTechPost, MIT Technology Review), and community signal from Hacker News — deliberately mixing perspectives instead of trusting a single narrative. The goal isn't just what happened, but why it matters, so scattered daily headlines add up to a coherent read on where AI is heading.</span>
+      <span class="lang-ko">
+        <span class="mission-para">TechCrunch·VentureBeat 같은 업계 매체, OpenAI·Google DeepMind의 공식 발표, MarkTechPost·MIT Technology Review 같은 기술 전문 매체, Hacker News의 커뮤니티 신호까지 — 서로 다른 관점을 매일 교차 확인합니다.</span>
+        <span class="mission-para mission-emphasis">"무슨 일이 있었는지"보다 "왜 중요한지"를 짚어, 흩어진 뉴스를 하루 단위로 이어지는 흐름으로 읽을 수 있게 하는 것이 이 브리핑의 목표입니다.</span>
+      </span>
+      <span class="lang-en">
+        <span class="mission-para">We cross-check industry press (TechCrunch, VentureBeat), official lab announcements (OpenAI, Google DeepMind), technical outlets (MarkTechPost, MIT Technology Review), and community signal from Hacker News — deliberately mixing perspectives instead of trusting a single narrative.</span>
+        <span class="mission-para mission-emphasis">The goal isn't just what happened, but why it matters, so scattered daily headlines add up to a coherent read on where AI is heading.</span>
+      </span>
     </p>
   </div>
 </header>
@@ -181,20 +192,20 @@
 (function () {
   var themeBtn = document.getElementById("theme-toggle");
   if (themeBtn) {
-    var systemPrefersDark = function () {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches;
-    };
+    // 시스템 다크모드 설정과 무관하게, 쿠키에 저장된 명시적 선택이 없으면 항상 라이트가 기본값.
     var isDarkActive = function () {
-      var explicit = document.documentElement.getAttribute("data-theme");
-      if (explicit === "dark") return true;
-      if (explicit === "light") return false;
-      return systemPrefersDark();
+      return document.documentElement.getAttribute("data-theme") === "dark";
+    };
+    var setThemeCookie = function (value) {
+      var expires = new Date();
+      expires.setTime(expires.getTime() + 365 * 24 * 60 * 60 * 1000);
+      document.cookie = "theme=" + encodeURIComponent(value) + "; expires=" + expires.toUTCString() + "; path=/; SameSite=Lax";
     };
     themeBtn.setAttribute("aria-checked", String(isDarkActive()));
     themeBtn.addEventListener("click", function () {
       var next = isDarkActive() ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", next);
-      try { localStorage.setItem("theme", next); } catch (e) {}
+      setThemeCookie(next);
       themeBtn.setAttribute("aria-checked", String(next === "dark"));
     });
   }

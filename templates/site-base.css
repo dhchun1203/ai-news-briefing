@@ -14,20 +14,8 @@
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Malgun Gothic", sans-serif;
 }
 
-/* 시스템이 다크를 선호하고, 사용자가 명시적으로 라이트를 고르지 않았을 때 */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #000000;
-    --text: #e6e6e6;
-    --text-muted: #9a9a9a;
-    --border: #333333;
-    --rule: #e6e6e6;
-    --accent: #e2726f;
-    --implication-bg: #19191a;
-  }
-}
-
-/* 토글 버튼으로 명시적으로 다크를 선택했을 때 (시스템 설정과 무관하게 항상 우선) */
+/* 첫 로드 시엔 시스템 설정과 무관하게 항상 라이트 모드로 뜨고, 토글 버튼으로 명시적으로
+   다크를 선택했을 때만 다크 모드가 적용된다 (선택값은 쿠키에 저장되어 다음 방문에도 유지). */
 :root[data-theme="dark"] {
   --bg: #000000;
   --text: #e6e6e6;
@@ -91,15 +79,8 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .icon-moon, .icon-sun { display: none; }
 :root:not([data-theme="dark"]) .icon-moon { display: inline; }
 :root[data-theme="dark"] .icon-sun { display: inline; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .icon-moon { display: none; }
-  :root:not([data-theme]) .icon-sun { display: inline; }
-}
 
 :root[data-theme="dark"] .theme-toggle-thumb { transform: translateX(var(--toggle-travel)); }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .theme-toggle-thumb { transform: translateX(var(--toggle-travel)); }
-}
 
 /* ---------- 언어 선택 드롭다운 ---------- */
 .lang-select { position: relative; }
@@ -226,9 +207,28 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .mission {
   font-family: var(--serif);
   color: var(--text-muted);
+  text-align: left;
   max-width: 560px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* 문단을 왼쪽 정렬(중앙 정렬은 여러 줄에서 가독성이 떨어짐)하고, 두 문장을 시각적으로
+   분리해 "소스 구성" 문장과 "왜 중요한지" 문장을 구분한다. */
+.mission .lang-ko,
+.mission .lang-en {
+  display: block;
+}
+
+.mission-para {
+  display: block;
+}
+.mission-para + .mission-para {
+  margin-top: 0.6em;
+}
+
+.mission-emphasis {
+  color: var(--text);
 }
 
 /* ---------- 날짜 바 ---------- */

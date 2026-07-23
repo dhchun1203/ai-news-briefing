@@ -19,6 +19,9 @@ from pathlib import Path
 
 RESEND_API = "https://api.resend.com"
 BATCH_SIZE = 100
+# Resend/Supabase 모두 Cloudflare 뒤에 있어, urllib 기본 User-Agent(Python-urllib/x.x)로
+# 요청하면 봇으로 간주돼 403(Cloudflare error 1010)으로 차단된다. 일반적인 UA를 지정해 우회한다.
+USER_AGENT = "ai-news-briefing-bot/1.0 (+https://www.dailyaithread.com)"
 
 
 def parse_args():
@@ -63,6 +66,7 @@ def fetch_confirmed_subscribers(supabase_url: str, service_role_key: str) -> lis
         headers={
             "apikey": service_role_key,
             "Authorization": f"Bearer {service_role_key}",
+            "User-Agent": USER_AGENT,
         },
     )
     try:
@@ -119,6 +123,7 @@ def send_batch(api_key: str, emails: list, subject: str, html_by_email: dict):
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            "User-Agent": USER_AGENT,
         },
     )
     try:
