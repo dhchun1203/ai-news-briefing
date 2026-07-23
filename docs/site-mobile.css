@@ -1,56 +1,49 @@
 /* 모바일 전용 레이아웃 (~767px 이하). 가독성 최우선:
-   - 작은 화면에서 읽기 편하도록 본문 글자 크기를 16px 이상으로 유지 (iOS 자동 확대 방지 포함)
-   - 줄 간격을 넉넉히 줘서 좁은 폭에서도 눈이 편하게
-   - 카드 좌우 여백은 좁히되 상하 여백은 유지해 스크롤 리듬 확보 */
+   - 본문 글자 크기 16px 이상 유지, 줄 간격을 넉넉히 줘서 좁은 폭에서도 눈이 편하게
+   - 마스트헤드/토글 버튼이 좁은 화면에서도 여유 있게 보이도록 별도 크기 조정 */
 
 body {
   font-size: 16px;
   line-height: 1.75;
 }
 
-.header-inner {
-  padding: 20px 16px 16px;
-}
+.utility-bar { padding: 8px 16px; }
+.theme-toggle { width: 32px; height: 32px; font-size: 0.95rem; }
 
-.site-header h1 { font-size: 1.3rem; }
-.tagline { margin: 6px 0 0; font-size: 0.88rem; }
+.header-inner { padding: 22px 16px 16px; }
 
-.content {
-  padding: 20px 16px 56px;
-}
+.site-header h1 { font-size: 1.7rem; }
+.tagline { margin: 8px 0 0; font-size: 0.66rem; }
 
-.date-bar { margin-bottom: 16px; }
-.date-label { font-size: 1.05rem; }
-.back-link { font-size: 0.85rem; }
+.content { padding: 18px 16px 56px; }
 
-.article-list { gap: 16px; }
+.date-bar { padding: 0 0 12px; margin-bottom: 2px; row-gap: 8px; }
+.date-label { font-size: 0.8rem; }
+.back-link { font-size: 0.72rem; width: 100%; }
+.archive-badge { font-size: 0.68rem; }
 
-.article-card { padding: 16px; }
+.article-card { padding: 22px 0; }
+.article-card:first-child { padding-top: 14px; }
 
-.article-meta {
-  font-size: 0.8rem;
-  margin-bottom: 8px;
-}
+.article-meta { font-size: 0.72rem; margin-bottom: 8px; }
 
 .article-title {
-  font-size: 1.08rem;
-  line-height: 1.5;
+  font-size: 1.18rem;
+  line-height: 1.42;
   margin: 0 0 12px;
 }
-
-/* 손가락으로 누르기 쉽도록 링크 터치 영역 확보 */
 .article-title a { display: inline-block; padding: 2px 0; }
 
-.block-label { font-size: 0.72rem; }
+.block-label { font-size: 0.68rem; }
 
 .article-summary { margin-bottom: 12px; }
 .article-summary p, .article-implication p { font-size: 0.98rem; }
 
-.article-implication { padding: 10px 12px; }
+.article-implication { padding: 2px 0 2px 14px; }
 
 .archive-section { margin-top: 36px; padding-top: 16px; }
-.archive-title { font-size: 0.95rem; margin: 0 0 10px; }
-.archive-list { gap: 10px 14px; }
-.archive-list a { font-size: 0.9rem; padding: 4px 0; display: inline-block; }
+.archive-title { font-size: 0.8rem; margin: 0 0 10px; }
+.archive-list { gap: 8px 16px; }
+.archive-list a { font-size: 0.86rem; display: inline-block; padding-bottom: 1px; }
 
-.site-footer { font-size: 0.78rem; padding: 18px 16px; }
+.site-footer { font-size: 0.72rem; padding: 16px; }

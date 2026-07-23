@@ -2,6 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem("theme");
+    if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 뉴스 브리핑 — 2026-07-23 (지난 기록)</title>
 <meta name="description" content="2026-07-23자 AI 뉴스 요약과 시사점">
@@ -11,9 +19,15 @@
 </head>
 <body>
 <header class="site-header">
+  <div class="utility-bar">
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="다크모드 전환">
+      <span class="icon-moon" aria-hidden="true">&#9789;</span>
+      <span class="icon-sun" aria-hidden="true">&#9728;</span>
+    </button>
+  </div>
   <div class="header-inner">
     <h1><a href="../index.html">AI 뉴스 브리핑</a></h1>
-    <p class="tagline">매일 아침 8시, AI 기사 10건의 요약과 시사점</p>
+    <p class="tagline">매일 아침 8시 · AI 기사 10건의 요약과 시사점</p>
   </div>
 </header>
 
@@ -228,5 +242,26 @@
 <footer class="site-footer">
   <p>매일 08:00 KST 자동 생성 · 마지막 생성: 2026-07-23T05:02:10Z</p>
 </footer>
+
+<script>
+(function () {
+  var btn = document.getElementById("theme-toggle");
+  if (!btn) return;
+  function systemPrefersDark() {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function isDarkActive() {
+    var explicit = document.documentElement.getAttribute("data-theme");
+    if (explicit === "dark") return true;
+    if (explicit === "light") return false;
+    return systemPrefersDark();
+  }
+  btn.addEventListener("click", function () {
+    var next = isDarkActive() ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+  });
+})();
+</script>
 </body>
 </html>
