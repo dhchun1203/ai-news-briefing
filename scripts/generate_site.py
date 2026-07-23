@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """data/digest_<날짜>.json을 읽어 docs/index.html과 docs/archive/<날짜>.html을 렌더링한다."""
 import argparse
+import copy
 import html
 import json
 import re
@@ -12,9 +13,21 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = ROOT / "templates"
+CONFIG_DIR = ROOT / "config"
 DEFAULT_DOCS_DIR = ROOT / "docs"
 
 MAX_ARCHIVE_LINKS = 60
+MAX_SEARCH_RESULTS_SOURCE_FILES = None  # 제한 없음 — 검색 인덱스는 archive 폴더 전체를 스캔
+
+
+def load_source_types():
+    """config/feeds.json의 feed name -> type(primary/press/community) 매핑을 읽는다.
+    등록되지 않은 출처는 기본값 'press'로 취급한다."""
+    feeds_path = CONFIG_DIR / "feeds.json"
+    if not feeds_path.exists():
+        return {}
+    data = json.loads(feeds_path.read_text(encoding="utf-8"))
+    return {f["name"]: f.get("type", "press") for f in data.get("feeds", [])}
 
 
 def build_glossary_maps(glossary):
@@ -106,9 +119,77 @@ def collect_archive_dates(archive_dir: Path, current_date: str):
     return sorted(dates, reverse=True)[:MAX_ARCHIVE_LINKS]
 
 
+def collect_weekly_labels(docs_dir: Path):
+    weekly_dir = docs_dir / "weekly"
+    if not weekly_dir.exists():
+        return []
+    return sorted((f.stem for f in weekly_dir.glob("*.html")), reverse=True)[:MAX_ARCHIVE_LINKS]
+
+
+def save_archive_json(archive_dir: Path, raw_digest: dict):
+    """이 날짜의 원본 digest(글로서리 링크화로 마크업이 섞이기 전의 순수 텍스트)를
+    docs/archive/<날짜>.json으로 영구 보관한다. data/*.json은 git에 커밋되지 않아
+    실행이 끝나면 사라지므로, 검색·주간 회고 기능이 과거 데이터를 읽을 수 있는
+    유일한 경로가 이 파일이다."""
+    date = raw_digest["date"]
+    payload = {
+        "date": date,
+        "generated_at": raw_digest.get("generated_at"),
+        "daily_insight": raw_digest.get("daily_insight"),
+        "articles": [
+            {
+                "title": a.get("title"),
+                "link": a.get("link"),
+                "source": a.get("source"),
+                "published_at": a.get("published_at"),
+                "summary_ko": a.get("summary_ko"),
+                "summary_en": a.get("summary_en"),
+                "implication_ko": a.get("implication_ko"),
+                "implication_en": a.get("implication_en"),
+            }
+            for a in raw_digest.get("articles", [])
+        ],
+    }
+    (archive_dir / f"{date}.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def build_search_index(archive_dir: Path, docs_dir: Path):
+    """docs/archive/*.json 전체를 스캔해 검색용 인덱스 하나(docs/search-index.json)로
+    합친다. 매번 archive 폴더 전체에서 다시 만들기 때문에, 이 스크립트를 여러 날짜에
+    걸쳐 반복 실행해도 인덱스는 항상 현재 archive 폴더 상태와 일치한다(멱등적)."""
+    entries = []
+    for f in sorted(archive_dir.glob("*.json"), reverse=True):
+        try:
+            day = json.loads(f.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        for a in day.get("articles", []):
+            entries.append(
+                {
+                    "date": day.get("date", f.stem),
+                    "title": a.get("title", ""),
+                    "link": a.get("link", ""),
+                    "source": a.get("source", ""),
+                    "summary_ko": a.get("summary_ko", ""),
+                    "summary_en": a.get("summary_en", ""),
+                }
+            )
+    (docs_dir / "search-index.json").write_text(
+        json.dumps(entries, ensure_ascii=False), encoding="utf-8"
+    )
+    return len(entries)
+
+
 def main():
     args = parse_args()
     digest = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    raw_digest = copy.deepcopy(digest)  # 글로서리 링크화(HTML 마크업 삽입) 이전의 순수 텍스트본
+
+    source_types = load_source_types()
+    for article in digest.get("articles", []):
+        article["source_type"] = source_types.get(article.get("source"), "press")
 
     glossary_lookup = apply_glossary(digest)  # articles/daily_insight의 텍스트를 in-place로 치환
 
@@ -121,6 +202,9 @@ def main():
     archive_dir = docs_dir / "archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
 
+    save_archive_json(archive_dir, raw_digest)
+    indexed_count = build_search_index(archive_dir, docs_dir)
+
     for css_name in ("site-base.css", "site-mobile.css", "site-desktop.css"):
         shutil.copyfile(TEMPLATES_DIR / css_name, docs_dir / css_name)
 
@@ -131,6 +215,7 @@ def main():
     template = env.get_template("site.html.j2")
 
     past_archives = collect_archive_dates(archive_dir, date)
+    weekly_labels = collect_weekly_labels(docs_dir)
 
     # docs/index.html (오늘자, 항상 최신)
     index_html = template.render(
@@ -140,7 +225,9 @@ def main():
         daily_insight=daily_insight,
         glossary=glossary_lookup,
         archives=past_archives,
+        weekly_labels=weekly_labels,
         archive_link_prefix="archive/",
+        weekly_link_prefix="weekly/",
         css_prefix="",
         home_link=None,
         is_archive=False,
@@ -155,7 +242,9 @@ def main():
         daily_insight=daily_insight,
         glossary=glossary_lookup,
         archives=past_archives,
+        weekly_labels=weekly_labels,
         archive_link_prefix="",
+        weekly_link_prefix="../weekly/",
         css_prefix="../",
         home_link="../index.html",
         is_archive=True,
@@ -163,7 +252,7 @@ def main():
     (archive_dir / f"{date}.html").write_text(archive_html, encoding="utf-8")
 
     print(f"생성 완료: {docs_dir / 'index.html'}, {archive_dir / f'{date}.html'}")
-    print(f"기사 {len(articles)}건, 지난 아카이브 {len(past_archives)}건")
+    print(f"기사 {len(articles)}건, 지난 아카이브 {len(past_archives)}건, 검색 인덱스 {indexed_count}건")
 
 
 if __name__ == "__main__":

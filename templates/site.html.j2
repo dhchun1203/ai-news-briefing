@@ -187,6 +187,22 @@
     <article class="article-card" id="article-{{ loop.index }}">
       <div class="article-meta">
         <span class="source">{{ article.source }}</span>
+        {% if article.source_type == "primary" %}
+        <span class="source-badge source-badge-primary">
+          <span class="lang-ko">공식 발표</span>
+          <span class="lang-en">Official</span>
+        </span>
+        {% elif article.source_type == "community" %}
+        <span class="source-badge source-badge-community">
+          <span class="lang-ko">커뮤니티</span>
+          <span class="lang-en">Community</span>
+        </span>
+        {% else %}
+        <span class="source-badge source-badge-press">
+          <span class="lang-ko">보도</span>
+          <span class="lang-en">Press</span>
+        </span>
+        {% endif %}
         <span class="dot">·</span>
         <span class="published">{{ article.published_at[:10] }}</span>
       </div>
@@ -219,9 +235,29 @@
       <span class="lang-ko">지난 브리핑</span>
       <span class="lang-en">Past Briefings</span>
     </h2>
+    <div class="archive-search">
+      <input type="search" id="archive-search-input" class="archive-search-input"
+             data-placeholder-ko="지난 기사 검색..." data-placeholder-en="Search past articles..."
+             aria-label="지난 기사 검색 / Search past articles">
+      <ul class="archive-search-results" id="archive-search-results" hidden></ul>
+    </div>
     <ul class="archive-list">
       {% for a in archives %}
       <li><a href="{{ archive_link_prefix }}{{ a }}.html">{{ a }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if weekly_labels %}
+  <section class="archive-section">
+    <h2 class="archive-title">
+      <span class="lang-ko">주간 회고</span>
+      <span class="lang-en">Weekly Recaps</span>
+    </h2>
+    <ul class="archive-list">
+      {% for w in weekly_labels %}
+      <li><a href="{{ weekly_link_prefix }}{{ w }}.html">{{ w }}</a></li>
       {% endfor %}
     </ul>
   </section>
@@ -249,6 +285,15 @@
 
 <script>
 (function () {
+  var updatePlaceholders = function () {
+    var lang = document.documentElement.getAttribute("data-lang") || "ko";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-placeholder-ko]"), function (el) {
+      var attr = lang === "en" ? "data-placeholder-en" : "data-placeholder-ko";
+      el.setAttribute("placeholder", el.getAttribute(attr) || "");
+    });
+  };
+  updatePlaceholders();
+
   var themeBtn = document.getElementById("theme-toggle");
   if (themeBtn) {
     // 시스템 다크모드 설정과 무관하게, 쿠키에 저장된 명시적 선택이 없으면 항상 라이트가 기본값.
@@ -288,6 +333,7 @@
       var titleAttr = next === "en" ? "data-title-en" : "data-title-ko";
       var newTitle = document.documentElement.getAttribute(titleAttr);
       if (newTitle) document.title = newTitle;
+      updatePlaceholders();
       closeList();
     };
     langTrigger.addEventListener("click", function (e) {
@@ -407,6 +453,51 @@
     if (termClose) termClose.addEventListener("click", closeTermPanel);
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeTermPanel();
+    });
+  }
+
+  var searchInput = document.getElementById("archive-search-input");
+  var searchResults = document.getElementById("archive-search-results");
+  if (searchInput && searchResults) {
+    var searchIndexPromise = null;
+    var loadSearchIndex = function () {
+      if (!searchIndexPromise) {
+        searchIndexPromise = fetch("{{ css_prefix }}search-index.json")
+          .then(function (r) { return r.json(); })
+          .catch(function () { return []; });
+      }
+      return searchIndexPromise;
+    };
+    var escapeHtml = function (s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c];
+      });
+    };
+    searchInput.addEventListener("focus", loadSearchIndex);
+    searchInput.addEventListener("input", function () {
+      var q = searchInput.value.trim().toLowerCase();
+      if (!q) {
+        searchResults.hidden = true;
+        searchResults.innerHTML = "";
+        return;
+      }
+      loadSearchIndex().then(function (data) {
+        var matches = data.filter(function (item) {
+          var haystack = ((item.title || "") + " " + (item.summary_ko || "") + " " + (item.summary_en || "")).toLowerCase();
+          return haystack.indexOf(q) !== -1;
+        }).slice(0, 20);
+        searchResults.innerHTML = matches.map(function (item) {
+          var href = "{{ archive_link_prefix }}" + item.date + ".html";
+          return "<li><a href=\"" + href + "\">" + escapeHtml(item.title) + "</a>" +
+                 "<span class=\"archive-search-date\">" + escapeHtml(item.date) + " · " + escapeHtml(item.source) + "</span></li>";
+        }).join("");
+        searchResults.hidden = matches.length === 0;
+      });
+    });
+    document.addEventListener("click", function (e) {
+      if (e.target !== searchInput && !searchResults.contains(e.target)) {
+        searchResults.hidden = true;
+      }
     });
   }
 })();

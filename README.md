@@ -7,17 +7,19 @@ AI 관련 기사를 매일 자동으로 수집해 각 기사의 "요약"과 "이
 
 ## 폴더 구조
 ```
-config/feeds.json          # RSS 피드 목록 (자유롭게 추가/삭제)
-scripts/fetch_articles.py  # RSS 수집 + 상위 10개 선별
-scripts/generate_site.py   # 정적 HTML 생성
-scripts/send_broadcast.py  # 확인된 이메일 구독자에게 오늘의 다이제스트 발송
-templates/                 # 웹페이지 템플릿(Jinja2)/CSS
+config/feeds.json           # RSS 피드 목록 + 소스 타입(primary/press/community)
+scripts/fetch_articles.py   # RSS 수집 + 과거 중복 제외 + 화제성 반영 + 상위 10개 선별
+scripts/generate_site.py    # 정적 HTML 생성 + 아카이브 JSON/검색 인덱스 갱신
+scripts/generate_weekly_site.py  # (일요일) 주간 회고 페이지 생성
+scripts/send_broadcast.py   # 확인된 이메일 구독자에게 오늘의 다이제스트 발송
+templates/                  # 웹페이지 템플릿(Jinja2)/CSS
 api/                        # Vercel 서버리스 함수 (구독/확인/구독취소)
 supabase/schema.sql         # 구독자 테이블 스키마 (Supabase SQL Editor에서 1회 실행)
 .claude/skills/ai-news-briefing/SKILL.md   # 전체 워크플로를 묶는 스킬
 vercel.json                 # Vercel 배포 설정 (outputDirectory: docs)
-data/, docs/                # 실행 결과물 (docs/는 배포 대상이라 커밋 필요,
-                            # data/는 중간 산출물이라 git에는 포함 안 됨)
+data/                        # 중간 산출물, git에는 포함 안 됨
+docs/                        # 배포 대상 — index.html, archive/<날짜>.html·json(영구 보관),
+                            # weekly/<주차>.html, search-index.json 전부 커밋 필요
 ```
 
 ## 최초 설정 (사람이 직접 해야 하는 부분)

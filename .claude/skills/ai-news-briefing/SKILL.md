@@ -19,10 +19,10 @@ MIT Technology Review AI, Hacker News AI 등). 특정 매체를 고정 편애하
 - `config/feeds.json`의 피드 URL이 최근에 검증된 적이 있는지 확인한다. 반년 이상 검증 이력이
   없거나 실행 중 특정 피드가 계속 실패한다면, WebFetch나 `curl`로 URL이 여전히 유효한 RSS/Atom을
   반환하는지 재검증하고 필요하면 대체 URL로 교체한다.
-- 이메일 구독 발송(6단계)에 필요한 환경변수(`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+- 이메일 구독 발송(7단계)에 필요한 환경변수(`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
   `RESEND_API_KEY`, `RESEND_SENDER_EMAIL`, `SUBSCRIBE_TOKEN_SECRET`, `SITE_URL`)가 이 Routine의
   Environment에 등록되어 있는지 확인한다. 아직 등록 전이라면(`README.md`의 "이메일 구독
-  설정" 참고) 6단계는 건너뛰고 나머지 단계는 정상 진행한 뒤, 완료 보고에 "이메일 구독
+  설정" 참고) 7단계는 건너뛰고 나머지 단계는 정상 진행한 뒤, 완료 보고에 "이메일 구독
   환경변수 미설정으로 발송 생략"이라고 명시한다.
 
 ## 1. 기사 수집
@@ -30,11 +30,17 @@ MIT Technology Review AI, Hacker News AI 등). 특정 매체를 고정 편애하
 python scripts/fetch_articles.py --lookback-days 12 --top-n 10
 ```
 - `config/feeds.json`의 모든 피드를 순회해 최근 12일 이내 게시된 기사만 후보로 모은다.
-- 출처 하나가 상위 목록을 독점하지 않도록 출처당 최대 3개까지만 채택하면서, 최신순으로
-  상위 10개를 선별한다 (부족하면 다양성 제한을 풀고 최신순으로 채운다).
-- 출력: `data/articles_<날짜>.json` (title, link, source, published_at, rss_summary)
+- **과거 중복 제외**: `docs/archive/*.json`(지금까지 매일 영구 보관된 원본 digest)에 이미
+  등장한 링크는 후보에서 아예 제외한다 — 다른 날짜의 브리핑에 실렸던 기사가 다시 뽑히는
+  일이 없다.
+- **화제성 우선**: 제목에서 고유명사·버전명으로 추정되는 키워드를 뽑아, 서로 다른 출처가
+  같은 키워드를 공유하는(=여러 매체가 동시에 다루는) 후보일수록 우선순위를 높인다. 그다음
+  최신순으로 정렬하고, 출처 하나가 상위 목록을 독점하지 않도록 출처당 최대 3개까지만
+  채택하면서 상위 10개를 선별한다 (부족하면 다양성 제한을 풀고 채운다).
+- 출력: `data/articles_<날짜>.json` (title, link, source, published_at, rss_summary,
+  cross_source_count)
 - 피드 하나가 실패해도 stderr에 경고만 남기고 나머지 피드로 계속 진행한다. 실행 후 몇 개
-  피드가 실패했는지 요약에 포함한다.
+  피드가 실패했는지, 과거 중복으로 몇 개가 제외됐는지 요약에 포함한다.
 
 ## 2. 원문 정독 (Claude가 직접 WebFetch로 수행)
 `rss_summary`만으로는 내용이 부실한 경우가 많다. **선별된 10개 기사에 한해서만** 각 기사의
@@ -129,7 +135,13 @@ python scripts/generate_site.py --input data/digest_<날짜>.json
 ```
 - Jinja2로 `templates/site.html.j2`를 렌더링해 `docs/index.html`(오늘자, 항상 최신)과
   `docs/archive/<날짜>.html`(과거 기록 누적)을 생성한다.
-- `docs/index.html` 하단에는 지난 아카이브 링크 목록이 자동으로 추가된다.
+- 같은 digest의 원본(글로서리 링크화 이전 순수 텍스트)을 `docs/archive/<날짜>.json`으로도
+  영구 보관하고, `docs/archive/*.json` 전체를 모아 `docs/search-index.json`(아카이브 검색용)을
+  다시 만든다 — 1단계의 "과거 중복 제외"와 5단계의 "주간 회고"가 이 파일들을 읽는다.
+- `config/feeds.json`의 `type`(primary/press/community)을 기준으로 기사 카드에 "공식
+  발표"/"보도"/"커뮤니티" 배지가 자동으로 붙는다 — Claude가 따로 지정할 필요 없다.
+- `docs/index.html` 하단에는 지난 아카이브 링크 목록과 검색창, 주간 회고 목록이 자동으로
+  추가된다.
 - `templates/site-base.css`(공통), `site-mobile.css`(≤767px), `site-desktop.css`(≥768px)도
   `docs/`로 함께 복사된다. PC와 모바일은 서로 다른 CSS 파일이 `media` 속성으로 조건부
   적용되며 화면별로 가독성(글자 크기, 여백, 줄 간격)을 따로 튜닝한다.
@@ -141,7 +153,50 @@ python scripts/generate_site.py --input data/digest_<날짜>.json
   버튼으로 바꾸고, 클릭 시 우측에 슬라이드 패널로 설명을 보여준다. Claude가 할 일은
   위 3단계처럼 `glossary`를 채우고 본문에 같은 표기로 쓰는 것뿐이다.
 
-## 5. 배포
+## 5. (일요일에만) 주간 회고 작성
+오늘이 KST 기준 **일요일**인지 먼저 확인한다 (`date +%u` — 7이면 일요일). 일요일이 아니면
+이 단계 전체를 건너뛰고 다음 단계(배포)로 넘어간다.
+
+일요일이면, 이번 주(월~일)의 날짜 범위와 ISO 주차 라벨을 계산한다:
+```
+date +%G-W%V              # 이번 주 라벨, 예: 2026-W30
+date -d 'last monday' +%Y-%m-%d   # 이번 주 월요일(start_date)
+date +%Y-%m-%d             # 오늘 = 이번 주 일요일(end_date)
+```
+그다음 `docs/archive/<날짜>.json` 중 이번 주(start_date~end_date, 오늘 포함) 범위에 있는
+파일들을 읽어(Read 도구로 직접 열어도 되고, `ls docs/archive/`로 목록 확인 후 필요한 것만
+읽어도 된다) 그 주의 `daily_insight`들을 모아 **한 주를 관통하는 흐름**을 종합한다. 개별
+`daily_insight`를 나열하지 말고, 그 주에 반복된 주제·긴장·패턴을 새로 판단해서 짧고
+명료한 종합을 만든다:
+
+```json
+{
+  "week_label": "2026-W30",
+  "start_date": "2026-07-20",
+  "end_date": "2026-07-26",
+  "generated_at": "ISO8601 타임스탬프",
+  "headline_ko": "이번 주 전체를 관통하는 메시지 한 문장 (한국어)",
+  "headline_en": "같은 메시지의 자연스러운 영어 한 문장",
+  "paragraphs_ko": ["종합 문단 1", "문단 2 (1~3개, 각 2~4문장)"],
+  "paragraphs_en": ["같은 분석의 영어 문단 1", "문단 2"]
+}
+```
+`data/weekly_<week_label>.json`로 저장한 뒤 실행한다:
+```
+python scripts/generate_weekly_site.py --input data/weekly_<week_label>.json
+```
+- `docs/weekly/<week_label>.html`을 생성한다. 그 주 각 날짜의 `daily_insight` 헤드라인
+  목록(일별 브리핑으로 링크)은 스크립트가 `docs/archive/*.json`에서 기계적으로 가져오므로
+  Claude가 따로 나열할 필요 없다 — 위 JSON에는 종합 판단(headline/paragraphs)만 담는다.
+- `docs/index.html`에도 "주간 회고" 링크 목록이 자동으로 추가된다(다음 4단계를 다시 실행할
+  필요 없이, 이미 생성된 오늘자 `docs/index.html`을 이 스크립트가 갱신하지는 않으므로, 이
+  단계를 4단계보다 먼저 실행했다면 4단계를 한 번 더 실행해 인덱스에 반영한다. 아래 순서
+  그대로 따르면 이미 4단계 다음에 실행하므로 별도 재실행이 필요 없다).
+- 그 주에 종합할 만한 뚜렷한 흐름이 없다면 억지로 만들지 않고 이 단계 자체를 건너뛰어도
+  된다 — 완료 보고에 "이번 주는 종합할 만한 뚜렷한 흐름이 없어 주간 회고를 생략함"이라고
+  적는다.
+
+## 6. 배포
 ```
 git add data docs
 git commit -m "AI 뉴스 브리핑 <날짜>"
@@ -153,7 +208,7 @@ Vercel Git Integration이 `main` 브랜치 push를 감지해 `vercel.json`의
 단계는 커밋/푸시까지만 수행되고 배포는 되지 않으니, 사용자에게 vercel.com에서 저장소를
 Import해야 한다고 안내한다.
 
-## 6. 이메일 구독자에게 발송
+## 7. 이메일 구독자에게 발송
 ```
 python scripts/send_broadcast.py --input data/digest_<날짜>.json
 ```
@@ -166,7 +221,8 @@ python scripts/send_broadcast.py --input data/digest_<날짜>.json
   에러 메시지와 함께 종료하니 그대로 보고한다 (Routine Environment에 등록되어 있어야 함).
 - 구독자가 0명이면 "발송 대상 구독자가 없습니다"만 출력하고 정상 종료한다 — 실패가 아니다.
 
-## 7. 완료 보고
-다음을 요약해 보고한다: 수집 후보 수와 선별된 기사 수, 실패한 피드(있다면), 오늘 브리핑에
-포함된 기사 제목 10개와 출처, 원문 WebFetch가 실패해 rss_summary로 대체 작성한 기사가
-있었는지, 커밋/푸시 결과, `docs/index.html` 경로, 이메일 발송 대상 인원 수.
+## 8. 완료 보고
+다음을 요약해 보고한다: 수집 후보 수와 선별된 기사 수(과거 중복으로 제외된 기사 수 포함),
+실패한 피드(있다면), 오늘 브리핑에 포함된 기사 제목 10개와 출처, 원문 WebFetch가 실패해
+rss_summary로 대체 작성한 기사가 있었는지, 커밋/푸시 결과, `docs/index.html` 경로, 이메일
+발송 대상 인원 수, (일요일이었다면) 주간 회고 생성 여부와 경로.

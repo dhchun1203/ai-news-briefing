@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+{% set title_ko = "주간 AI 회고 — " + week_label %}
+{% set title_en = "Weekly AI Recap — " + week_label %}
+<html lang="ko" data-lang="ko" data-title-ko="{{ title_ko }}" data-title-en="{{ title_en }}">
+<head>
+<meta charset="UTF-8">
+<title>{{ title_ko }}</title>
+<meta name="description" content="{{ week_label }} 주간 AI 뉴스 회고 ({{ start_date }} ~ {{ end_date }})">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ title_ko }}">
+<meta property="og:description" content="{{ week_label }} 주간 AI 뉴스 회고">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ title_ko }}">
+<meta name="twitter:description" content="{{ week_label }} 주간 AI 뉴스 회고">
+<script>
+(function () {
+  function getCookie(name) {
+    var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+  try {
+    var t = getCookie("theme");
+    if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    var l = localStorage.getItem("lang");
+    if (l === "ko" || l === "en") {
+      document.documentElement.setAttribute("data-lang", l);
+      document.documentElement.setAttribute("lang", l);
+      var titleAttr = l === "en" ? "data-title-en" : "data-title-ko";
+      var storedTitle = document.documentElement.getAttribute(titleAttr);
+      if (storedTitle) document.title = storedTitle;
+    }
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../site-base.css">
+<link rel="stylesheet" href="../site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="../site-desktop.css" media="(min-width: 768px)">
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="utility-bar">
+    <div class="share-wrap" id="share-wrap">
+      <button id="share-button" class="share-button" type="button" aria-label="링크 복사 / Copy link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+      <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite">
+        <span class="lang-ko">복사되었습니다</span>
+        <span class="lang-en">Copied!</span>
+      </span>
+    </div>
+    <div class="lang-select" id="lang-select">
+      <button type="button" class="lang-select-trigger" id="lang-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+        <span class="lang-select-current lang-ko">한국어</span>
+        <span class="lang-select-current lang-en">English</span>
+        <span class="lang-select-caret" aria-hidden="true">▾</span>
+      </button>
+      <ul class="lang-select-list" id="lang-select-list" role="listbox" hidden>
+        <li role="option" data-lang-value="ko">한국어</li>
+        <li role="option" data-lang-value="en">English</li>
+      </ul>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환">
+      <span class="theme-toggle-thumb">
+        <span class="icon-moon" aria-hidden="true">&#9789;</span>
+        <span class="icon-sun" aria-hidden="true">&#9728;</span>
+      </span>
+    </button>
+  </div>
+  <div class="header-inner">
+    <h1>
+      <a href="../index.html">
+        <span class="lang-ko">AI 뉴스 브리핑</span>
+        <span class="lang-en">AI News Briefing</span>
+      </a>
+    </h1>
+    <p class="tagline">
+      <span class="lang-ko">주간 회고 · {{ week_label }} ({{ start_date }} ~ {{ end_date }})</span>
+      <span class="lang-en">Weekly Recap · {{ week_label }} ({{ start_date }} – {{ end_date }})</span>
+    </p>
+  </div>
+</header>
+
+<main class="content">
+  <div class="date-bar">
+    <span class="date-label">{{ week_label }}</span>
+    <a class="back-link" href="../index.html">
+      <span class="lang-ko">오늘자 브리핑 보기 →</span>
+      <span class="lang-en">View today's briefing →</span>
+    </a>
+  </div>
+
+  <section class="insight" aria-label="주간 종합">
+    <p class="insight-label">
+      <span class="lang-ko">이번 주 종합</span>
+      <span class="lang-en">This Week's Synthesis</span>
+    </p>
+    <h2 class="insight-headline">
+      <span class="lang-ko">{{ headline_ko }}</span>
+      <span class="lang-en">{{ headline_en }}</span>
+    </h2>
+    <div class="insight-body">
+      <div class="lang-ko">
+        {% for para in paragraphs_ko %}<p>{{ para }}</p>{% endfor %}
+      </div>
+      <div class="lang-en">
+        {% for para in paragraphs_en %}<p>{{ para }}</p>{% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {% if daily_briefings %}
+  <section class="archive-section">
+    <h2 class="archive-title">
+      <span class="lang-ko">이번 주 일별 브리핑</span>
+      <span class="lang-en">This Week's Daily Briefings</span>
+    </h2>
+    <ul class="archive-list weekly-daily-list">
+      {% for d in daily_briefings %}
+      <li>
+        <a href="{{ d.date }}.html">
+          <span class="weekly-daily-date">{{ d.date }}</span>
+          <span class="lang-ko">{{ d.headline_ko }}</span>
+          <span class="lang-en">{{ d.headline_en }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if past_weeklies %}
+  <section class="archive-section">
+    <h2 class="archive-title">
+      <span class="lang-ko">지난 주간 회고</span>
+      <span class="lang-en">Past Weekly Recaps</span>
+    </h2>
+    <ul class="archive-list">
+      {% for w in past_weeklies %}
+      <li><a href="{{ w }}.html">{{ w }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</main>
+
+<footer class="site-footer">
+  <p>
+    <span class="lang-ko">매주 일요일 자동 생성 · 마지막 생성: {{ generated_at }}</span>
+    <span class="lang-en">Auto-generated every Sunday · Last updated: {{ generated_at }}</span>
+  </p>
+</footer>
+
+<script>
+(function () {
+  var themeBtn = document.getElementById("theme-toggle");
+  if (themeBtn) {
+    var isDarkActive = function () {
+      return document.documentElement.getAttribute("data-theme") === "dark";
+    };
+    var setThemeCookie = function (value) {
+      var expires = new Date();
+      expires.setTime(expires.getTime() + 365 * 24 * 60 * 60 * 1000);
+      document.cookie = "theme=" + encodeURIComponent(value) + "; expires=" + expires.toUTCString() + "; path=/; SameSite=Lax";
+    };
+    themeBtn.setAttribute("aria-checked", String(isDarkActive()));
+    themeBtn.addEventListener("click", function () {
+      var next = isDarkActive() ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      setThemeCookie(next);
+      themeBtn.setAttribute("aria-checked", String(next === "dark"));
+    });
+  }
+
+  var langSelect = document.getElementById("lang-select");
+  var langTrigger = document.getElementById("lang-select-trigger");
+  var langList = document.getElementById("lang-select-list");
+  if (langSelect && langTrigger && langList) {
+    var closeList = function () {
+      langList.hidden = true;
+      langTrigger.setAttribute("aria-expanded", "false");
+    };
+    var openList = function () {
+      langList.hidden = false;
+      langTrigger.setAttribute("aria-expanded", "true");
+    };
+    var selectLang = function (next) {
+      document.documentElement.setAttribute("data-lang", next);
+      document.documentElement.setAttribute("lang", next);
+      try { localStorage.setItem("lang", next); } catch (e) {}
+      var titleAttr = next === "en" ? "data-title-en" : "data-title-ko";
+      var newTitle = document.documentElement.getAttribute(titleAttr);
+      if (newTitle) document.title = newTitle;
+      closeList();
+    };
+    langTrigger.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (langList.hidden) openList(); else closeList();
+    });
+    Array.prototype.forEach.call(langList.querySelectorAll("li[data-lang-value]"), function (li) {
+      li.addEventListener("click", function () {
+        selectLang(li.getAttribute("data-lang-value"));
+      });
+    });
+    document.addEventListener("click", function (e) {
+      if (!langSelect.contains(e.target)) closeList();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeList();
+    });
+  }
+
+  var shareBtn = document.getElementById("share-button");
+  var shareTooltip = document.getElementById("share-tooltip");
+  var shareTooltipTimer = null;
+  if (shareBtn) {
+    shareBtn.addEventListener("click", function () {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) return;
+      navigator.clipboard.writeText(window.location.href).then(function () {
+        if (!shareTooltip) return;
+        shareTooltip.classList.add("visible");
+        if (shareTooltipTimer) clearTimeout(shareTooltipTimer);
+        shareTooltipTimer = setTimeout(function () {
+          shareTooltip.classList.remove("visible");
+        }, 1600);
+      }).catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>

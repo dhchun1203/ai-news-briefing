@@ -191,6 +191,12 @@
     <article class="article-card" id="article-1">
       <div class="article-meta">
         <span class="source">Hacker News (AI)</span>
+        
+        <span class="source-badge source-badge-community">
+          <span class="lang-ko">커뮤니티</span>
+          <span class="lang-en">Community</span>
+        </span>
+        
         <span class="dot">·</span>
         <span class="published">2026-07-23</span>
       </div>
@@ -218,6 +224,12 @@
     <article class="article-card" id="article-2">
       <div class="article-meta">
         <span class="source">Hacker News (AI)</span>
+        
+        <span class="source-badge source-badge-community">
+          <span class="lang-ko">커뮤니티</span>
+          <span class="lang-en">Community</span>
+        </span>
+        
         <span class="dot">·</span>
         <span class="published">2026-07-23</span>
       </div>
@@ -245,6 +257,12 @@
     <article class="article-card" id="article-3">
       <div class="article-meta">
         <span class="source">Hacker News (AI)</span>
+        
+        <span class="source-badge source-badge-community">
+          <span class="lang-ko">커뮤니티</span>
+          <span class="lang-en">Community</span>
+        </span>
+        
         <span class="dot">·</span>
         <span class="published">2026-07-23</span>
       </div>
@@ -272,6 +290,12 @@
     <article class="article-card" id="article-4">
       <div class="article-meta">
         <span class="source">TechCrunch AI</span>
+        
+        <span class="source-badge source-badge-press">
+          <span class="lang-ko">보도</span>
+          <span class="lang-en">Press</span>
+        </span>
+        
         <span class="dot">·</span>
         <span class="published">2026-07-22</span>
       </div>
@@ -299,6 +323,12 @@
     <article class="article-card" id="article-5">
       <div class="article-meta">
         <span class="source">TechCrunch AI</span>
+        
+        <span class="source-badge source-badge-press">
+          <span class="lang-ko">보도</span>
+          <span class="lang-en">Press</span>
+        </span>
+        
         <span class="dot">·</span>
         <span class="published">2026-07-22</span>
       </div>
@@ -326,6 +356,12 @@
     <article class="article-card" id="article-6">
       <div class="article-meta">
         <span class="source">TechCrunch AI</span>
+        
+        <span class="source-badge source-badge-press">
+          <span class="lang-ko">보도</span>
+          <span class="lang-en">Press</span>
+        </span>
+        
         <span class="dot">·</span>
         <span class="published">2026-07-22</span>
       </div>
@@ -353,6 +389,12 @@
     <article class="article-card" id="article-7">
       <div class="article-meta">
         <span class="source">Ars Technica AI</span>
+        
+        <span class="source-badge source-badge-press">
+          <span class="lang-ko">보도</span>
+          <span class="lang-en">Press</span>
+        </span>
+        
         <span class="dot">·</span>
         <span class="published">2026-07-22</span>
       </div>
@@ -380,6 +422,12 @@
     <article class="article-card" id="article-8">
       <div class="article-meta">
         <span class="source">Ars Technica AI</span>
+        
+        <span class="source-badge source-badge-press">
+          <span class="lang-ko">보도</span>
+          <span class="lang-en">Press</span>
+        </span>
+        
         <span class="dot">·</span>
         <span class="published">2026-07-22</span>
       </div>
@@ -407,6 +455,12 @@
     <article class="article-card" id="article-9">
       <div class="article-meta">
         <span class="source">Google DeepMind Blog</span>
+        
+        <span class="source-badge source-badge-primary">
+          <span class="lang-ko">공식 발표</span>
+          <span class="lang-en">Official</span>
+        </span>
+        
         <span class="dot">·</span>
         <span class="published">2026-07-22</span>
       </div>
@@ -434,6 +488,12 @@
     <article class="article-card" id="article-10">
       <div class="article-meta">
         <span class="source">Ars Technica AI</span>
+        
+        <span class="source-badge source-badge-press">
+          <span class="lang-ko">보도</span>
+          <span class="lang-en">Press</span>
+        </span>
+        
         <span class="dot">·</span>
         <span class="published">2026-07-22</span>
       </div>
@@ -461,6 +521,8 @@
   </div>
 
   
+
+  
 </main>
 
 <footer class="site-footer">
@@ -484,6 +546,15 @@
 
 <script>
 (function () {
+  var updatePlaceholders = function () {
+    var lang = document.documentElement.getAttribute("data-lang") || "ko";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-placeholder-ko]"), function (el) {
+      var attr = lang === "en" ? "data-placeholder-en" : "data-placeholder-ko";
+      el.setAttribute("placeholder", el.getAttribute(attr) || "");
+    });
+  };
+  updatePlaceholders();
+
   var themeBtn = document.getElementById("theme-toggle");
   if (themeBtn) {
     // 시스템 다크모드 설정과 무관하게, 쿠키에 저장된 명시적 선택이 없으면 항상 라이트가 기본값.
@@ -523,6 +594,7 @@
       var titleAttr = next === "en" ? "data-title-en" : "data-title-ko";
       var newTitle = document.documentElement.getAttribute(titleAttr);
       if (newTitle) document.title = newTitle;
+      updatePlaceholders();
       closeList();
     };
     langTrigger.addEventListener("click", function (e) {
@@ -642,6 +714,51 @@
     if (termClose) termClose.addEventListener("click", closeTermPanel);
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeTermPanel();
+    });
+  }
+
+  var searchInput = document.getElementById("archive-search-input");
+  var searchResults = document.getElementById("archive-search-results");
+  if (searchInput && searchResults) {
+    var searchIndexPromise = null;
+    var loadSearchIndex = function () {
+      if (!searchIndexPromise) {
+        searchIndexPromise = fetch("search-index.json")
+          .then(function (r) { return r.json(); })
+          .catch(function () { return []; });
+      }
+      return searchIndexPromise;
+    };
+    var escapeHtml = function (s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c];
+      });
+    };
+    searchInput.addEventListener("focus", loadSearchIndex);
+    searchInput.addEventListener("input", function () {
+      var q = searchInput.value.trim().toLowerCase();
+      if (!q) {
+        searchResults.hidden = true;
+        searchResults.innerHTML = "";
+        return;
+      }
+      loadSearchIndex().then(function (data) {
+        var matches = data.filter(function (item) {
+          var haystack = ((item.title || "") + " " + (item.summary_ko || "") + " " + (item.summary_en || "")).toLowerCase();
+          return haystack.indexOf(q) !== -1;
+        }).slice(0, 20);
+        searchResults.innerHTML = matches.map(function (item) {
+          var href = "archive/" + item.date + ".html";
+          return "<li><a href=\"" + href + "\">" + escapeHtml(item.title) + "</a>" +
+                 "<span class=\"archive-search-date\">" + escapeHtml(item.date) + " · " + escapeHtml(item.source) + "</span></li>";
+        }).join("");
+        searchResults.hidden = matches.length === 0;
+      });
+    });
+    document.addEventListener("click", function (e) {
+      if (e.target !== searchInput && !searchResults.contains(e.target)) {
+        searchResults.hidden = true;
+      }
     });
   }
 })();
