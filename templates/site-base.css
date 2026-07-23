@@ -51,6 +51,23 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   border-bottom: 1px solid var(--border);
 }
 
+.share-button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.share-button:hover { border-color: var(--text); }
+.share-button svg { display: block; }
+.share-button .icon-check { display: none; }
+.share-button.copied .icon-share { display: none; }
+.share-button.copied .icon-check { display: inline; color: var(--accent); }
+
 /* 좌우로 슬라이딩하는 스위치형 다크모드 토글: .theme-toggle이 트랙, .theme-toggle-thumb이
    슬라이딩하는 손잡이. 손잡이 안의 아이콘은 기존 방식대로 상태에 따라 교체된다. */
 .theme-toggle {
@@ -255,6 +272,49 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .back-link { margin-left: auto; text-transform: uppercase; letter-spacing: 0.03em; }
 
 .empty-state { font-family: var(--serif); color: var(--text-muted); }
+
+/* ---------- 오늘의 인사이트 (10개 기사 크로스컷 종합) ---------- */
+.insight {
+  background: var(--implication-bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+}
+
+.insight-label {
+  font-family: var(--sans);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin: 0;
+}
+
+.insight-headline {
+  font-family: var(--serif);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.insight-body {
+  font-family: var(--serif);
+  color: var(--text);
+}
+.insight-body p { margin: 0 0 0.7em; }
+.insight-body p:last-child { margin-bottom: 0; }
+
+.insight-watch {
+  font-family: var(--sans);
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+.insight-watch-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+.insight-watch-label::after { content: " · "; color: var(--text-muted); }
 
 /* ---------- 목차 ---------- */
 .toc {

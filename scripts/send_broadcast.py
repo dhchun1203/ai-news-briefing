@@ -93,13 +93,30 @@ def build_html(digest: dict, site_url: str, unsub_url: str) -> str:
             "</td></tr>"
         )
     site_link = f"{site_url}/index.html"
+
+    # 오늘의 인사이트 헤드라인(있는 날만)을 메일 상단에 넣어 열자마자 핵심을 잡게 한다.
+    insight = digest.get("daily_insight") or {}
+    insight_headline = insight.get("headline_ko", "").strip()
+    insight_block = ""
+    if insight_headline:
+        insight_block = (
+            '<div style="margin:16px 0 24px;padding:14px 18px;background:#f5f4f1;'
+            'border-left:3px solid #a2201d;border-radius:0 4px 4px 0;">'
+            '<p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.1em;'
+            'text-transform:uppercase;color:#a2201d;">오늘의 인사이트</p>'
+            f'<p style="margin:0;font-size:16px;font-weight:700;line-height:1.5;color:#121212;">'
+            f'{html.escape(insight_headline)}</p>'
+            "</div>"
+        )
+
     return f"""
     <div style="max-width:600px;margin:0 auto;font-family:-apple-system,Arial,sans-serif;">
       <h1 style="font-size:22px;margin-bottom:4px;">AI 뉴스 브리핑 — {date}</h1>
       <p style="color:#666;font-size:13px;margin-top:0;">
-        기사 {len(articles)}건의 헤드라인과 한 줄 요약입니다. 각 기사가 시사하는 점은 전체
-        브리핑에서 확인하세요.
+        기사 {len(articles)}건의 헤드라인과 한 줄 요약입니다. 각 기사가 시사하는 점과 전체
+        인사이트 분석은 전체 브리핑에서 확인하세요.
       </p>
+      {insight_block}
       <table style="width:100%;border-collapse:collapse;">{''.join(rows)}</table>
       <p style="margin-top:24px;">
         <a href="{site_link}" style="font-weight:700;color:#a2201d;">오늘의 전체 브리핑 보기 (요약 + 시사점) →</a>

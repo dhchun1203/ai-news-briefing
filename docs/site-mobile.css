@@ -8,6 +8,7 @@ body {
 }
 
 .utility-bar { padding: 8px 16px; }
+.share-button { width: 32px; height: 32px; font-size: 0.95rem; }
 .theme-toggle { width: 46px; height: 25px; --toggle-travel: 22px; }
 .theme-toggle-thumb { width: 18px; height: 18px; font-size: 0.65rem; }
 .lang-select-trigger { height: 32px; padding: 0 10px; gap: 5px; font-size: 0.78rem; }
@@ -35,6 +36,12 @@ body {
 .date-label { font-size: 0.8rem; }
 .back-link { font-size: 0.72rem; width: 100%; }
 .archive-badge { font-size: 0.68rem; }
+
+.insight { margin: 18px 0 2px; padding: 16px 16px 18px; }
+.insight-label { font-size: 0.66rem; margin-bottom: 8px; }
+.insight-headline { font-size: 1.15rem; line-height: 1.45; margin: 0 0 12px; }
+.insight-body { font-size: 0.98rem; line-height: 1.65; }
+.insight-watch { font-size: 0.84rem; line-height: 1.55; margin-top: 14px; padding-top: 12px; }
 
 .toc { margin: 16px 0 6px; padding: 16px 0; }
 .toc-title { font-size: 0.75rem; margin: 0 0 10px; }

@@ -105,8 +105,11 @@ Hacker News(AI 키워드, hnrss.org). 자유롭게 추가/삭제 가능.
 link 태그 없음). 향후 Anthropic이 RSS를 공개하면 `config/feeds.json`에 추가한다.
 
 ### 2. digest 스키마 (`data/digest_<날짜>.json`)
-`date`, `generated_at`, `articles[]`(title, link, source, published_at, summary,
-implication). `summary`/`implication`은 Claude가 SKILL.md 3단계에서 직접 작성한다.
+`date`, `generated_at`, `articles[]`(title, link, source, published_at,
+summary_ko/en, implication_ko/en), 그리고 선택 필드 `daily_insight`(headline_ko/en,
+paragraphs_ko/en, watch_ko/en). 기사별 요약·시사점과 `daily_insight`(10개 기사를 가로질러
+읽어 종합한 "오늘의 인사이트")는 모두 Claude가 SKILL.md 3단계에서 직접 작성한다.
+`daily_insight`가 없는 날은 사이트에서 인사이트 섹션 자체가 렌더링되지 않는다.
 
 ### 3. 프로젝트 스킬: `.claude/skills/ai-news-briefing/SKILL.md`
 전체 워크플로(수집 → 원문 정독 → 요약/시사점 작성 → 사이트 생성 → 배포)를 하나의 스킬로

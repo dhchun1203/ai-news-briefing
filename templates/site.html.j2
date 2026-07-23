@@ -38,6 +38,12 @@
 <body>
 <header class="site-header">
   <div class="utility-bar">
+    <button id="share-button" class="share-button" type="button" aria-label="공유하기 / Share">
+      <span class="icon-share" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+      </span>
+      <span class="icon-check" aria-hidden="true">&#10003;</span>
+    </button>
     <div class="lang-select" id="lang-select">
       <button type="button" class="lang-select-trigger" id="lang-select-trigger" aria-haspopup="listbox" aria-expanded="false">
         <span class="lang-select-current lang-ko">한국어</span>
@@ -119,6 +125,37 @@
     <span class="lang-ko">오늘은 조건에 맞는 기사를 찾지 못했습니다.</span>
     <span class="lang-en">No qualifying articles were found today.</span>
   </p>
+  {% endif %}
+
+  {% if daily_insight %}
+  <section class="insight" aria-label="오늘의 인사이트">
+    <p class="insight-label">
+      <span class="lang-ko">오늘의 인사이트</span>
+      <span class="lang-en">Today's Insight</span>
+    </p>
+    <h2 class="insight-headline">
+      <span class="lang-ko">{{ daily_insight.headline_ko }}</span>
+      <span class="lang-en">{{ daily_insight.headline_en }}</span>
+    </h2>
+    <div class="insight-body">
+      <div class="lang-ko">
+        {% for para in daily_insight.paragraphs_ko %}<p>{{ para }}</p>{% endfor %}
+      </div>
+      <div class="lang-en">
+        {% for para in daily_insight.paragraphs_en %}<p>{{ para }}</p>{% endfor %}
+      </div>
+    </div>
+    {% if daily_insight.watch_ko %}
+    <p class="insight-watch">
+      <span class="insight-watch-label">
+        <span class="lang-ko">지켜볼 신호</span>
+        <span class="lang-en">Signal to watch</span>
+      </span>
+      <span class="lang-ko">{{ daily_insight.watch_ko }}</span>
+      <span class="lang-en">{{ daily_insight.watch_en }}</span>
+    </p>
+    {% endif %}
+  </section>
   {% endif %}
 
   {% if articles %}
@@ -291,6 +328,23 @@
           submitBtn.disabled = false;
           setStatus("network");
         });
+    });
+  }
+
+  var shareBtn = document.getElementById("share-button");
+  if (shareBtn) {
+    shareBtn.addEventListener("click", function () {
+      var shareData = { title: document.title, url: window.location.href };
+      if (navigator.share) {
+        navigator.share(shareData).catch(function () {});
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(window.location.href).then(function () {
+          shareBtn.classList.add("copied");
+          setTimeout(function () { shareBtn.classList.remove("copied"); }, 1500);
+        }).catch(function () {});
+      }
     });
   }
 })();

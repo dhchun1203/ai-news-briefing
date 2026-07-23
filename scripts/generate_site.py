@@ -39,6 +39,7 @@ def main():
     date = digest["date"]
     articles = digest["articles"]
     generated_at = digest.get("generated_at", datetime.now().isoformat())
+    daily_insight = digest.get("daily_insight")  # 선택 필드: 없으면 섹션 자체가 렌더링 안 됨
 
     docs_dir = Path(args.docs_dir)
     archive_dir = docs_dir / "archive"
@@ -60,6 +61,7 @@ def main():
         date=date,
         generated_at=generated_at,
         articles=articles,
+        daily_insight=daily_insight,
         archives=past_archives,
         archive_link_prefix="archive/",
         css_prefix="",
@@ -73,6 +75,7 @@ def main():
         date=date,
         generated_at=generated_at,
         articles=articles,
+        daily_insight=daily_insight,
         archives=past_archives,
         archive_link_prefix="",
         css_prefix="../",
