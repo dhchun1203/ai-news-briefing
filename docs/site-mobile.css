@@ -38,6 +38,8 @@ body {
 .back-link { font-size: 0.72rem; width: 100%; }
 .archive-badge { font-size: 0.68rem; }
 
+.weekly-banner { margin: 2px 0 16px; padding: 12px 14px; font-size: 0.82rem; }
+
 .insight { margin: 18px 0 2px; padding: 16px 16px 18px; }
 .insight-label { font-size: 0.66rem; margin-bottom: 8px; }
 .insight-headline { font-size: 1.15rem; line-height: 1.45; margin: 0 0 12px; }

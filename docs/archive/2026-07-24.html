@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 
 
-<html lang="ko" data-lang="ko" data-title-ko="AI 뉴스 브리핑 — 2026-07-24" data-title-en="AI News Briefing — 2026-07-24">
+<html lang="ko" data-lang="ko" data-title-ko="AI 뉴스 브리핑 — 2026-07-24 (지난 기록)" data-title-en="AI News Briefing — 2026-07-24 (Archive)">
 <head>
 <meta charset="UTF-8">
-<title>AI 뉴스 브리핑 — 2026-07-24</title>
+<title>AI 뉴스 브리핑 — 2026-07-24 (지난 기록)</title>
 <meta name="description" content="2026-07-24자 AI 뉴스 요약과 시사점">
 <meta property="og:type" content="website">
-<meta property="og:title" content="AI 뉴스 브리핑 — 2026-07-24">
+<meta property="og:title" content="AI 뉴스 브리핑 — 2026-07-24 (지난 기록)">
 <meta property="og:description" content="2026-07-24자 AI 뉴스 요약과 시사점">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="AI 뉴스 브리핑 — 2026-07-24">
+<meta name="twitter:title" content="AI 뉴스 브리핑 — 2026-07-24 (지난 기록)">
 <meta name="twitter:description" content="2026-07-24자 AI 뉴스 요약과 시사점">
 <script>
 (function () {
@@ -37,9 +37,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="site-base.css">
-<link rel="stylesheet" href="site-mobile.css" media="(max-width: 767px)">
-<link rel="stylesheet" href="site-desktop.css" media="(min-width: 768px)">
+<link rel="stylesheet" href="../site-base.css">
+<link rel="stylesheet" href="../site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="../site-desktop.css" media="(min-width: 768px)">
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
@@ -74,7 +74,7 @@
   </div>
   <div class="header-inner">
     <h1>
-      <a href="index.html">
+      <a href="../index.html">
         <span class="lang-ko">AI 뉴스 브리핑</span>
         <span class="lang-en">AI News Briefing</span>
       </a>
@@ -118,6 +118,15 @@
 
   <div class="date-bar">
     <span class="date-label">2026-07-24</span>
+    
+      <span class="archive-badge">
+        <span class="lang-ko">지난 기록</span>
+        <span class="lang-en">Past Edition</span>
+      </span>
+      <a class="back-link" href="../index.html">
+        <span class="lang-ko">오늘자 브리핑 보기 →</span>
+        <span class="lang-en">View today's briefing →</span>
+      </a>
     
   </div>
 
@@ -536,7 +545,7 @@
     </div>
     <ul class="archive-list">
       
-      <li><a href="archive/2026-07-23.html">2026-07-23</a></li>
+      <li><a href="2026-07-23.html">2026-07-23</a></li>
       
     </ul>
   </section>
@@ -743,7 +752,7 @@
     var searchIndexPromise = null;
     var loadSearchIndex = function () {
       if (!searchIndexPromise) {
-        searchIndexPromise = fetch("search-index.json")
+        searchIndexPromise = fetch("../search-index.json")
           .then(function (r) { return r.json(); })
           .catch(function () { return []; });
       }
@@ -768,7 +777,7 @@
           return haystack.indexOf(q) !== -1;
         }).slice(0, 20);
         searchResults.innerHTML = matches.map(function (item) {
-          var href = "archive/" + item.date + ".html";
+          var href = "" + item.date + ".html";
           return "<li><a href=\"" + href + "\">" + escapeHtml(item.title) + "</a>" +
                  "<span class=\"archive-search-date\">" + escapeHtml(item.date) + " · " + escapeHtml(item.source) + "</span></li>";
         }).join("");

@@ -297,6 +297,21 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 
 .empty-state { font-family: var(--serif); color: var(--text-muted); }
 
+/* ---------- 주간 회고 배너 (일/월요일에만 노출) ---------- */
+.weekly-banner {
+  display: block;
+  text-align: center;
+  font-family: var(--sans);
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--accent);
+  background: var(--implication-bg);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+}
+
+.weekly-banner:hover { text-decoration: underline; }
+
 /* ---------- 오늘의 인사이트 (10개 기사 크로스컷 종합) ---------- */
 .insight {
   background: var(--implication-bg);
