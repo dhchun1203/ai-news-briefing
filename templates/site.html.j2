@@ -5,12 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 뉴스 브리핑 — {{ date }}{% if is_archive %} (지난 기록){% endif %}</title>
 <meta name="description" content="{{ date }}자 AI 뉴스 요약과 시사점">
-<link rel="stylesheet" href="{% if is_archive %}../site.css{% else %}site.css{% endif %}">
+<link rel="stylesheet" href="{{ css_prefix }}site-base.css">
+<link rel="stylesheet" href="{{ css_prefix }}site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="{{ css_prefix }}site-desktop.css" media="(min-width: 768px)">
 </head>
 <body>
 <header class="site-header">
   <div class="header-inner">
-    <h1><a href="{% if is_archive %}../index.html{% else %}index.html{% endif %}">AI 뉴스 브리핑</a></h1>
+    <h1><a href="{{ css_prefix }}index.html">AI 뉴스 브리핑</a></h1>
     <p class="tagline">매일 아침 8시, AI 기사 {{ articles|length }}건의 요약과 시사점</p>
   </div>
 </header>

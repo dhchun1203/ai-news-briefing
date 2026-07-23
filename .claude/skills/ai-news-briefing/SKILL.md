@@ -73,7 +73,9 @@ python scripts/generate_site.py --input data/digest_<날짜>.json
 - Jinja2로 `templates/site.html.j2`를 렌더링해 `docs/index.html`(오늘자, 항상 최신)과
   `docs/archive/<날짜>.html`(과거 기록 누적)을 생성한다.
 - `docs/index.html` 하단에는 지난 아카이브 링크 목록이 자동으로 추가된다.
-- `templates/site.css`도 `docs/site.css`로 함께 복사된다.
+- `templates/site-base.css`(공통), `site-mobile.css`(≤767px), `site-desktop.css`(≥768px)도
+  `docs/`로 함께 복사된다. PC와 모바일은 서로 다른 CSS 파일이 `media` 속성으로 조건부
+  적용되며 화면별로 가독성(글자 크기, 여백, 줄 간격)을 따로 튜닝한다.
 
 ## 5. 배포
 ```

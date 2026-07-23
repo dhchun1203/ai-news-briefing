@@ -44,7 +44,8 @@ def main():
     archive_dir = docs_dir / "archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
 
-    shutil.copyfile(TEMPLATES_DIR / "site.css", docs_dir / "site.css")
+    for css_name in ("site-base.css", "site-mobile.css", "site-desktop.css"):
+        shutil.copyfile(TEMPLATES_DIR / css_name, docs_dir / css_name)
 
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -61,6 +62,7 @@ def main():
         articles=articles,
         archives=past_archives,
         archive_link_prefix="archive/",
+        css_prefix="",
         home_link=None,
         is_archive=False,
     )
@@ -73,6 +75,7 @@ def main():
         articles=articles,
         archives=past_archives,
         archive_link_prefix="",
+        css_prefix="../",
         home_link="../index.html",
         is_archive=True,
     )

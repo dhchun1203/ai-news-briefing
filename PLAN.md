@@ -79,10 +79,20 @@ implication). `summary`/`implication`은 Claude가 SKILL.md 3단계에서 직접
 전체 워크플로(수집 → 원문 정독 → 요약/시사점 작성 → 사이트 생성 → 배포)를 하나의 스킬로
 정의해 Routine 프롬프트가 `/ai-news-briefing` 한 줄만 호출하면 되도록 구성.
 
-### 4. 웹페이지 템플릿 (`templates/site.html.j2`, `templates/site.css`)
+### 4. 웹페이지 템플릿 (`templates/site.html.j2` + CSS 3분할)
 기사 카드 순서: 제목(원문 링크) + 출처/날짜 → 요약 → 시사점(강조 박스). 라이트/다크 모드
-대응, 모바일 반응형 1열 레이아웃. `docs/index.html`과 `docs/archive/<날짜>.html`이 같은
-템플릿을 공유하며, 아카이브 페이지에는 "오늘자 브리핑 보기" 링크가 추가된다.
+대응. `docs/index.html`과 `docs/archive/<날짜>.html`이 같은 템플릿을 공유하며, 아카이브
+페이지에는 "오늘자 브리핑 보기" 링크가 추가된다.
+
+CSS는 PC/모바일 화면별 가독성을 각각 최적화하기 위해 3개 파일로 분리했다:
+- `site-base.css`: 색상 변수, 리셋, 화면 크기와 무관한 구조(카드 배경/테두리, 색상 등)
+- `site-mobile.css`: `media="(max-width: 767px)"`로 조건부 적용. 본문 16px 이상 유지,
+  줄간격 1.75로 넓게, 카드 좌우 여백을 좁혀 화면 폭을 최대한 활용
+- `site-desktop.css`: `media="(min-width: 768px)"`로 조건부 적용. 본문 폭을 760px로 제한해
+  한 줄이 너무 길어지지 않게 하고, 카드에 hover 반응 추가
+
+`<link>` 태그 3개를 모두 `<head>`에 넣어두면 브라우저가 뷰포트에 맞는 stylesheet만
+활성화한다. `generate_site.py`가 세 파일 모두 `docs/`로 복사한다.
 
 ### 5. 배포 설정 (`vercel.json`)
 빌드 스텝이 없는 순수 정적 사이트이므로 `vercel.json`에 `"outputDirectory": "docs"`만

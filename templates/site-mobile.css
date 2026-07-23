@@ -1,0 +1,56 @@
+/* 모바일 전용 레이아웃 (~767px 이하). 가독성 최우선:
+   - 작은 화면에서 읽기 편하도록 본문 글자 크기를 16px 이상으로 유지 (iOS 자동 확대 방지 포함)
+   - 줄 간격을 넉넉히 줘서 좁은 폭에서도 눈이 편하게
+   - 카드 좌우 여백은 좁히되 상하 여백은 유지해 스크롤 리듬 확보 */
+
+body {
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.header-inner {
+  padding: 20px 16px 16px;
+}
+
+.site-header h1 { font-size: 1.3rem; }
+.tagline { margin: 6px 0 0; font-size: 0.88rem; }
+
+.content {
+  padding: 20px 16px 56px;
+}
+
+.date-bar { margin-bottom: 16px; }
+.date-label { font-size: 1.05rem; }
+.back-link { font-size: 0.85rem; }
+
+.article-list { gap: 16px; }
+
+.article-card { padding: 16px; }
+
+.article-meta {
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+}
+
+.article-title {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+/* 손가락으로 누르기 쉽도록 링크 터치 영역 확보 */
+.article-title a { display: inline-block; padding: 2px 0; }
+
+.block-label { font-size: 0.72rem; }
+
+.article-summary { margin-bottom: 12px; }
+.article-summary p, .article-implication p { font-size: 0.98rem; }
+
+.article-implication { padding: 10px 12px; }
+
+.archive-section { margin-top: 36px; padding-top: 16px; }
+.archive-title { font-size: 0.95rem; margin: 0 0 10px; }
+.archive-list { gap: 10px 14px; }
+.archive-list a { font-size: 0.9rem; padding: 4px 0; display: inline-block; }
+
+.site-footer { font-size: 0.78rem; padding: 18px 16px; }
