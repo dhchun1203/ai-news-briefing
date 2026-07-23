@@ -1,18 +1,31 @@
 <!DOCTYPE html>
-<html lang="ko">
+{% set title_ko = "AI 뉴스 브리핑 — " + date + (" (지난 기록)" if is_archive else "") %}
+{% set title_en = "AI News Briefing — " + date + (" (Archive)" if is_archive else "") %}
+<html lang="ko" data-lang="ko" data-title-ko="{{ title_ko }}" data-title-en="{{ title_en }}">
 <head>
 <meta charset="UTF-8">
+<title>{{ title_ko }}</title>
+<meta name="description" content="{{ date }}자 AI 뉴스 요약과 시사점">
 <script>
 (function () {
   try {
     var t = localStorage.getItem("theme");
     if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    var l = localStorage.getItem("lang");
+    if (l === "ko" || l === "en") {
+      document.documentElement.setAttribute("data-lang", l);
+      document.documentElement.setAttribute("lang", l);
+      var titleAttr = l === "en" ? "data-title-en" : "data-title-ko";
+      var storedTitle = document.documentElement.getAttribute(titleAttr);
+      if (storedTitle) document.title = storedTitle;
+    }
   } catch (e) {}
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 뉴스 브리핑 — {{ date }}{% if is_archive %} (지난 기록){% endif %}</title>
-<meta name="description" content="{{ date }}자 AI 뉴스 요약과 시사점">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="{{ css_prefix }}site-base.css">
 <link rel="stylesheet" href="{{ css_prefix }}site-mobile.css" media="(max-width: 767px)">
 <link rel="stylesheet" href="{{ css_prefix }}site-desktop.css" media="(min-width: 768px)">
@@ -20,14 +33,35 @@
 <body>
 <header class="site-header">
   <div class="utility-bar">
-    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="다크모드 전환">
-      <span class="icon-moon" aria-hidden="true">&#9789;</span>
-      <span class="icon-sun" aria-hidden="true">&#9728;</span>
+    <div class="lang-select" id="lang-select">
+      <button type="button" class="lang-select-trigger" id="lang-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+        <span class="lang-select-current lang-ko">한국어</span>
+        <span class="lang-select-current lang-en">English</span>
+        <span class="lang-select-caret" aria-hidden="true">▾</span>
+      </button>
+      <ul class="lang-select-list" id="lang-select-list" role="listbox" hidden>
+        <li role="option" data-lang-value="ko">한국어</li>
+        <li role="option" data-lang-value="en">English</li>
+      </ul>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환">
+      <span class="theme-toggle-thumb">
+        <span class="icon-moon" aria-hidden="true">&#9789;</span>
+        <span class="icon-sun" aria-hidden="true">&#9728;</span>
+      </span>
     </button>
   </div>
   <div class="header-inner">
-    <h1><a href="{{ css_prefix }}index.html">AI 뉴스 브리핑</a></h1>
-    <p class="tagline">매일 아침 8시 · AI 기사 {{ articles|length }}건의 요약과 시사점</p>
+    <h1>
+      <a href="{{ css_prefix }}index.html">
+        <span class="lang-ko">AI 뉴스 브리핑</span>
+        <span class="lang-en">AI News Briefing</span>
+      </a>
+    </h1>
+    <p class="tagline">
+      <span class="lang-ko">매일 아침 8시 · AI 기사 {{ articles|length }}건의 요약과 시사점</span>
+      <span class="lang-en">Daily at 8AM KST · Summaries and takeaways from {{ articles|length }} AI articles</span>
+    </p>
   </div>
 </header>
 
@@ -35,18 +69,41 @@
   <div class="date-bar">
     <span class="date-label">{{ date }}</span>
     {% if is_archive %}
-      <span class="archive-badge">지난 기록</span>
-      <a class="back-link" href="{{ home_link }}">오늘자 브리핑 보기 →</a>
+      <span class="archive-badge">
+        <span class="lang-ko">지난 기록</span>
+        <span class="lang-en">Past Edition</span>
+      </span>
+      <a class="back-link" href="{{ home_link }}">
+        <span class="lang-ko">오늘자 브리핑 보기 →</span>
+        <span class="lang-en">View today's briefing →</span>
+      </a>
     {% endif %}
   </div>
 
   {% if not articles %}
-  <p class="empty-state">오늘은 조건에 맞는 기사를 찾지 못했습니다.</p>
+  <p class="empty-state">
+    <span class="lang-ko">오늘은 조건에 맞는 기사를 찾지 못했습니다.</span>
+    <span class="lang-en">No qualifying articles were found today.</span>
+  </p>
+  {% endif %}
+
+  {% if articles %}
+  <nav class="toc" aria-label="목차">
+    <h2 class="toc-title">
+      <span class="lang-ko">목차</span>
+      <span class="lang-en">Contents</span>
+    </h2>
+    <ol class="toc-list">
+      {% for article in articles %}
+      <li><a href="#article-{{ loop.index }}"><span class="toc-num">{{ "%02d"|format(loop.index) }}</span><span class="toc-text">{{ article.title }}</span></a></li>
+      {% endfor %}
+    </ol>
+  </nav>
   {% endif %}
 
   <div class="article-list">
     {% for article in articles %}
-    <article class="article-card">
+    <article class="article-card" id="article-{{ loop.index }}">
       <div class="article-meta">
         <span class="source">{{ article.source }}</span>
         <span class="dot">·</span>
@@ -56,12 +113,20 @@
         <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
       </h2>
       <div class="article-summary">
-        <h3 class="block-label">요약</h3>
-        <p>{{ article.summary }}</p>
+        <h3 class="block-label">
+          <span class="lang-ko">요약</span>
+          <span class="lang-en">Summary</span>
+        </h3>
+        <p class="lang-ko">{{ article.summary_ko }}</p>
+        <p class="lang-en">{{ article.summary_en }}</p>
       </div>
       <div class="article-implication">
-        <h3 class="block-label">이 기사가 시사하는 점</h3>
-        <p>{{ article.implication }}</p>
+        <h3 class="block-label">
+          <span class="lang-ko">이 기사가 시사하는 점</span>
+          <span class="lang-en">Why It Matters</span>
+        </h3>
+        <p class="lang-ko">{{ article.implication_ko }}</p>
+        <p class="lang-en">{{ article.implication_en }}</p>
       </div>
     </article>
     {% endfor %}
@@ -69,7 +134,10 @@
 
   {% if archives %}
   <section class="archive-section">
-    <h2 class="archive-title">지난 브리핑</h2>
+    <h2 class="archive-title">
+      <span class="lang-ko">지난 브리핑</span>
+      <span class="lang-en">Past Briefings</span>
+    </h2>
     <ul class="archive-list">
       {% for a in archives %}
       <li><a href="{{ archive_link_prefix }}{{ a }}.html">{{ a }}</a></li>
@@ -80,27 +148,71 @@
 </main>
 
 <footer class="site-footer">
-  <p>매일 08:00 KST 자동 생성 · 마지막 생성: {{ generated_at }}</p>
+  <p>
+    <span class="lang-ko">매일 08:00 KST 자동 생성 · 마지막 생성: {{ generated_at }}</span>
+    <span class="lang-en">Auto-generated daily at 08:00 KST · Last updated: {{ generated_at }}</span>
+  </p>
 </footer>
 
 <script>
 (function () {
-  var btn = document.getElementById("theme-toggle");
-  if (!btn) return;
-  function systemPrefersDark() {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  var themeBtn = document.getElementById("theme-toggle");
+  if (themeBtn) {
+    var systemPrefersDark = function () {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    };
+    var isDarkActive = function () {
+      var explicit = document.documentElement.getAttribute("data-theme");
+      if (explicit === "dark") return true;
+      if (explicit === "light") return false;
+      return systemPrefersDark();
+    };
+    themeBtn.setAttribute("aria-checked", String(isDarkActive()));
+    themeBtn.addEventListener("click", function () {
+      var next = isDarkActive() ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch (e) {}
+      themeBtn.setAttribute("aria-checked", String(next === "dark"));
+    });
   }
-  function isDarkActive() {
-    var explicit = document.documentElement.getAttribute("data-theme");
-    if (explicit === "dark") return true;
-    if (explicit === "light") return false;
-    return systemPrefersDark();
+
+  var langSelect = document.getElementById("lang-select");
+  var langTrigger = document.getElementById("lang-select-trigger");
+  var langList = document.getElementById("lang-select-list");
+  if (langSelect && langTrigger && langList) {
+    var closeList = function () {
+      langList.hidden = true;
+      langTrigger.setAttribute("aria-expanded", "false");
+    };
+    var openList = function () {
+      langList.hidden = false;
+      langTrigger.setAttribute("aria-expanded", "true");
+    };
+    var selectLang = function (next) {
+      document.documentElement.setAttribute("data-lang", next);
+      document.documentElement.setAttribute("lang", next);
+      try { localStorage.setItem("lang", next); } catch (e) {}
+      var titleAttr = next === "en" ? "data-title-en" : "data-title-ko";
+      var newTitle = document.documentElement.getAttribute(titleAttr);
+      if (newTitle) document.title = newTitle;
+      closeList();
+    };
+    langTrigger.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (langList.hidden) openList(); else closeList();
+    });
+    Array.prototype.forEach.call(langList.querySelectorAll("li[data-lang-value]"), function (li) {
+      li.addEventListener("click", function () {
+        selectLang(li.getAttribute("data-lang-value"));
+      });
+    });
+    document.addEventListener("click", function (e) {
+      if (!langSelect.contains(e.target)) closeList();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeList();
+    });
   }
-  btn.addEventListener("click", function () {
-    var next = isDarkActive() ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next);
-    try { localStorage.setItem("theme", next); } catch (e) {}
-  });
 })();
 </script>
 </body>

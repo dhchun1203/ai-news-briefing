@@ -8,7 +8,12 @@ body {
 }
 
 .utility-bar { padding: 8px 16px; }
-.theme-toggle { width: 32px; height: 32px; font-size: 0.95rem; }
+.theme-toggle { width: 46px; height: 25px; --toggle-travel: 22px; }
+.theme-toggle-thumb { width: 18px; height: 18px; font-size: 0.65rem; }
+.lang-select-trigger { height: 32px; padding: 0 10px; gap: 5px; font-size: 0.78rem; }
+.lang-select-caret { font-size: 0.6rem; }
+.lang-select-list { padding: 5px; min-width: 116px; }
+.lang-select-list li { padding: 7px 10px; font-size: 0.85rem; }
 
 .header-inner { padding: 22px 16px 16px; }
 
@@ -21,6 +26,11 @@ body {
 .date-label { font-size: 0.8rem; }
 .back-link { font-size: 0.72rem; width: 100%; }
 .archive-badge { font-size: 0.68rem; }
+
+.toc { margin: 16px 0 6px; padding: 16px 0; }
+.toc-title { font-size: 0.75rem; margin: 0 0 10px; }
+.toc-list { grid-template-columns: 1fr; gap: 9px; font-size: 0.92rem; line-height: 1.4; }
+.toc-num { font-size: 0.8rem; width: 22px; }
 
 .article-card { padding: 22px 0; }
 .article-card:first-child { padding-top: 14px; }
@@ -39,7 +49,7 @@ body {
 .article-summary { margin-bottom: 12px; }
 .article-summary p, .article-implication p { font-size: 0.98rem; }
 
-.article-implication { padding: 2px 0 2px 14px; }
+.article-implication { padding: 12px 14px 12px 14px; }
 
 .archive-section { margin-top: 36px; padding-top: 16px; }
 .archive-title { font-size: 0.8rem; margin: 0 0 10px; }
