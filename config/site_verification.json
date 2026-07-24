@@ -1,0 +1,5 @@
+{
+  "_comment": "구글/네이버 사이트 소유 확인용 메타태그 값. 비워두면 templates의 해당 meta 태그가 렌더되지 않는다. 구글은 가비아 DNS TXT 인증을 권장(이 파일 수정 불필요) — 이 값은 네이버처럼 HTML 메타태그 인증을 쓸 때만 채운다. 값 자체는 공개돼도 무방하다(원래 페이지 소스에 노출되는 값).",
+  "google_site_verification": "",
+  "naver_site_verification": ""
+}

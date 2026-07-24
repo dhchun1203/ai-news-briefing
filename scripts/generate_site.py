@@ -11,8 +11,11 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+import seo_utils
+
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = ROOT / "templates"
+STATIC_DIR = TEMPLATES_DIR / "static"
 CONFIG_DIR = ROOT / "config"
 DEFAULT_DOCS_DIR = ROOT / "docs"
 
@@ -209,6 +212,13 @@ def main():
 
     for css_name in ("site-base.css", "site-mobile.css", "site-desktop.css"):
         shutil.copyfile(TEMPLATES_DIR / css_name, docs_dir / css_name)
+    for asset_name in ("favicon.svg", "og-image.png"):
+        shutil.copyfile(STATIC_DIR / asset_name, docs_dir / asset_name)
+
+    site_url = seo_utils.get_site_url()
+    seo_utils.write_robots_txt(docs_dir, site_url)
+    verification = seo_utils.load_verification_tags()
+    og_image_url = f"{site_url}/og-image.png"
 
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -223,6 +233,9 @@ def main():
     # 다음날(월요일)부터 그 주 회고가 배너에 뜬다 — 의도된 동작.
     weekday = datetime.strptime(date, "%Y-%m-%d").weekday()  # 0=월요일 ... 6=일요일
     show_weekly_banner = weekday in (0, 6)
+
+    index_url = f"{site_url}/"
+    archive_url = f"{site_url}/archive/{date}"
 
     # docs/index.html (오늘자, 항상 최신)
     index_html = template.render(
@@ -239,6 +252,11 @@ def main():
         css_prefix="",
         home_link=None,
         is_archive=False,
+        canonical_url=index_url,
+        og_image_url=og_image_url,
+        google_site_verification=verification["google_site_verification"],
+        naver_site_verification=verification["naver_site_verification"],
+        jsonld=seo_utils.build_archive_page_jsonld(site_url, index_url, date, generated_at, articles, daily_insight),
     )
     (docs_dir / "index.html").write_text(index_html, encoding="utf-8")
 
@@ -258,11 +276,18 @@ def main():
         css_prefix="../",
         home_link="../index.html",
         is_archive=True,
+        canonical_url=archive_url,
+        og_image_url=og_image_url,
+        google_site_verification=verification["google_site_verification"],
+        naver_site_verification=verification["naver_site_verification"],
+        jsonld=seo_utils.build_archive_page_jsonld(site_url, archive_url, date, generated_at, articles, daily_insight),
     )
     (archive_dir / f"{date}.html").write_text(archive_html, encoding="utf-8")
 
+    sitemap_count = seo_utils.build_sitemap(docs_dir, site_url, date)
+
     print(f"생성 완료: {docs_dir / 'index.html'}, {archive_dir / f'{date}.html'}")
-    print(f"기사 {len(articles)}건, 지난 아카이브 {len(past_archives)}건, 검색 인덱스 {indexed_count}건")
+    print(f"기사 {len(articles)}건, 지난 아카이브 {len(past_archives)}건, 검색 인덱스 {indexed_count}건, sitemap {sitemap_count}건")
 
 
 if __name__ == "__main__":

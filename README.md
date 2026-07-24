@@ -2,25 +2,29 @@
 
 AI 관련 기사를 매일 자동으로 수집해 각 기사의 "요약"과 "이 기사가 시사하는 점"을 정리한
 정적 웹페이지를 만들고 Vercel로 자동 배포하는 자동화. 한국어/영어 이중언어, 이메일 구독
-기능을 포함한다. 설계 배경과 RSS/배포 방식/구독 아키텍처 선택 근거는 [`PLAN.md`](PLAN.md)를
-참고.
+기능을 포함한다. 설계 배경과 RSS/배포 방식/구독 아키텍처 선택 근거는 [`PLAN.md`](PLAN.md)를,
+SEO/GEO·검색엔진 등록·해외 노출 전략은 [`MARKETING.md`](MARKETING.md)를 참고.
 
 ## 폴더 구조
 ```
 config/feeds.json           # RSS 피드 목록 + 소스 타입(primary/press/community)
+config/site_verification.json  # 구글/네이버 사이트 소유 확인 메타태그 값(선택)
 scripts/fetch_articles.py   # RSS 수집 + 과거 중복 제외 + 화제성 반영 + 상위 10개 선별
-scripts/generate_site.py    # 정적 HTML 생성 + 아카이브 JSON/검색 인덱스 갱신
+scripts/generate_site.py    # 정적 HTML 생성 + 아카이브 JSON/검색 인덱스/SEO 산출물 갱신
 scripts/generate_weekly_site.py  # (일요일) 주간 회고 페이지 생성
 scripts/send_broadcast.py   # 확인된 이메일 구독자에게 오늘의 다이제스트 발송
+scripts/seo_utils.py        # robots.txt/sitemap.xml/JSON-LD 등 SEO/GEO 공용 헬퍼
+scripts/tools/generate_og_image.py  # 1회성 로컬 스크립트(og-image.png 생성용, 파이프라인 미포함)
 templates/                  # 웹페이지 템플릿(Jinja2)/CSS
+templates/static/           # favicon.svg, og-image.png (정적 이미지 자산)
 api/                        # Vercel 서버리스 함수 (구독/확인/구독취소)
 supabase/schema.sql         # 구독자 테이블 스키마 (Supabase SQL Editor에서 1회 실행)
 .claude/skills/ai-news-briefing/SKILL.md   # 전체 워크플로를 묶는 스킬
 vercel.json                 # Vercel 배포 설정 (outputDirectory: docs)
 data/                        # 중간 산출물, git에는 포함 안 됨
 docs/                        # 배포 대상 — index.html, archive/<날짜>.html·json(영구 보관)·
-                            # sent.json(발송 완료 마커), weekly/<주차>.html, search-index.json
-                            # 전부 커밋 필요
+                            # sent.json(발송 완료 마커), weekly/<주차>.html, search-index.json,
+                            # robots.txt, sitemap.xml, favicon.svg, og-image.png 전부 커밋 필요
 ```
 
 ## 최초 설정 (사람이 직접 해야 하는 부분)

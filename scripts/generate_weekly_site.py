@@ -12,8 +12,11 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+import seo_utils
+
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = ROOT / "templates"
+STATIC_DIR = TEMPLATES_DIR / "static"
 DEFAULT_DOCS_DIR = ROOT / "docs"
 
 
@@ -72,10 +75,17 @@ def main():
 
     for css_name in ("site-base.css", "site-mobile.css", "site-desktop.css"):
         shutil.copyfile(TEMPLATES_DIR / css_name, docs_dir / css_name)
+    for asset_name in ("favicon.svg", "og-image.png"):
+        shutil.copyfile(STATIC_DIR / asset_name, docs_dir / asset_name)
 
     week_label = weekly["week_label"]
     daily_briefings = collect_daily_briefings(archive_dir, weekly["start_date"], weekly["end_date"])
     past_weeklies = collect_weekly_labels(weekly_dir, week_label)
+    generated_at = weekly.get("generated_at", datetime.now().isoformat())
+
+    site_url = seo_utils.get_site_url()
+    verification = seo_utils.load_verification_tags()
+    page_url = f"{site_url}/weekly/{week_label}"
 
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -93,12 +103,24 @@ def main():
         paragraphs_en=weekly.get("paragraphs_en", []),
         daily_briefings=daily_briefings,
         past_weeklies=past_weeklies,
-        generated_at=weekly.get("generated_at", datetime.now().isoformat()),
+        generated_at=generated_at,
+        canonical_url=page_url,
+        og_image_url=f"{site_url}/og-image.png",
+        google_site_verification=verification["google_site_verification"],
+        naver_site_verification=verification["naver_site_verification"],
+        jsonld=seo_utils.build_weekly_page_jsonld(
+            site_url, page_url, weekly.get("headline_ko", ""), weekly["end_date"],
+            generated_at, weekly.get("paragraphs_ko", []), daily_briefings,
+        ),
     )
     (weekly_dir / f"{week_label}.html").write_text(html_out, encoding="utf-8")
 
+    # 일요일 당일 새로 생긴 주간 회고 페이지가 그날 배포되는 sitemap.xml에 바로
+    # 반영되도록, generate_site.py(항상 먼저 실행됨)와 별개로 여기서도 재빌드한다.
+    sitemap_count = seo_utils.build_sitemap(docs_dir, site_url, datetime.now().strftime("%Y-%m-%d"))
+
     print(f"주간 회고 생성 완료: {weekly_dir / f'{week_label}.html'}")
-    print(f"이번 주 일별 브리핑 {len(daily_briefings)}건, 지난 주간 회고 {len(past_weeklies)}건")
+    print(f"이번 주 일별 브리핑 {len(daily_briefings)}건, 지난 주간 회고 {len(past_weeklies)}건, sitemap {sitemap_count}건")
 
 
 if __name__ == "__main__":

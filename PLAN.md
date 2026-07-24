@@ -276,6 +276,17 @@ Technology Review — 언론·기술 매체 보도), `community`(Hacker News —
   `"<날짜>.sent"`가 되면서 날짜 범위 비교에 걸려 주간 회고에 헤드라인 없는 빈 항목이
   섞여 들어가는 실제 버그가 있었다 — 수정 후 테스트로 확인).
 
+### 16. SEO/GEO 기술 인프라 (`scripts/seo_utils.py`)
+검색엔진(구글/네이버)과 생성형 AI 답변엔진(ChatGPT/Perplexity 등) 양쪽에 노출되기
+위한 `robots.txt`/`sitemap.xml`/canonical/`og:image`/JSON-LD 구조화 데이터를 매 실행마다
+자동 생성한다. GEO(생성형 AI 검색 최적화)를 SEO보다 우선 강화하기로 한 결정, 리서치
+근거, 구글/네이버 등록 체크리스트, 해외(영어권) 커뮤니티 노출 전략은 별도 문서
+[`MARKETING.md`](MARKETING.md)에 정리했다 — 이 문서(PLAN.md)는 아키텍처 이유만
+간단히 남긴다: (1) 이 사이트는 원문 기사의 저작자가 아니라 큐레이션/분석 주체이므로
+JSON-LD에서 원문을 `NewsArticle`로 직접 마크업하지 않고 우리 자체 분석문만
+`Article`/`CollectionPage`로 표시하고 원문은 `citation`으로 분리했다. (2) sitemap은
+`search-index.json`과 같은 멱등적 전체 재빌드 패턴을 따른다.
+
 ## 사용자가 직접 준비해야 하는 것 (자동화로 대신 못 하는 부분)
 1. vercel.com 계정으로 로그인 후 "Add New... → Project"에서 `dhchun1203/ai-news-briefing`
    저장소를 Import (OAuth 기반 GitHub 연동이라 에이전트가 대신할 수 없음). Framework Preset은
@@ -291,6 +302,11 @@ Technology Review — 언론·기술 매체 보도), `community`(Hacker News —
    관련 커뮤니티/영상 댓글, 개인 SNS 계정 등)에 어떤 방식·주기로 공유할지는 사람이
    직접 정하고 실행해야 하는 항목이다 (자동화 파이프라인이 대신 게시할 수 없음). 아직
    구체적인 방법은 미정 — 사용자가 나중에 구체화할 예정.
+7. **구글 Search Console / 네이버 서치어드바이저 등록** — 계정 기반 소유권 인증이라
+   에이전트가 대신할 수 없다. DNS TXT(구글 권장) 또는 `config/site_verification.json`
+   메타태그(네이버) 방식, sitemap 제출까지 상세 체크리스트는 `MARKETING.md` 참고.
+8. **영어권 커뮤니티 노출(Product Hunt/Hacker News/Reddit 등)** — 실제 게시는 사람이
+   직접 계정으로 해야 하는 항목. 채널별 전략과 포지셔닝 리서치는 `MARKETING.md` 참고.
 
 ## 검증 계획
 1. RSS 피드 URL 전수 검증 (완료 — 위 "구성 요소 1" 참고)
