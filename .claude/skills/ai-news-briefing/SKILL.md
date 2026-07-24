@@ -185,6 +185,9 @@ python scripts/generate_site.py --input data/digest_<날짜>.json
   회고 페이지 포함)도 이 단계에서 매번 자동으로 (재)생성된다 — Claude가 따로 할 일 없음.
   각 페이지의 canonical/JSON-LD 구조화 데이터도 `scripts/seo_utils.py`가 자동으로
   채운다. 자세한 설계는 `MARKETING.md` 참고.
+- `docs/en/index.html`(영어권 착지 페이지)도 같은 digest로 매번 자동 생성된다 —
+  Claude가 따로 작성할 콘텐츠 없음(이미 두 언어로 쓴 원문을 영어 기본값으로만
+  다시 렌더링). `/`와 `/en/` 사이에 `hreflang` 상호 참조도 자동으로 붙는다.
 - `og:image`는 그날의 `daily_insight` 헤드라인을 직접 렌더링한 날짜별 이미지
   (`docs/og/<날짜>.png`)가 자동으로 생성된다. 이 렌더링(Pillow)이 어떤 이유로든
   실패해도 파이프라인은 멈추지 않고 조용히 기존 정적 `og-image.png`로 대체된다 —

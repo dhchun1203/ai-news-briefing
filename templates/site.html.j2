@@ -1,17 +1,22 @@
 <!DOCTYPE html>
+{% set default_lang = default_lang|default('ko') %}
 {% set title_ko = "AI 뉴스 브리핑 — " + date + (" (지난 기록)" if is_archive else "") %}
 {% set title_en = "AI News Briefing — " + date + (" (Archive)" if is_archive else "") %}
-<html lang="ko" data-lang="ko" data-title-ko="{{ title_ko }}" data-title-en="{{ title_en }}">
+{% set desc_ko = date + "자 AI 뉴스 요약과 시사점" %}
+{% set desc_en = "Daily AI news summaries and takeaways — " + date %}
+{% set title_default = title_en if default_lang == 'en' else title_ko %}
+{% set desc_default = desc_en if default_lang == 'en' else desc_ko %}
+<html lang="{{ default_lang }}" data-lang="{{ default_lang }}" data-title-ko="{{ title_ko }}" data-title-en="{{ title_en }}">
 <head>
 <meta charset="UTF-8">
-<title>{{ title_ko }}</title>
-<meta name="description" content="{{ date }}자 AI 뉴스 요약과 시사점">
+<title>{{ title_default }}</title>
+<meta name="description" content="{{ desc_default }}">
 <meta property="og:type" content="website">
-<meta property="og:title" content="{{ title_ko }}">
-<meta property="og:description" content="{{ date }}자 AI 뉴스 요약과 시사점">
+<meta property="og:title" content="{{ title_default }}">
+<meta property="og:description" content="{{ desc_default }}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ title_ko }}">
-<meta name="twitter:description" content="{{ date }}자 AI 뉴스 요약과 시사점">
+<meta name="twitter:title" content="{{ title_default }}">
+<meta name="twitter:description" content="{{ desc_default }}">
 <link rel="canonical" href="{{ canonical_url }}">
 <meta name="robots" content="index, follow">
 <meta property="og:url" content="{{ canonical_url }}">
@@ -21,6 +26,11 @@
 <meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
 <meta name="twitter:image" content="{{ og_image_url }}">
 <link rel="icon" type="image/svg+xml" href="{{ css_prefix }}favicon.svg">
+{% if hreflang_ko_url and hreflang_en_url %}
+<link rel="alternate" hreflang="ko" href="{{ hreflang_ko_url }}">
+<link rel="alternate" hreflang="en" href="{{ hreflang_en_url }}">
+<link rel="alternate" hreflang="x-default" href="{{ hreflang_ko_url }}">
+{% endif %}
 {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
 {% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
 <script type="application/ld+json">{{ jsonld|tojson }}</script>
@@ -34,6 +44,11 @@
     // 처음 방문(쿠키 없음)이면 시스템 설정과 무관하게 항상 라이트 모드로 뜬다.
     var t = getCookie("theme");
     if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    {% if default_lang == 'en' %}
+    // 영어권 착지 페이지(/en/) — 과거에 저장된 언어 선호와 무관하게 항상 영어로
+    // 보여주고, 이후 다른 페이지로 이동해도 영어가 유지되도록 저장해둔다.
+    localStorage.setItem("lang", "en");
+    {% else %}
     var l = localStorage.getItem("lang");
     if (l === "ko" || l === "en") {
       document.documentElement.setAttribute("data-lang", l);
@@ -42,6 +57,7 @@
       var storedTitle = document.documentElement.getAttribute(titleAttr);
       if (storedTitle) document.title = storedTitle;
     }
+    {% endif %}
   } catch (e) {}
 })();
 </script>

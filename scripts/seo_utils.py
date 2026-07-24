@@ -71,6 +71,8 @@ def build_sitemap(docs_dir: Path, site_url: str, today: str) -> int:
             urls.append((f"{site_url}/weekly/{f.stem}", _weekly_lastmod(f.stem)))
     if (docs_dir / "glossary.html").exists():
         urls.append((f"{site_url}/glossary", today))  # 매일 새 용어가 쌓일 수 있어 lastmod는 오늘
+    if (docs_dir / "en" / "index.html").exists():
+        urls.append((f"{site_url}/en/", today))  # 영어권 착지 페이지, 오늘자 digest와 함께 매일 갱신
     body = "\n".join(
         f"  <url><loc>{escape(loc)}</loc><lastmod>{lastmod}</lastmod></url>" for loc, lastmod in urls
     )

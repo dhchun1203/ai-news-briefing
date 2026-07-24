@@ -298,6 +298,7 @@ def main():
 
     index_url = f"{site_url}/"
     archive_url = f"{site_url}/archive/{date}"
+    en_url = f"{site_url}/en/"
 
     # docs/index.html (오늘자, 항상 최신)
     index_html = template.render(
@@ -318,9 +319,44 @@ def main():
         og_image_url=og_image_url,
         google_site_verification=verification["google_site_verification"],
         naver_site_verification=verification["naver_site_verification"],
+        hreflang_ko_url=index_url,
+        hreflang_en_url=en_url,
         jsonld=seo_utils.build_archive_page_jsonld(site_url, index_url, date, generated_at, articles, daily_insight),
     )
     (docs_dir / "index.html").write_text(index_html, encoding="utf-8")
+
+    # docs/en/index.html — 영어권 착지 페이지. 별도 콘텐츠를 새로 쓰지 않고 같은
+    # digest를 default_lang="en"으로만 다시 렌더링한다(원문은 이미 한/영 둘 다
+    # 작성돼 있으므로). 이 URL에 착지하면 언어 선택이 localStorage에 저장돼(위
+    # FOUC 스크립트 참고) 이후 다른 페이지(아카이브·주간 회고·용어사전)로 이동해도
+    # 영어가 유지된다 — 그 페이지들까지 전부 영어 전용 URL로 미러링하지 않아도 되는
+    # 이유다.
+    en_dir = docs_dir / "en"
+    en_dir.mkdir(parents=True, exist_ok=True)
+    en_index_html = template.render(
+        date=date,
+        generated_at=generated_at,
+        articles=articles,
+        daily_insight=daily_insight,
+        glossary=glossary_lookup,
+        archives=past_archives,
+        weekly_labels=weekly_labels,
+        show_weekly_banner=show_weekly_banner,
+        archive_link_prefix="../archive/",
+        weekly_link_prefix="../weekly/",
+        css_prefix="../",
+        home_link=None,
+        is_archive=False,
+        default_lang="en",
+        canonical_url=en_url,
+        og_image_url=og_image_url,
+        google_site_verification=verification["google_site_verification"],
+        naver_site_verification=verification["naver_site_verification"],
+        hreflang_ko_url=index_url,
+        hreflang_en_url=en_url,
+        jsonld=seo_utils.build_archive_page_jsonld(site_url, en_url, date, generated_at, articles, daily_insight),
+    )
+    (en_dir / "index.html").write_text(en_index_html, encoding="utf-8")
 
     # docs/archive/<날짜>.html (누적 보관) — 배너는 "오늘자" 사이트에만 노출하고
     # 과거 기록 페이지에는 넣지 않는다(그 날짜 시점 기준 배너라 의미가 없음).
