@@ -127,6 +127,12 @@
   <div class="date-bar">
     <span class="date-label">2026-07-24</span>
     
+    <span class="reading-time">
+      <span class="lang-ko">· 약 10분 분량</span>
+      <span class="lang-en">· ~8 min read</span>
+    </span>
+    
+    
   </div>
 
   
@@ -221,7 +227,7 @@
       <div class="article-meta">
         <span class="source">Hacker News (AI)</span>
         
-        <span class="source-badge source-badge-community">
+        <span class="badge source-badge source-badge-community">
           <span class="lang-ko">커뮤니티</span>
           <span class="lang-en">Community</span>
         </span>
@@ -254,7 +260,7 @@
       <div class="article-meta">
         <span class="source">TechCrunch AI</span>
         
-        <span class="source-badge source-badge-press">
+        <span class="badge source-badge source-badge-press">
           <span class="lang-ko">보도</span>
           <span class="lang-en">Press</span>
         </span>
@@ -287,7 +293,7 @@
       <div class="article-meta">
         <span class="source">Ars Technica AI</span>
         
-        <span class="source-badge source-badge-press">
+        <span class="badge source-badge source-badge-press">
           <span class="lang-ko">보도</span>
           <span class="lang-en">Press</span>
         </span>
@@ -320,7 +326,7 @@
       <div class="article-meta">
         <span class="source">Google DeepMind Blog</span>
         
-        <span class="source-badge source-badge-primary">
+        <span class="badge source-badge source-badge-primary">
           <span class="lang-ko">공식 발표</span>
           <span class="lang-en">Official</span>
         </span>
@@ -353,7 +359,7 @@
       <div class="article-meta">
         <span class="source">Google DeepMind Blog</span>
         
-        <span class="source-badge source-badge-primary">
+        <span class="badge source-badge source-badge-primary">
           <span class="lang-ko">공식 발표</span>
           <span class="lang-en">Official</span>
         </span>
@@ -386,7 +392,7 @@
       <div class="article-meta">
         <span class="source">TechCrunch AI</span>
         
-        <span class="source-badge source-badge-press">
+        <span class="badge source-badge source-badge-press">
           <span class="lang-ko">보도</span>
           <span class="lang-en">Press</span>
         </span>
@@ -419,7 +425,7 @@
       <div class="article-meta">
         <span class="source">Ars Technica AI</span>
         
-        <span class="source-badge source-badge-press">
+        <span class="badge source-badge source-badge-press">
           <span class="lang-ko">보도</span>
           <span class="lang-en">Press</span>
         </span>
@@ -452,7 +458,7 @@
       <div class="article-meta">
         <span class="source">Google AI Blog</span>
         
-        <span class="source-badge source-badge-primary">
+        <span class="badge source-badge source-badge-primary">
           <span class="lang-ko">공식 발표</span>
           <span class="lang-en">Official</span>
         </span>
@@ -485,7 +491,7 @@
       <div class="article-meta">
         <span class="source">OpenAI News</span>
         
-        <span class="source-badge source-badge-primary">
+        <span class="badge source-badge source-badge-primary">
           <span class="lang-ko">공식 발표</span>
           <span class="lang-en">Official</span>
         </span>
@@ -518,7 +524,7 @@
       <div class="article-meta">
         <span class="source">Ars Technica AI</span>
         
-        <span class="source-badge source-badge-press">
+        <span class="badge source-badge source-badge-press">
           <span class="lang-ko">보도</span>
           <span class="lang-en">Press</span>
         </span>
@@ -621,6 +627,28 @@
       themeBtn.setAttribute("aria-checked", String(next === "dark"));
     });
   }
+
+  // 뒤로가기/앞으로가기로 브라우저가 페이지를 bfcache에서 그대로 복원하면
+  // (pageshow의 persisted===true) 이 스크립트 블록 자체가 다시 실행되지 않아
+  // 테마/언어가 "이 페이지를 떠날 때의 상태"로 얼어붙는다 — 예를 들어 용어사전에서
+  // 언어를 바꾼 뒤 뒤로가기하면 원래 기사 페이지가 예전 언어로 보이는 문제.
+  // persisted 복원 시에만 쿠키/localStorage 값으로 다시 동기화한다.
+  window.addEventListener("pageshow", function (e) {
+    if (!e.persisted) return;
+    function getCookie(name) {
+      var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+    var t = getCookie("theme");
+    if (t === "dark" || t === "light") {
+      document.documentElement.setAttribute("data-theme", t);
+      if (themeBtn) themeBtn.setAttribute("aria-checked", String(t === "dark"));
+    }
+    
+    localStorage.setItem("lang", "en");
+    
+    updatePlaceholders();
+  });
 
   var langSelect = document.getElementById("lang-select");
   var langTrigger = document.getElementById("lang-select-trigger");
