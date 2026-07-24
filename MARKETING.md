@@ -132,6 +132,10 @@
 
 ## 5. 런칭 카피 초안 (그대로 사용 가능)
 
+**어디든 링크를 걸 때는 `dailyaithread.com`이 아니라 `dailyaithread.com/en/`을
+쓴다** — Product Hunt의 "Website URL" 필드도 포함(§6 참고: `/en/`에 착지하면
+그 뒤로 사이트 안 다른 페이지를 눌러도 영어가 유지됨).
+
 ### Product Hunt
 - **제품명**: Daily AI Thread
 - **태그라인**(60자 내외): `AI news that reads the full article, not just the headline`
@@ -173,13 +177,13 @@
   > Static site (Python + Jinja2) on Vercel; the daily reading/writing step
   > runs on Claude. Bilingual (EN/KO).
   >
-  > https://www.dailyaithread.com — happy to answer questions about the
+  > https://www.dailyaithread.com/en/ — happy to answer questions about the
   > pipeline.
 
 ### Reddit (self-promo 허용 스레드에서만 사용)
 > Built Daily AI Thread — reads AI news in full, flags multi-outlet coverage
 > as a significance signal, and explains jargon inline. Free, bilingual,
-> no login. Feedback welcome: dailyaithread.com
+> no login. Feedback welcome: dailyaithread.com/en/
 
 ## 6. 영어권 착지 페이지 (`/en/`)
 
