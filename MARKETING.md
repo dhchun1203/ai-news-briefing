@@ -67,14 +67,16 @@
 
 ### 네이버 서치어드바이저 (후순위)
 1. https://searchadvisor.naver.com 에서 네이버 아이디로 로그인 후 사이트 등록.
-2. **HTML 메타태그 방식 권장**(네이버는 DNS 인증보다 이쪽이 안정적) —
-   `config/site_verification.json`의 `naver_site_verification` 값을 발급받은 값으로
-   채우고 재배포하면 자동으로 `<meta>` 태그가 나간다. HTML 파일 업로드 방식을 쓰고
-   싶다면 그 파일을 `docs/`에 직접 추가해도 된다(별도 코드 지원 불필요).
-2. 소유 확인 후 `sitemap.xml` 제출(구글과 같은 파일 재사용).
-3. 네이버 검색 로봇이 실제로 수집하는 데 14~16일 정도 걸린다고 알려져 있음. HTML
+2. **반드시 HTML 메타태그 방식을 쓴다** — `config/site_verification.json`의
+   `naver_site_verification` 값을 채우고 재배포하면 자동으로 `<meta>` 태그가 나간다.
+   **HTML 파일 업로드 방식은 이 프로젝트에서 쓸 수 없다**: `vercel.json`의
+   `cleanUrls: true`가 `/navera....html` 요청을 확장자 없는 `/navera...`로 308
+   리다이렉트시켜, 네이버가 기대하는 정확한 `.html` 경로에서 파일을 찾지 못한다
+   (2026-07-24 직접 시도해서 확인됨 — 파일을 올려도 소유확인이 실패한다).
+3. 소유 확인 후 `sitemap.xml` 제출(구글과 같은 파일 재사용).
+4. 네이버 검색 로봇이 실제로 수집하는 데 14~16일 정도 걸린다고 알려져 있음. HTML
    태그 인증은 1년마다 재인증 필요.
-4. 우선순위는 구글보다 낮게 — 이 항목은 시간 날 때 처리.
+5. 우선순위는 구글보다 낮게 — 이 항목은 시간 날 때 처리.
 
 ## 4. 해외(영어권) 시장 노출 전략
 
@@ -107,11 +109,61 @@
 
 ### 실행 주체
 이 전략 전체는 **자동화 대상이 아니라 사용자가 직접 실행하는 항목**이다(이전에 기록해둔
-"주간 회고 SNS 홍보"와 같은 성격 — `PLAN.md` §14 참고). 원하면 Product Hunt
-태그라인이나 Show HN 게시글 초안을 이후 별도로 써줄 수 있음 — 이번 구현 범위에는
-포함하지 않았다.
+"주간 회고 SNS 홍보"와 같은 성격 — `PLAN.md` §14 참고). 계정 생성, 실제 게시,
+커뮤니티 규칙 확인은 전부 사람이 해야 한다 — 아래는 그대로 붙여넣어 쓸 수 있는 초안이다.
 
-## 5. 다음에 할 만한 것 (지금은 범위 밖)
+## 5. 런칭 카피 초안 (그대로 사용 가능)
+
+### Product Hunt
+- **제품명**: Daily AI Thread
+- **태그라인**(60자 내외): `AI news that reads the full article, not just the headline`
+- **설명**(제품 소개란):
+  > Every morning, Daily AI Thread reads the full text of the day's top AI
+  > articles (not just RSS snippets), flags when multiple outlets are covering
+  > the same story, and writes a daily synthesis of what it all means — with
+  > inline plain-English explanations for any jargon. Free, bilingual (EN/KO),
+  > no signup required to read.
+- **메이커 첫 댓글**(등록 직후 본인 계정으로 다는 소개 댓글 — PH 관례):
+  > Hey PH! I built this because most AI newsletters just paste RSS headlines
+  > with zero synthesis. Daily AI Thread actually reads each day's top
+  > articles in full, notices when multiple outlets are covering the same
+  > event (a real significance signal), and writes a "why this matters"
+  > analysis across all of it — not just per-article blurbs. Click any
+  > unfamiliar term (RAG, MoE, zero-day, etc.) for a plain-English explanation
+  > without leaving the page. Runs automatically every morning, free, no
+  > login wall. Would love feedback — especially on what you wish AI news
+  > coverage did differently.
+
+### Hacker News — Show HN
+- **제목**: `Show HN: A pipeline that reads AI news in full and explains why it matters`
+- **본문**:
+  > Most AI newsletters just paste RSS summaries. I wanted something that
+  > actually reads each article, notices when multiple outlets are covering
+  > the same event (a signal RSS timestamps alone don't give you), and
+  > explains the "so what" — not just the "what happened."
+  >
+  > How it works: a daily pipeline pulls candidates from ~11 RSS feeds,
+  > excludes anything already covered on a previous day, and ranks candidates
+  > partly by how many independent sources are covering the same story
+  > (keyword clustering on headlines). The top 10 get their full text read,
+  > summarized, and analyzed for implications. Once a week it also
+  > synthesizes that week's throughlines into a recap.
+  >
+  > One thing I'm fairly happy with: any jargon term becomes a clickable
+  > inline explainer, written the same day, so non-experts don't get lost.
+  >
+  > Static site (Python + Jinja2) on Vercel; the daily reading/writing step
+  > runs on Claude. Bilingual (EN/KO).
+  >
+  > https://www.dailyaithread.com — happy to answer questions about the
+  > pipeline.
+
+### Reddit (self-promo 허용 스레드에서만 사용)
+> Built Daily AI Thread — reads AI news in full, flags multi-outlet coverage
+> as a significance signal, and explains jargon inline. Free, bilingual,
+> no login. Feedback welcome: dailyaithread.com
+
+## 6. 다음에 할 만한 것 (지금은 범위 밖)
 
 - 날짜별 동적 OG 이미지(그날 헤드라인을 이미지에 직접 렌더) — Pillow를 파이프라인
   상시 의존성으로 추가해야 해서 지금은 보류.
