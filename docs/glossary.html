@@ -118,6 +118,20 @@
     <span class="lang-en">Every jargon term explained in a daily briefing ends up here, in plain language.</span>
   </p>
 
+  
+  <div class="glossary-graph-wrap">
+    <p class="glossary-graph-label">
+      <span class="lang-ko">용어 지도 · 점을 눌러 설명 보기</span>
+      <span class="lang-en">Concept map · tap a node to see its explanation</span>
+    </p>
+    <div class="glossary-graph" id="glossary-graph">
+      <svg class="glossary-graph-edges" id="glossary-graph-edges"></svg>
+    </div>
+  </div>
+  <script type="application/json" id="glossary-graph-data">{"edges": [["AI \uc5d0\uc774\uc804\ud2b8", "\uac00\ub4dc\ub808\uc77c"], ["AI \uc5d0\uc774\uc804\ud2b8", "\ud1a0\ud070"], ["\uc790\ubcf8\uc801 \uc9c0\ucd9c", "\uc789\uc5ec\ud604\uae08\ud750\ub984"], ["\uc6d0\uaca9 \ucf54\ub4dc \uc2e4\ud589", "\uc2a4\ud53c\uc5b4 \ud53c\uc2f1"], ["\ub525\ud398\uc774\ud06c", "\uc2a4\ud53c\uc5b4 \ud53c\uc2f1"]], "nodes": [{"label_en": "AI agents", "label_ko": "AI \uc5d0\uc774\uc804\ud2b8", "term": "AI \uc5d0\uc774\uc804\ud2b8"}, {"label_en": "guardrails", "label_ko": "\uac00\ub4dc\ub808\uc77c", "term": "\uac00\ub4dc\ub808\uc77c"}, {"label_en": "deepfake", "label_ko": "\ub525\ud398\uc774\ud06c", "term": "\ub525\ud398\uc774\ud06c"}, {"label_en": "spear phishing", "label_ko": "\uc2a4\ud53c\uc5b4 \ud53c\uc2f1", "term": "\uc2a4\ud53c\uc5b4 \ud53c\uc2f1"}, {"label_en": "remote code execution", "label_ko": "\uc6d0\uaca9 \ucf54\ub4dc \uc2e4\ud589", "term": "\uc6d0\uaca9 \ucf54\ub4dc \uc2e4\ud589"}, {"label_en": "free cash flow", "label_ko": "\uc789\uc5ec\ud604\uae08\ud750\ub984", "term": "\uc789\uc5ec\ud604\uae08\ud750\ub984"}, {"label_en": "capital expenditure", "label_ko": "\uc790\ubcf8\uc801 \uc9c0\ucd9c", "term": "\uc790\ubcf8\uc801 \uc9c0\ucd9c"}, {"label_en": "tokens", "label_ko": "\ud1a0\ud070", "term": "\ud1a0\ud070"}]}</script>
+  
+  <script type="application/json" id="glossary-lookup-data">{"AI \uc5d0\uc774\uc804\ud2b8": {"en": "AI software that goes beyond answering questions to independently carry out multi-step real-world tasks, like processing an email or approving a refund.", "ko": "\ub2e8\uc21c\ud788 \uc9c8\ubb38\uc5d0 \ub2f5\ud558\ub294 \uac78 \ub118\uc5b4, \uc5ec\ub7ec \ub2e8\uacc4\uc758 \uc2e4\uc81c \uc791\uc5c5(\uc774\uba54\uc77c \ucc98\ub9ac, \ud658\ubd88 \uc2b9\uc778 \ub4f1)\uc744 \uc2a4\uc2a4\ub85c \ud310\ub2e8\ud574 \ub300\uc2e0 \uc218\ud589\ud558\ub294 AI \ud504\ub85c\uadf8\ub7a8."}, "\uac00\ub4dc\ub808\uc77c": {"en": "Safety rules built into an AI agent in advance so it can\u0027t take actions outside its approved scope.", "ko": "AI \uc5d0\uc774\uc804\ud2b8\uac00 \uc815\ud574\uc9c4 \uaddc\uce59\uacfc \uad8c\ud55c \ubc94\uc704\ub97c \ubc97\uc5b4\ub09c \ud589\ub3d9\uc744 \ud558\uc9c0 \ubabb\ud558\ub3c4\ub85d \ubbf8\ub9ac \uac78\uc5b4\ub450\ub294 \uc548\uc804\uc7a5\uce58."}, "\ub525\ud398\uc774\ud06c": {"en": "A fake image or video created by AI to realistically swap or synthesize a person\u0027s face or body.", "ko": "AI\ub85c \uc0ac\ub78c\uc758 \uc5bc\uad74\uc774\ub098 \ubab8\uc744 \uc2e4\uc81c\ucc98\ub7fc \ud569\uc131\ud574 \ub9cc\ub4e0 \uac00\uc9dc \uc774\ubbf8\uc9c0\u00b7\uc601\uc0c1."}, "\uc2a4\ud53c\uc5b4 \ud53c\uc2f1": {"en": "A targeted scam email attack aimed at a specific person or organization, as opposed to mass phishing sent to random recipients.", "ko": "\ubd88\ud2b9\uc815 \ub2e4\uc218\uc5d0\uac8c \ubfcc\ub9ac\ub294 \ud53c\uc2f1\uacfc \ub2ec\ub9ac, \ud2b9\uc815 \uc778\ubb3c\uc774\ub098 \uc870\uc9c1\uc744 \ud45c\uc801\uc73c\ub85c \uc0bc\uc544 \ub9de\ucda4 \uc81c\uc791\ud55c \uc0ac\uae30 \uc774\uba54\uc77c \uacf5\uaca9."}, "\uc6d0\uaca9 \ucf54\ub4dc \uc2e4\ud589": {"en": "A serious security flaw that lets an attacker run arbitrary commands on someone else\u0027s computer over the internet, without physical access.", "ko": "\uacf5\uaca9\uc790\uac00 \uc9c1\uc811 \uc811\uadfc\ud558\uc9c0 \uc54a\uace0\ub3c4 \uc778\ud130\ub137\uc744 \ud1b5\ud574 \ub2e4\ub978 \ucef4\ud4e8\ud130\uc5d0\uc11c \ub9c8\uc74c\ub300\ub85c \uba85\ub839\uc744 \uc2e4\ud589\ud560 \uc218 \uc788\uac8c \ub418\ub294 \uc2ec\uac01\ud55c \ubcf4\uc548 \uacb0\ud568."}, "\uc789\uc5ec\ud604\uae08\ud750\ub984": {"en": "The cash a company has left after paying for its investments and equipment, on top of its operating income. Negative means it\u0027s spending more than it\u0027s bringing in.", "ko": "\ud68c\uc0ac\uac00 \uc601\uc5c5\uc73c\ub85c \ubc8c\uc5b4\ub4e4\uc778 \ub3c8\uc5d0\uc11c \ud22c\uc790\u00b7\uc124\ube44 \uc9c0\ucd9c\uc744 \ube80 \ub4a4, \uc2e4\uc81c\ub85c \uc190\uc5d0 \ub0a8\ub294 \ud604\uae08. \ub9c8\uc774\ub108\uc2a4\uba74 \ubc84\ub294 \ub3c8\ubcf4\ub2e4 \uc4f0\ub294 \ub3c8\uc774 \ub9ce\ub2e4\ub294 \ub73b\uc774\ub2e4."}, "\uc790\ubcf8\uc801 \uc9c0\ucd9c": {"en": "Money spent on long-term equipment and assets, like data centers and servers \u2014 the kind of spending AI companies are pouring into infrastructure.", "ko": "\ub370\uc774\ud130\uc13c\ud130\ub098 \uc11c\ubc84\ucc98\ub7fc \uc624\ub798 \uc4f0\ub294 \uc124\ube44\u00b7\uc790\uc0b0\uc5d0 \ud22c\uc790\ud558\ub294 \uc9c0\ucd9c. AI \uae30\uc5c5\ub4e4\uc774 \ub370\uc774\ud130\uc13c\ud130 \uac74\uc124\uc5d0 \uc3df\ub294 \ub3c8\uc774 \ub300\ud45c\uc801\uc774\ub2e4."}, "\ud1a0\ud070": {"en": "The small chunks of text an AI model reads and writes in. Pricing and speed are usually measured per token.", "ko": "AI \ubaa8\ub378\uc774 \uae00\uc744 \uc77d\uace0 \uc4f8 \ub54c \ucabc\uac1c\uc11c \ucc98\ub9ac\ud558\ub294 \ucd5c\uc18c \ub2e8\uc704. \uc694\uae08\uc774\ub098 \ucc98\ub9ac \uc18d\ub3c4\ub97c \u0027\ud1a0\ud070\ub2f9 \uc5bc\ub9c8\u0027\ub85c \uacc4\uc0b0\ud560 \ub54c \ub9ce\uc774 \uc4f0\uc778\ub2e4."}}</script>
+
   <div class="glossary-search">
     <input type="search" id="glossary-search-input" class="glossary-search-input"
            data-placeholder-ko="용어 검색..." data-placeholder-en="Search terms..."
@@ -221,10 +235,21 @@
 
 <footer class="site-footer">
   <p>
-    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-24T22:02:11.530260</span>
-    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-24T22:02:11.530260</span>
+    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-24T22:34:24.669747</span>
+    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-24T22:34:24.669747</span>
   </p>
 </footer>
+
+<div class="term-panel-backdrop" id="term-panel-backdrop" hidden></div>
+<aside class="term-panel" id="term-panel" aria-hidden="true">
+  <button type="button" class="term-panel-close" id="term-panel-close" aria-label="닫기 / Close">&times;</button>
+  <p class="term-panel-label">
+    <span class="lang-ko">용어 설명</span>
+    <span class="lang-en">Glossary</span>
+  </p>
+  <h3 class="term-panel-title" id="term-panel-title"></h3>
+  <p class="term-panel-body" id="term-panel-body"></p>
+</aside>
 
 <script>
 (function () {
@@ -343,6 +368,176 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeList();
     });
+  }
+
+  var termPanel = document.getElementById("term-panel");
+  var termBackdrop = document.getElementById("term-panel-backdrop");
+  var termClose = document.getElementById("term-panel-close");
+  var termTitle = document.getElementById("term-panel-title");
+  var termBody = document.getElementById("term-panel-body");
+  var termTrigger = null;
+  var lookupDataEl = document.getElementById("glossary-lookup-data");
+  var termLookup = {};
+  if (lookupDataEl) {
+    try { termLookup = JSON.parse(lookupDataEl.textContent || "{}"); } catch (e) {}
+  }
+  var openTermPanel = function () {};
+  if (termPanel && termBackdrop && termTitle && termBody) {
+    openTermPanel = function (term, entry, trigger) {
+      var lang = document.documentElement.getAttribute("data-lang") || "ko";
+      termTitle.textContent = term;
+      termBody.textContent = entry[lang] || entry.ko || entry.en || "";
+      termPanel.classList.add("open");
+      termPanel.setAttribute("aria-hidden", "false");
+      termBackdrop.hidden = false;
+      termTrigger = trigger || null;
+      if (termClose) termClose.focus();
+    };
+    var closeTermPanel = function () {
+      termPanel.classList.remove("open");
+      termPanel.setAttribute("aria-hidden", "true");
+      termBackdrop.hidden = true;
+      if (termTrigger) { termTrigger.focus(); termTrigger = null; }
+    };
+    termBackdrop.addEventListener("click", closeTermPanel);
+    if (termClose) termClose.addEventListener("click", closeTermPanel);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeTermPanel();
+      if (e.key === "Tab" && termPanel.classList.contains("open")) {
+        e.preventDefault();
+        if (termClose) termClose.focus();
+      }
+    });
+  }
+
+  // 용어 지도: 누적된 용어들을 서로 밀어내면서(반발력) 연관 있는 것끼리는 당기고
+  // (스프링), 살짝 무작위로 흔들려 "둥둥 떠다니는" 느낌을 주는 아주 단순한
+  // force-directed 레이아웃. 외부 라이브러리 없이 순수 JS로 매 프레임 위치만
+  // 갱신하고, 실제 노드는 일반 <button>이라 클릭/포커스/스크린리더가 그대로
+  // 동작한다 — 이 그래프는 아래 목록의 시각적 보조 수단일 뿐, 목록이 이미
+  // 접근성 있는 전체 데이터를 제공한다.
+  var graphWrap = document.getElementById("glossary-graph");
+  var graphDataEl = document.getElementById("glossary-graph-data");
+  if (graphWrap && graphDataEl) {
+    var graphData = {};
+    try { graphData = JSON.parse(graphDataEl.textContent || "{}"); } catch (e) {}
+    var gNodes = graphData.nodes || [];
+    var gEdges = graphData.edges || [];
+    if (gNodes.length >= 2) {
+      var svgNS = "http://www.w3.org/2000/svg";
+      var edgesSvg = document.getElementById("glossary-graph-edges");
+      var W = graphWrap.clientWidth || 600;
+      var H = graphWrap.clientHeight || 320;
+      edgesSvg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+      var nodeState = gNodes.map(function (n, i) {
+        var angle = (i / gNodes.length) * Math.PI * 2;
+        var radius = Math.min(W, H) * 0.32;
+        return {
+          term: n.term,
+          x: W / 2 + Math.cos(angle) * radius,
+          y: H / 2 + Math.sin(angle) * radius,
+          vx: 0,
+          vy: 0
+        };
+      });
+      var indexByTerm = {};
+      nodeState.forEach(function (n, i) { indexByTerm[n.term] = i; });
+      var edgePairs = gEdges
+        .map(function (e) { return [indexByTerm[e[0]], indexByTerm[e[1]]]; })
+        .filter(function (p) { return p[0] !== undefined && p[1] !== undefined; });
+
+      var nodeEls = gNodes.map(function (n) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "glossary-node";
+        btn.setAttribute("data-term", n.term);
+        var koSpan = document.createElement("span");
+        koSpan.className = "lang-ko";
+        koSpan.textContent = n.label_ko;
+        var enSpan = document.createElement("span");
+        enSpan.className = "lang-en";
+        enSpan.textContent = n.label_en;
+        btn.appendChild(koSpan);
+        btn.appendChild(enSpan);
+        btn.addEventListener("click", function () {
+          var entry = termLookup[n.term];
+          if (entry) openTermPanel(n.term, entry, btn);
+        });
+        graphWrap.appendChild(btn);
+        return btn;
+      });
+
+      var lineEls = edgePairs.map(function () {
+        var line = document.createElementNS(svgNS, "line");
+        line.setAttribute("class", "glossary-graph-line");
+        edgesSvg.appendChild(line);
+        return line;
+      });
+
+      var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      var tick = function () {
+        for (var i = 0; i < nodeState.length; i++) {
+          for (var j = i + 1; j < nodeState.length; j++) {
+            var a = nodeState[i], b = nodeState[j];
+            var dx = a.x - b.x, dy = a.y - b.y;
+            var distSq = dx * dx + dy * dy || 0.01;
+            var dist = Math.sqrt(distSq);
+            var force = 1800 / distSq;
+            var fx = (dx / dist) * force, fy = (dy / dist) * force;
+            a.vx += fx; a.vy += fy;
+            b.vx -= fx; b.vy -= fy;
+          }
+        }
+        edgePairs.forEach(function (p) {
+          var a = nodeState[p[0]], b = nodeState[p[1]];
+          var dx = b.x - a.x, dy = b.y - a.y;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+          var target = Math.min(W, H) * 0.34;
+          var force = (dist - target) * 0.02;
+          var fx = (dx / dist) * force, fy = (dy / dist) * force;
+          a.vx += fx; a.vy += fy;
+          b.vx -= fx; b.vy -= fy;
+        });
+        nodeState.forEach(function (n) {
+          n.vx += (W / 2 - n.x) * 0.001;
+          n.vy += (H / 2 - n.y) * 0.001;
+          if (!reduceMotion) {
+            n.vx += (Math.random() - 0.5) * 0.6;
+            n.vy += (Math.random() - 0.5) * 0.6;
+          }
+          n.vx *= 0.85; n.vy *= 0.85;
+          n.x += n.vx; n.y += n.vy;
+          var margin = 44;
+          n.x = Math.max(margin, Math.min(W - margin, n.x));
+          n.y = Math.max(margin, Math.min(H - margin, n.y));
+        });
+        nodeEls.forEach(function (btn, i) {
+          var n = nodeState[i];
+          btn.style.setProperty("--x", n.x + "px");
+          btn.style.setProperty("--y", n.y + "px");
+        });
+        lineEls.forEach(function (line, i) {
+          var p = edgePairs[i];
+          var a = nodeState[p[0]], b = nodeState[p[1]];
+          line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
+          line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+        });
+      };
+
+      if (reduceMotion) {
+        for (var iter = 0; iter < 150; iter++) tick();
+      } else {
+        var rafId = null;
+        var loop = function () { tick(); rafId = requestAnimationFrame(loop); };
+        loop();
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) { if (rafId) cancelAnimationFrame(rafId); }
+          else { loop(); }
+        });
+      }
+    }
   }
 
   var glossaryBack = document.getElementById("glossary-back");

@@ -214,19 +214,51 @@ def collect_glossary_terms(archive_dir: Path) -> list:
     return sorted(terms.values(), key=lambda t: t["term_ko"])
 
 
+def load_glossary_relations(docs_dir: Path, terms: list) -> list:
+    """docs/glossary-relations.json(용어 간 연관관계, Claude가 누적 용어사전 전체를
+    보고 의미적으로 판단해 갱신하는 파일)을 읽는다. 새 용어가 아직 관계 판단을
+    거치지 않았거나 파일이 없거나 손상됐어도 그래프 없이 목록만 보여주면 되므로
+    빈 배열로 안전하게 폴백한다. 이미 사라진 용어를 가리키는 낡은 엣지는
+    걸러낸다."""
+    path = docs_dir / "glossary-relations.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    valid_terms = {t["term_ko"] for t in terms}
+    edges = []
+    for edge in data.get("edges") or []:
+        if len(edge) == 2 and edge[0] in valid_terms and edge[1] in valid_terms:
+            edges.append([edge[0], edge[1]])
+    return edges
+
+
 def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification: dict, og_image_url: str):
     """지금까지 브리핑에 등장한 모든 용어를 모아 docs/glossary.html로 렌더링한다.
     새로 작성하는 콘텐츠가 없다(Claude가 매일 이미 쓰는 glossary를 재활용) —
     generate_weekly_site.py의 '건너뛸 날도 있는' 판단형 단계와 달리, 이건
-    search-index.json처럼 매 실행마다 항상 자동으로 다시 만드는 기계적 집계다."""
+    search-index.json처럼 매 실행마다 항상 자동으로 다시 만드는 기계적 집계다.
+    단, 용어 간 연관관계(relations)는 이 함수가 만들지 않는다 — 의미 판단이 필요해
+    Claude가 파이프라인 단계에서 직접 docs/glossary-relations.json을 갱신해두면
+    여기서는 그 결과를 읽어 그래프 렌더링에 쓰기만 한다."""
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
         autoescape=select_autoescape(["html", "j2"]),
     )
     template = env.get_template("glossary.html.j2")
     page_url = f"{site_url}/glossary"
+    relations = load_glossary_relations(docs_dir, terms)
+    graph_data = {
+        "nodes": [{"term": t["term_ko"], "label_ko": t["term_ko"], "label_en": t.get("term_en", "")} for t in terms],
+        "edges": relations,
+    }
+    term_lookup = {t["term_ko"]: {"ko": t.get("explanation_ko", ""), "en": t.get("explanation_en", "")} for t in terms}
     html_out = template.render(
         terms=terms,
+        graph_data=graph_data,
+        term_lookup=term_lookup,
         generated_at=datetime.now().isoformat(),
         canonical_url=page_url,
         og_image_url=og_image_url,

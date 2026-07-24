@@ -109,6 +109,9 @@ body {
 
 .glossary-nav-link { font-size: 0.85rem; }
 .glossary-intro { font-size: 1.05rem; line-height: 1.7; margin: 24px 0 16px; }
+.glossary-graph-label { font-size: 0.72rem; margin: 0 0 8px; }
+.glossary-graph { height: 360px; margin-bottom: 32px; }
+.glossary-node { padding: 6px 14px; font-size: 0.82rem; }
 .glossary-search { max-width: 360px; margin-bottom: 24px; }
 .glossary-search-input { padding: 8px 16px; font-size: 0.92rem; }
 .glossary-term { padding: 16px 0; }

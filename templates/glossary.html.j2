@@ -118,6 +118,20 @@
     <span class="lang-en">Every jargon term explained in a daily briefing ends up here, in plain language.</span>
   </p>
 
+  {% if terms|length >= 2 %}
+  <div class="glossary-graph-wrap">
+    <p class="glossary-graph-label">
+      <span class="lang-ko">용어 지도 · 점을 눌러 설명 보기</span>
+      <span class="lang-en">Concept map · tap a node to see its explanation</span>
+    </p>
+    <div class="glossary-graph" id="glossary-graph">
+      <svg class="glossary-graph-edges" id="glossary-graph-edges"></svg>
+    </div>
+  </div>
+  <script type="application/json" id="glossary-graph-data">{{ graph_data|tojson }}</script>
+  {% endif %}
+  <script type="application/json" id="glossary-lookup-data">{{ term_lookup|tojson }}</script>
+
   <div class="glossary-search">
     <input type="search" id="glossary-search-input" class="glossary-search-input"
            data-placeholder-ko="용어 검색..." data-placeholder-en="Search terms..."
@@ -153,6 +167,17 @@
     <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}</span>
   </p>
 </footer>
+
+<div class="term-panel-backdrop" id="term-panel-backdrop" hidden></div>
+<aside class="term-panel" id="term-panel" aria-hidden="true">
+  <button type="button" class="term-panel-close" id="term-panel-close" aria-label="닫기 / Close">&times;</button>
+  <p class="term-panel-label">
+    <span class="lang-ko">용어 설명</span>
+    <span class="lang-en">Glossary</span>
+  </p>
+  <h3 class="term-panel-title" id="term-panel-title"></h3>
+  <p class="term-panel-body" id="term-panel-body"></p>
+</aside>
 
 <script>
 (function () {
@@ -271,6 +296,176 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeList();
     });
+  }
+
+  var termPanel = document.getElementById("term-panel");
+  var termBackdrop = document.getElementById("term-panel-backdrop");
+  var termClose = document.getElementById("term-panel-close");
+  var termTitle = document.getElementById("term-panel-title");
+  var termBody = document.getElementById("term-panel-body");
+  var termTrigger = null;
+  var lookupDataEl = document.getElementById("glossary-lookup-data");
+  var termLookup = {};
+  if (lookupDataEl) {
+    try { termLookup = JSON.parse(lookupDataEl.textContent || "{}"); } catch (e) {}
+  }
+  var openTermPanel = function () {};
+  if (termPanel && termBackdrop && termTitle && termBody) {
+    openTermPanel = function (term, entry, trigger) {
+      var lang = document.documentElement.getAttribute("data-lang") || "ko";
+      termTitle.textContent = term;
+      termBody.textContent = entry[lang] || entry.ko || entry.en || "";
+      termPanel.classList.add("open");
+      termPanel.setAttribute("aria-hidden", "false");
+      termBackdrop.hidden = false;
+      termTrigger = trigger || null;
+      if (termClose) termClose.focus();
+    };
+    var closeTermPanel = function () {
+      termPanel.classList.remove("open");
+      termPanel.setAttribute("aria-hidden", "true");
+      termBackdrop.hidden = true;
+      if (termTrigger) { termTrigger.focus(); termTrigger = null; }
+    };
+    termBackdrop.addEventListener("click", closeTermPanel);
+    if (termClose) termClose.addEventListener("click", closeTermPanel);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeTermPanel();
+      if (e.key === "Tab" && termPanel.classList.contains("open")) {
+        e.preventDefault();
+        if (termClose) termClose.focus();
+      }
+    });
+  }
+
+  // 용어 지도: 누적된 용어들을 서로 밀어내면서(반발력) 연관 있는 것끼리는 당기고
+  // (스프링), 살짝 무작위로 흔들려 "둥둥 떠다니는" 느낌을 주는 아주 단순한
+  // force-directed 레이아웃. 외부 라이브러리 없이 순수 JS로 매 프레임 위치만
+  // 갱신하고, 실제 노드는 일반 <button>이라 클릭/포커스/스크린리더가 그대로
+  // 동작한다 — 이 그래프는 아래 목록의 시각적 보조 수단일 뿐, 목록이 이미
+  // 접근성 있는 전체 데이터를 제공한다.
+  var graphWrap = document.getElementById("glossary-graph");
+  var graphDataEl = document.getElementById("glossary-graph-data");
+  if (graphWrap && graphDataEl) {
+    var graphData = {};
+    try { graphData = JSON.parse(graphDataEl.textContent || "{}"); } catch (e) {}
+    var gNodes = graphData.nodes || [];
+    var gEdges = graphData.edges || [];
+    if (gNodes.length >= 2) {
+      var svgNS = "http://www.w3.org/2000/svg";
+      var edgesSvg = document.getElementById("glossary-graph-edges");
+      var W = graphWrap.clientWidth || 600;
+      var H = graphWrap.clientHeight || 320;
+      edgesSvg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+      var nodeState = gNodes.map(function (n, i) {
+        var angle = (i / gNodes.length) * Math.PI * 2;
+        var radius = Math.min(W, H) * 0.32;
+        return {
+          term: n.term,
+          x: W / 2 + Math.cos(angle) * radius,
+          y: H / 2 + Math.sin(angle) * radius,
+          vx: 0,
+          vy: 0
+        };
+      });
+      var indexByTerm = {};
+      nodeState.forEach(function (n, i) { indexByTerm[n.term] = i; });
+      var edgePairs = gEdges
+        .map(function (e) { return [indexByTerm[e[0]], indexByTerm[e[1]]]; })
+        .filter(function (p) { return p[0] !== undefined && p[1] !== undefined; });
+
+      var nodeEls = gNodes.map(function (n) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "glossary-node";
+        btn.setAttribute("data-term", n.term);
+        var koSpan = document.createElement("span");
+        koSpan.className = "lang-ko";
+        koSpan.textContent = n.label_ko;
+        var enSpan = document.createElement("span");
+        enSpan.className = "lang-en";
+        enSpan.textContent = n.label_en;
+        btn.appendChild(koSpan);
+        btn.appendChild(enSpan);
+        btn.addEventListener("click", function () {
+          var entry = termLookup[n.term];
+          if (entry) openTermPanel(n.term, entry, btn);
+        });
+        graphWrap.appendChild(btn);
+        return btn;
+      });
+
+      var lineEls = edgePairs.map(function () {
+        var line = document.createElementNS(svgNS, "line");
+        line.setAttribute("class", "glossary-graph-line");
+        edgesSvg.appendChild(line);
+        return line;
+      });
+
+      var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      var tick = function () {
+        for (var i = 0; i < nodeState.length; i++) {
+          for (var j = i + 1; j < nodeState.length; j++) {
+            var a = nodeState[i], b = nodeState[j];
+            var dx = a.x - b.x, dy = a.y - b.y;
+            var distSq = dx * dx + dy * dy || 0.01;
+            var dist = Math.sqrt(distSq);
+            var force = 1800 / distSq;
+            var fx = (dx / dist) * force, fy = (dy / dist) * force;
+            a.vx += fx; a.vy += fy;
+            b.vx -= fx; b.vy -= fy;
+          }
+        }
+        edgePairs.forEach(function (p) {
+          var a = nodeState[p[0]], b = nodeState[p[1]];
+          var dx = b.x - a.x, dy = b.y - a.y;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+          var target = Math.min(W, H) * 0.34;
+          var force = (dist - target) * 0.02;
+          var fx = (dx / dist) * force, fy = (dy / dist) * force;
+          a.vx += fx; a.vy += fy;
+          b.vx -= fx; b.vy -= fy;
+        });
+        nodeState.forEach(function (n) {
+          n.vx += (W / 2 - n.x) * 0.001;
+          n.vy += (H / 2 - n.y) * 0.001;
+          if (!reduceMotion) {
+            n.vx += (Math.random() - 0.5) * 0.6;
+            n.vy += (Math.random() - 0.5) * 0.6;
+          }
+          n.vx *= 0.85; n.vy *= 0.85;
+          n.x += n.vx; n.y += n.vy;
+          var margin = 44;
+          n.x = Math.max(margin, Math.min(W - margin, n.x));
+          n.y = Math.max(margin, Math.min(H - margin, n.y));
+        });
+        nodeEls.forEach(function (btn, i) {
+          var n = nodeState[i];
+          btn.style.setProperty("--x", n.x + "px");
+          btn.style.setProperty("--y", n.y + "px");
+        });
+        lineEls.forEach(function (line, i) {
+          var p = edgePairs[i];
+          var a = nodeState[p[0]], b = nodeState[p[1]];
+          line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
+          line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+        });
+      };
+
+      if (reduceMotion) {
+        for (var iter = 0; iter < 150; iter++) tick();
+      } else {
+        var rafId = null;
+        var loop = function () { tick(); rafId = requestAnimationFrame(loop); };
+        loop();
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) { if (rafId) cancelAnimationFrame(rafId); }
+          else { loop(); }
+        });
+      }
+    }
   }
 
   var glossaryBack = document.getElementById("glossary-back");

@@ -80,6 +80,7 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .term-link:focus-visible,
 .glossary-nav-link:focus-visible,
 .glossary-back:focus-visible,
+.glossary-node:focus-visible,
 .term-panel-close:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -713,6 +714,51 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .glossary-intro {
   font-family: var(--serif);
   color: var(--text-muted);
+}
+
+.glossary-graph-label {
+  font-family: var(--sans);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.glossary-graph {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.glossary-graph-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.glossary-graph-line { stroke: var(--border); stroke-width: 1; }
+
+.glossary-node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(calc(var(--x, 0px) - 50%), calc(var(--y, 0px) - 50%)) scale(1);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--sans);
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--text);
+  transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.glossary-node:hover,
+.glossary-node:focus-visible {
+  transform: translate(calc(var(--x, 0px) - 50%), calc(var(--y, 0px) - 50%)) scale(1.15);
+  border-color: var(--accent);
+  color: var(--accent);
+  z-index: 1;
 }
 
 .glossary-search-input {
