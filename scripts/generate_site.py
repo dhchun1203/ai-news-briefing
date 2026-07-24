@@ -250,14 +250,34 @@ def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification
     template = env.get_template("glossary.html.j2")
     page_url = f"{site_url}/glossary"
     relations = load_glossary_relations(docs_dir, terms)
+    # 그래프에는 엣지가 하나라도 있는 용어만 그린다 — 연결이 없는 점은 "관계 지도"라는
+    # 목적에 아무것도 보태지 않으면서 용어가 늘어날수록 자리만 차지해 밀도만 높인다.
+    # 연결 안 된 용어도 정보 손실 없이 아래 전체 목록(<dl>)에는 그대로 남는다.
+    connected = {term for edge in relations for term in edge}
     graph_data = {
-        "nodes": [{"term": t["term_ko"], "label_ko": t["term_ko"], "label_en": t.get("term_en", "")} for t in terms],
+        "nodes": [
+            {"term": t["term_ko"], "label_ko": t["term_ko"], "label_en": t.get("term_en", "")}
+            for t in terms
+            if t["term_ko"] in connected
+        ],
         "edges": relations,
     }
+    # 연결된 용어 수가 늘어날수록 그래프 영역을 조금씩 넓힌다(무한정은 아니고 상한선까지) —
+    # 고정 크기라면 용어가 쌓일수록 점점 빽빽해지기만 하는 문제를 완만하게 늦춘다.
+    # 가로 폭은 본문 컨테이너(720px)를 넘어서는 "브레이크아웃"이라 데스크톱에서만 의미가
+    # 있고, 세로 높이는 데스크톱/모바일 둘 다 따로 늘어난다.
+    node_count = len(graph_data["nodes"])
+    extra = max(0, node_count - 8)
+    graph_width_px = min(720 + extra * 24, 1080)
+    graph_height_desktop_px = min(360 + extra * 6, 480)
+    graph_height_mobile_px = min(260 + extra * 4, 360)
     term_lookup = {t["term_ko"]: {"ko": t.get("explanation_ko", ""), "en": t.get("explanation_en", "")} for t in terms}
     html_out = template.render(
         terms=terms,
         graph_data=graph_data,
+        graph_width_px=graph_width_px,
+        graph_height_desktop_px=graph_height_desktop_px,
+        graph_height_mobile_px=graph_height_mobile_px,
         term_lookup=term_lookup,
         generated_at=datetime.now().isoformat(),
         canonical_url=page_url,

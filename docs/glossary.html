@@ -119,7 +119,7 @@
   </p>
 
   
-  <div class="glossary-graph-wrap">
+  <div class="glossary-graph-wrap" style="--graph-width: 720px; --graph-height-desktop: 360px; --graph-height-mobile: 260px;">
     <p class="glossary-graph-label">
       <span class="lang-ko">용어 지도 · 점을 눌러 설명 보기</span>
       <span class="lang-en">Concept map · tap a node to see its explanation</span>
@@ -235,8 +235,8 @@
 
 <footer class="site-footer">
   <p>
-    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-24T22:40:37.589349</span>
-    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-24T22:40:37.589349</span>
+    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-24T22:55:51.834721</span>
+    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-24T22:55:51.834721</span>
   </p>
 </footer>
 
@@ -486,6 +486,10 @@
       var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       var startTime = null;
 
+      // 좁은 모바일 화면에서도 텍스트 알약이 잘리지 않게, 여백을 컨테이너 크기에
+      // 비례해 정하되 너무 좁아지지 않도록 최솟값을 둔다.
+      var margin = Math.max(36, Math.min(W, H) * 0.16);
+
       var tick = function (now) {
         if (startTime === null) startTime = now || 0;
         var elapsed = ((now || 0) - startTime) / 1000;
@@ -516,11 +520,16 @@
           n.vy += (H / 2 - n.y) * 0.001;
           n.vx *= 0.85; n.vy *= 0.85;
           n.x += n.vx; n.y += n.vy;
-          var margin = 44;
           n.x = Math.max(margin, Math.min(W - margin, n.x));
           n.y = Math.max(margin, Math.min(H - margin, n.y));
+          // 부유 효과(사인파)가 가장자리 근처 노드를 컨테이너 밖으로 밀어낼 수 있어
+          // (특히 폭이 좁은 모바일에서), 렌더링 좌표도 같은 여백 안으로 다시 한 번
+          // 가둔다 — 그래프 구조를 결정하는 물리 좌표(n.x/n.y)는 그대로 두고
+          // 화면에 그리는 좌표만 안전하게 clamp한다.
           n.renderX = n.x + (reduceMotion ? 0 : Math.sin(elapsed * n.floatFreqX + n.floatPhaseX) * n.floatAmp);
           n.renderY = n.y + (reduceMotion ? 0 : Math.cos(elapsed * n.floatFreqY + n.floatPhaseY) * n.floatAmp);
+          n.renderX = Math.max(margin, Math.min(W - margin, n.renderX));
+          n.renderY = Math.max(margin, Math.min(H - margin, n.renderY));
         });
         nodeEls.forEach(function (btn, i) {
           var n = nodeState[i];
