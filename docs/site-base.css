@@ -35,6 +35,12 @@ body {
   font-family: var(--sans);
   background: var(--bg);
   color: var(--text);
+  /* 한국어는 어절(단어) 단위로 띄어쓰기가 있으므로, CJK 기본 동작(아무 음절
+     사이에서나 줄바꿈)이 아니라 어절 중간에서 끊기지 않도록 한다. 영어 등
+     비-CJK 텍스트의 줄바꿈 방식에는 영향 없음. overflow-wrap은 어절 자체가
+     컨테이너보다 길어 넘칠 때만 최후 수단으로 끊는다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 a { color: var(--text); text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }

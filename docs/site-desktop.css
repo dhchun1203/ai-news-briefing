@@ -1,7 +1,11 @@
 /* 데스크톱 전용 레이아웃 (768px 이상). 가독성 최우선:
    - 세리프 헤드라인이 살도록 본문 폭을 신문 칼럼에 가까운 너비로 제한
    - 카드 박스 대신 얇은 구분선으로 기사를 나눠 시선이 위→아래로 자연스럽게 흐르게 함
-   - 큰 모니터에서도 글자가 작아 보이지 않도록 기준 폰트를 넉넉히 잡음 */
+   - 큰 모니터에서도 글자가 작아 보이지 않도록 기준 폰트를 넉넉히 잡음
+   - .header-inner와 .content를 같은 720px로 맞춰서(가독성 리서치상 50~75자 구간을
+     겨냥) 헤더·구독 박스·본문이 전부 같은 폭의 한 칼럼처럼 보이게 한다 — 문단
+     요소에만 별도로 max-width를 주면 그 요소를 감싸는 배경/테두리는 그대로 넓게
+     남아 폭이 서로 어긋나 보이므로, 컨테이너 자체를 줄이는 쪽을 택했다. */
 
 body {
   font-size: 19px;
@@ -19,7 +23,7 @@ body {
 .lang-select-list li { padding: 8px 12px; font-size: 0.9rem; }
 
 .header-inner {
-  max-width: 820px;
+  max-width: 720px;
   margin: 0 auto;
   padding: 32px 24px 24px;
 }
@@ -37,7 +41,7 @@ body {
 .subscribe-status { font-size: 0.82rem; min-height: 1.2em; margin-top: 10px; }
 
 .content {
-  max-width: 820px;
+  max-width: 720px;
   margin: 0 auto;
   padding: 24px 24px 76px;
 }
@@ -76,17 +80,6 @@ body {
 
 .article-summary { margin-bottom: 18px; }
 .article-summary p, .article-implication p { font-size: 1.12rem; }
-
-/* 가독성 리서치(Baymard/NNG)상 한 줄에 50~75자가 최적 구간이라, .content 컨테이너
-   자체(820px, 다른 요소들이 넓게 써야 함)는 그대로 두고 실제 읽는 문단에만
-   68ch 상한을 둔다. */
-.article-summary p,
-.article-implication p,
-.insight-body p,
-.mission-para,
-.glossary-term-desc {
-  max-width: 68ch;
-}
 
 .article-implication { padding: 14px 20px 14px 18px; }
 
