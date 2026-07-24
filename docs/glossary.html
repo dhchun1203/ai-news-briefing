@@ -235,8 +235,8 @@
 
 <footer class="site-footer">
   <p>
-    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-24T22:34:24.669747</span>
-    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-24T22:34:24.669747</span>
+    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-24T22:40:37.589349</span>
+    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-24T22:40:37.589349</span>
   </p>
 </footer>
 
@@ -438,7 +438,15 @@
           x: W / 2 + Math.cos(angle) * radius,
           y: H / 2 + Math.sin(angle) * radius,
           vx: 0,
-          vy: 0
+          vy: 0,
+          // 각 노드가 서로 다른 주기·위상·진폭으로 둥둥 떠다니도록 — 힘 시뮬레이션과는
+          // 별개로 렌더링 시에만 더하는 사인파라 그래프 구조(반발/스프링 평형)를
+          // 흐트러뜨리지 않으면서 항상 눈에 보이는 부드러운 움직임을 보장한다.
+          floatFreqX: 0.35 + Math.random() * 0.35,
+          floatFreqY: 0.35 + Math.random() * 0.35,
+          floatPhaseX: Math.random() * Math.PI * 2,
+          floatPhaseY: Math.random() * Math.PI * 2,
+          floatAmp: 8 + Math.random() * 6
         };
       });
       var indexByTerm = {};
@@ -476,8 +484,11 @@
       });
 
       var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var startTime = null;
 
-      var tick = function () {
+      var tick = function (now) {
+        if (startTime === null) startTime = now || 0;
+        var elapsed = ((now || 0) - startTime) / 1000;
         for (var i = 0; i < nodeState.length; i++) {
           for (var j = i + 1; j < nodeState.length; j++) {
             var a = nodeState[i], b = nodeState[j];
@@ -503,26 +514,24 @@
         nodeState.forEach(function (n) {
           n.vx += (W / 2 - n.x) * 0.001;
           n.vy += (H / 2 - n.y) * 0.001;
-          if (!reduceMotion) {
-            n.vx += (Math.random() - 0.5) * 0.6;
-            n.vy += (Math.random() - 0.5) * 0.6;
-          }
           n.vx *= 0.85; n.vy *= 0.85;
           n.x += n.vx; n.y += n.vy;
           var margin = 44;
           n.x = Math.max(margin, Math.min(W - margin, n.x));
           n.y = Math.max(margin, Math.min(H - margin, n.y));
+          n.renderX = n.x + (reduceMotion ? 0 : Math.sin(elapsed * n.floatFreqX + n.floatPhaseX) * n.floatAmp);
+          n.renderY = n.y + (reduceMotion ? 0 : Math.cos(elapsed * n.floatFreqY + n.floatPhaseY) * n.floatAmp);
         });
         nodeEls.forEach(function (btn, i) {
           var n = nodeState[i];
-          btn.style.setProperty("--x", n.x + "px");
-          btn.style.setProperty("--y", n.y + "px");
+          btn.style.setProperty("--x", n.renderX + "px");
+          btn.style.setProperty("--y", n.renderY + "px");
         });
         lineEls.forEach(function (line, i) {
           var p = edgePairs[i];
           var a = nodeState[p[0]], b = nodeState[p[1]];
-          line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
-          line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+          line.setAttribute("x1", a.renderX); line.setAttribute("y1", a.renderY);
+          line.setAttribute("x2", b.renderX); line.setAttribute("y2", b.renderY);
         });
       };
 
@@ -530,11 +539,15 @@
         for (var iter = 0; iter < 150; iter++) tick();
       } else {
         var rafId = null;
-        var loop = function () { tick(); rafId = requestAnimationFrame(loop); };
+        var loop = function (now) { tick(now); rafId = requestAnimationFrame(loop); };
         loop();
         document.addEventListener("visibilitychange", function () {
-          if (document.hidden) { if (rafId) cancelAnimationFrame(rafId); }
-          else { loop(); }
+          if (document.hidden) {
+            if (rafId) cancelAnimationFrame(rafId);
+          } else {
+            startTime = null;
+            loop();
+          }
         });
       }
     }
