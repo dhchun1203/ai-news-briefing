@@ -7,12 +7,14 @@ import sys
 from calendar import timegm
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import feedparser
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FEEDS_PATH = ROOT / "config" / "feeds.json"
 DEFAULT_DATA_DIR = ROOT / "data"
+KST = ZoneInfo("Asia/Seoul")
 DEFAULT_DOCS_DIR = ROOT / "docs"
 
 # 한 출처가 상위 목록을 독점하지 않도록 출처당 최대 채택 개수를 둔다.
@@ -185,7 +187,7 @@ def main():
             selected.append(article)
             chosen_links.add(article["link"])
 
-    today_label = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+    today_label = datetime.now(KST).strftime("%Y-%m-%d")
     output_path = Path(args.output) if args.output else DEFAULT_DATA_DIR / f"articles_{today_label}.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
 

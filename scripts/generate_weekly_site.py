@@ -9,10 +9,13 @@ import json
 import shutil
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import seo_utils
+
+KST = ZoneInfo("Asia/Seoul")
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = ROOT / "templates"
@@ -118,7 +121,7 @@ def main():
 
     # 일요일 당일 새로 생긴 주간 회고 페이지가 그날 배포되는 sitemap.xml에 바로
     # 반영되도록, generate_site.py(항상 먼저 실행됨)와 별개로 여기서도 재빌드한다.
-    sitemap_count = seo_utils.build_sitemap(docs_dir, site_url, datetime.now().strftime("%Y-%m-%d"))
+    sitemap_count = seo_utils.build_sitemap(docs_dir, site_url, datetime.now(KST).strftime("%Y-%m-%d"))
 
     print(f"주간 회고 생성 완료: {weekly_dir / f'{week_label}.html'}")
     print(f"이번 주 일별 브리핑 {len(daily_briefings)}건, 지난 주간 회고 {len(past_weeklies)}건, sitemap {sitemap_count}건")
