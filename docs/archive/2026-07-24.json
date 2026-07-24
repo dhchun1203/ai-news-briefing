@@ -19,7 +19,56 @@
     "watch_ko": "제미나이 3.5 프로의 실제 출시 시점과 성능이, 구글의 이 막대한 베팅이 결실을 맺고 있는지 보여줄 다음 핵심 신호다.",
     "watch_en": "Whether Gemini 3.5 Pro actually ships, and how it performs, will be the next clear signal of whether Google's massive bet is paying off."
   },
-  "glossary": [],
+  "glossary": [
+    {
+      "term_ko": "AI 에이전트",
+      "term_en": "AI agents",
+      "explanation_ko": "단순히 질문에 답하는 걸 넘어, 여러 단계의 실제 작업(이메일 처리, 환불 승인 등)을 스스로 판단해 대신 수행하는 AI 프로그램.",
+      "explanation_en": "AI software that goes beyond answering questions to independently carry out multi-step real-world tasks, like processing an email or approving a refund."
+    },
+    {
+      "term_ko": "자본적 지출",
+      "term_en": "capital expenditure",
+      "explanation_ko": "데이터센터나 서버처럼 오래 쓰는 설비·자산에 투자하는 지출. AI 기업들이 데이터센터 건설에 쏟는 돈이 대표적이다.",
+      "explanation_en": "Money spent on long-term equipment and assets, like data centers and servers — the kind of spending AI companies are pouring into infrastructure."
+    },
+    {
+      "term_ko": "딥페이크",
+      "term_en": "deepfake",
+      "explanation_ko": "AI로 사람의 얼굴이나 몸을 실제처럼 합성해 만든 가짜 이미지·영상.",
+      "explanation_en": "A fake image or video created by AI to realistically swap or synthesize a person's face or body."
+    },
+    {
+      "term_ko": "잉여현금흐름",
+      "term_en": "free cash flow",
+      "explanation_ko": "회사가 영업으로 벌어들인 돈에서 투자·설비 지출을 뺀 뒤, 실제로 손에 남는 현금. 마이너스면 버는 돈보다 쓰는 돈이 많다는 뜻이다.",
+      "explanation_en": "The cash a company has left after paying for its investments and equipment, on top of its operating income. Negative means it's spending more than it's bringing in."
+    },
+    {
+      "term_ko": "가드레일",
+      "term_en": "guardrails",
+      "explanation_ko": "AI 에이전트가 정해진 규칙과 권한 범위를 벗어난 행동을 하지 못하도록 미리 걸어두는 안전장치.",
+      "explanation_en": "Safety rules built into an AI agent in advance so it can't take actions outside its approved scope."
+    },
+    {
+      "term_ko": "원격 코드 실행",
+      "term_en": "remote code execution",
+      "explanation_ko": "공격자가 직접 접근하지 않고도 인터넷을 통해 다른 컴퓨터에서 마음대로 명령을 실행할 수 있게 되는 심각한 보안 결함.",
+      "explanation_en": "A serious security flaw that lets an attacker run arbitrary commands on someone else's computer over the internet, without physical access."
+    },
+    {
+      "term_ko": "스피어 피싱",
+      "term_en": "spear phishing",
+      "explanation_ko": "불특정 다수에게 뿌리는 피싱과 달리, 특정 인물이나 조직을 표적으로 삼아 맞춤 제작한 사기 이메일 공격.",
+      "explanation_en": "A targeted scam email attack aimed at a specific person or organization, as opposed to mass phishing sent to random recipients."
+    },
+    {
+      "term_ko": "토큰",
+      "term_en": "tokens",
+      "explanation_ko": "AI 모델이 글을 읽고 쓸 때 쪼개서 처리하는 최소 단위. 요금이나 처리 속도를 '토큰당 얼마'로 계산할 때 많이 쓰인다.",
+      "explanation_en": "The small chunks of text an AI model reads and writes in. Pricing and speed are usually measured per token."
+    }
+  ],
   "articles": [
     {
       "title": "Google reportedly working on ultra-efficient AI chip for Gemini",
