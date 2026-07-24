@@ -51,6 +51,8 @@ def load_published_links(docs_dir: Path) -> set:
     if not archive_dir.exists():
         return links
     for f in archive_dir.glob("*.json"):
+        if f.name.endswith(".sent.json"):
+            continue  # 발송 완료 마커(send_broadcast.py) — 기사 원본이 아니다
         try:
             day = json.loads(f.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):

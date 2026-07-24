@@ -13,24 +13,39 @@ import html
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_DOCS_DIR = ROOT / "docs"
 
 RESEND_API = "https://api.resend.com"
 BATCH_SIZE = 100
 # Resend/Supabase 모두 Cloudflare 뒤에 있어, urllib 기본 User-Agent(Python-urllib/x.x)로
 # 요청하면 봇으로 간주돼 403(Cloudflare error 1010)으로 차단된다. 일반적인 UA를 지정해 우회한다.
 USER_AGENT = "ai-news-briefing-bot/1.0 (+https://www.dailyaithread.com)"
+# 일시적 네트워크 문제(타임아웃, 5xx)에 한해 재시도한다. 인증 오류 등 재시도해도 안 되는
+# 4xx는 즉시 실패 처리한다 — 설정 문제(예: allowlist 미등록)를 재시도로 감추지 않기 위해서다.
+RETRY_ATTEMPTS = 3
+RETRY_BASE_DELAY_SEC = 3
 
 
 def parse_args():
     p = argparse.ArgumentParser(description="구독자에게 오늘의 다이제스트를 이메일로 발송한다.")
-    p.add_argument("--input", required=True, help="data/digest_<날짜>.json 경로")
+    p.add_argument("--input", required=True, help="data/digest_<날짜>.json 또는 docs/archive/<날짜>.json 경로")
     p.add_argument(
         "--weekly-input",
         default=None,
         help="(일요일에만) data/weekly_<주차>.json 경로 — 있으면 이메일 상단에 주간 회고 티저를 추가한다",
+    )
+    p.add_argument("--docs-dir", default=str(DEFAULT_DOCS_DIR), help="발송 완료 마커를 기록할 docs/ 디렉토리")
+    p.add_argument(
+        "--catchup",
+        action="store_true",
+        help="발송 오류로 놓친 과거 날짜를 뒤늦게 보정 발송하는 경우 — 이메일 상단에 지연 안내 문구가 붙는다",
     )
     return p.parse_args()
 
@@ -61,6 +76,27 @@ def unsubscribe_url(site_url: str, secret: str, email: str) -> str:
     return f"{site_url}/api/unsubscribe?email={quote(email)}&token={token}"
 
 
+def urlopen_with_retry(req: urllib.request.Request) -> bytes:
+    """일시적 오류(연결 실패, 5xx)에 한해 지수 백오프로 재시도한다. 같은 Request 객체를
+    여러 번 재사용해도 안전하다(urlopen이 req를 변형하지 않음). 401/403/404 같은 4xx는
+    재시도해도 결과가 바뀌지 않는 설정/권한 문제이므로 즉시 올린다."""
+    last_error = None
+    for attempt in range(1, RETRY_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(req) as resp:
+                return resp.read()
+        except urllib.error.HTTPError as e:
+            if not (500 <= e.code < 600) or attempt == RETRY_ATTEMPTS:
+                raise
+            last_error = e
+        except urllib.error.URLError as e:
+            if attempt == RETRY_ATTEMPTS:
+                raise
+            last_error = e
+        time.sleep(RETRY_BASE_DELAY_SEC * attempt)
+    raise last_error  # pragma: no cover — 루프가 항상 return/raise로 끝나 도달하지 않음
+
+
 def fetch_confirmed_subscribers(supabase_url: str, service_role_key: str) -> list:
     url = (
         f"{supabase_url.rstrip('/')}/rest/v1/subscribers"
@@ -75,10 +111,12 @@ def fetch_confirmed_subscribers(supabase_url: str, service_role_key: str) -> lis
         },
     )
     try:
-        with urllib.request.urlopen(req) as resp:
-            rows = json.loads(resp.read().decode("utf-8"))
+        rows = json.loads(urlopen_with_retry(req).decode("utf-8"))
     except urllib.error.HTTPError as e:
         print(f"[ERROR] Supabase 구독자 조회 실패: {e.code} {e.read().decode('utf-8')}", file=sys.stderr)
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"[ERROR] Supabase 접속 실패(네트워크/allowlist 문제로 추정): {e.reason}", file=sys.stderr)
         sys.exit(1)
     return [row["email"] for row in rows if row.get("email")]
 
@@ -105,9 +143,21 @@ def build_weekly_teaser_block(weekly: dict, site_url: str) -> str:
     )
 
 
-def build_html(digest: dict, site_url: str, unsub_url: str, weekly_block: str = "") -> str:
+def build_catchup_notice(date: str) -> str:
+    """--catchup 발송(발송 오류로 놓친 과거 날짜를 뒤늦게 보정 발송)일 때만 이메일 최상단에
+    붙는 투명성 안내 — 왜 평소와 다른 시간에, 혹은 두 통이 한꺼번에 왔는지 설명한다."""
+    return (
+        '<div style="margin:0 0 16px;padding:10px 14px;background:#fff8e6;'
+        'border:1px solid #e8c766;border-radius:4px;font-size:13px;color:#6b5a1e;">'
+        f"발송 오류로 {date}자 브리핑이 예정보다 늦게 도착했습니다. 불편을 드려 죄송합니다."
+        "</div>"
+    )
+
+
+def build_html(digest: dict, site_url: str, unsub_url: str, weekly_block: str = "", catchup: bool = False) -> str:
     date = digest["date"]
     articles = digest["articles"]
+    catchup_notice = build_catchup_notice(date) if catchup else ""
     rows = []
     for a in articles:
         title = html.escape(a["title"])
@@ -138,6 +188,7 @@ def build_html(digest: dict, site_url: str, unsub_url: str, weekly_block: str = 
 
     return f"""
     <div style="max-width:600px;margin:0 auto;font-family:-apple-system,Arial,sans-serif;">
+      {catchup_notice}
       <h1 style="font-size:22px;margin-bottom:4px;">AI 뉴스 브리핑 — {date}</h1>
       <p style="margin:14px 0 22px;">
         <a href="{site_link}" style="display:inline-block;background-color:#a2201d;
@@ -174,11 +225,31 @@ def send_batch(api_key: str, emails: list, subject: str, html_by_email: dict):
         },
     )
     try:
-        with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+        return json.loads(urlopen_with_retry(req).decode("utf-8"))
     except urllib.error.HTTPError as e:
         print(f"[ERROR] Resend 배치 발송 실패: {e.code} {e.read().decode('utf-8')}", file=sys.stderr)
         sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"[ERROR] Resend 접속 실패(네트워크/allowlist 문제로 추정): {e.reason}", file=sys.stderr)
+        sys.exit(1)
+
+
+def mark_sent(docs_dir: Path, date: str, recipient_count: int):
+    """발송이 실제로 끝난(구독자 0명 포함) 날짜에만 docs/archive/<날짜>.sent.json을 남긴다.
+    이 파일의 존재 여부가 "그날 발송이 실제로 완료됐는가"의 유일한 영속 기록이다 —
+    SKILL.md가 다음 실행 때 이걸 보고 밀린 발송(catch-up)이 있는지 판단한다. 실패 시(즉
+    sys.exit로 중간에 죽었을 때)는 이 함수까지 도달하지 않으므로 마커가 안 남고, 그게
+    곧 "발송 안 됨" 신호가 된다."""
+    archive_dir = docs_dir / "archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "date": date,
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "recipient_count": recipient_count,
+    }
+    (archive_dir / f"{date}.sent.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
 
 def main():
@@ -194,10 +265,12 @@ def main():
     site_url = env["SITE_URL"].rstrip("/")
 
     digest = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    docs_dir = Path(args.docs_dir)
     subscribers = fetch_confirmed_subscribers(env["SUPABASE_URL"], env["SUPABASE_SERVICE_ROLE_KEY"])
 
     if not subscribers:
         print("발송 대상 구독자가 없습니다.")
+        mark_sent(docs_dir, digest["date"], 0)  # 대상이 없는 것도 "그날 처리는 끝남" 상태다
         return
 
     weekly_block = ""
@@ -208,12 +281,15 @@ def main():
             weekly_block = build_weekly_teaser_block(weekly, site_url)
 
     subject = f"AI 뉴스 브리핑 — {digest['date']} (기사 {len(digest['articles'])}건)"
+    if args.catchup:
+        subject = f"[지연 발송] {subject}"
     html_by_email = {
         email: build_html(
             digest,
             site_url,
             unsubscribe_url(site_url, env["SUBSCRIBE_TOKEN_SECRET"], email),
             weekly_block=weekly_block,
+            catchup=args.catchup,
         )
         for email in subscribers
     }
@@ -224,6 +300,7 @@ def main():
         send_batch(env["RESEND_API_KEY"], chunk, subject, html_by_email)
         sent_total += len(chunk)
 
+    mark_sent(docs_dir, digest["date"], sent_total)
     print(f"발송 완료: 구독자 {sent_total}명")
 
 

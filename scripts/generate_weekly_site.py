@@ -31,6 +31,8 @@ def collect_daily_briefings(archive_dir: Path, start_date: str, end_date: str):
     if not archive_dir.exists():
         return results
     for f in archive_dir.glob("*.json"):
+        if f.name.endswith(".sent.json"):
+            continue  # 발송 완료 마커(send_broadcast.py) — 일별 브리핑 원본이 아니다
         date = f.stem
         if not (start_date <= date <= end_date):
             continue

@@ -161,6 +161,8 @@ def build_search_index(archive_dir: Path, docs_dir: Path):
     걸쳐 반복 실행해도 인덱스는 항상 현재 archive 폴더 상태와 일치한다(멱등적)."""
     entries = []
     for f in sorted(archive_dir.glob("*.json"), reverse=True):
+        if f.name.endswith(".sent.json"):
+            continue  # 발송 완료 마커(send_broadcast.py) — 검색 대상 원본이 아니다
         try:
             day = json.loads(f.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):

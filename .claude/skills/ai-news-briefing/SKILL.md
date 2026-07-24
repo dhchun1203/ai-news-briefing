@@ -6,7 +6,11 @@ description: AI 관련 기사를 RSS로 매일 수집해 각 기사의 요약과
 # AI 뉴스 브리핑
 
 이 스킬은 저장소 루트(`ai-news-briefing/`)를 기준으로 동작한다. 순서대로 실행하고,
-각 단계가 실패하면 다음 단계로 넘어가지 말고 오류 내용을 그대로 보고한다.
+각 단계가 실패하면 다음 단계로 넘어가지 말고 오류 내용을 그대로 보고한다. **어느
+단계든 실패하면 완료 보고 텍스트에만 남기지 말고 `PushNotification`으로 즉시 알린다**
+— 구독자는 매일 08:00에 이메일이 온다는 신뢰를 기반으로 구독하고 있으므로, 실패를
+그날 바로 사람이 알아야 수동 개입(재실행 등)이 가능하다. 특히 7단계(이메일 발송)
+실패는 가장 우선순위 높은 알림 대상이다.
 
 대상 소스: `config/feeds.json`에 등록된 RSS 피드들(TechCrunch AI, VentureBeat AI, The Verge AI,
 MarkTechPost, OpenAI News, Google DeepMind Blog, Google AI Blog, Ars Technica AI, Wired AI,
@@ -14,6 +18,17 @@ MIT Technology Review AI, Hacker News AI 등). 특정 매체를 고정 편애하
 기사 중 출처 다양성을 지키면서 상위 10개만 매번 새로 선별한다.
 
 ## 0. 사전 점검
+- **오늘 실행이 처음인지 먼저 확인한다.** `docs/archive/<오늘 날짜>.json`이 이미 존재하고
+  git에 커밋되어 있다면(`git log --oneline -1 -- docs/archive/<오늘 날짜>.json`), 오늘자
+  파이프라인은 이미 한 번 완료된 것이다 — 스케줄이 의도치 않게 중복 발동했거나 사람이
+  수동으로 다시 실행시킨 경우다. 이때는:
+  - 1~6단계(수집·해석·사이트 생성·배포)를 처음부터 다시 돌리지 않는다 — 오늘자 콘텐츠를
+    재생성/덮어쓰면 안 되고, 특히 기사 수집을 다시 하면 중복 제외 로직 때문에 같은
+    기사가 다시 뽑히지 않아 빈 브리핑이 나올 수 있다.
+  - `docs/archive/<오늘 날짜>.sent.json`이 있는지만 확인한다. **있으면** 발송까지 이미
+    끝난 것이니 아무것도 하지 않고 "오늘자는 이미 완료됨"이라고 짧게 보고하고 종료한다.
+    **없으면** 발송만 빠진 것이니 7단계로 바로 건너뛰어 발송만 시도한다(1~6단계는 생략).
+  - 이 판단 근거를 완료 보고에 남긴다.
 - `python -m pip install -r requirements.txt` 로 의존성(feedparser, Jinja2, python-dateutil)이
   설치되어 있는지 확인한다 (Routine Environment의 setup script에서 이미 설치되어 있다면 생략 가능).
 - `config/feeds.json`의 피드 URL이 최근에 검증된 적이 있는지 확인한다. 반년 이상 검증 이력이
@@ -211,6 +226,28 @@ Vercel Git Integration이 `main` 브랜치 push를 감지해 `vercel.json`의
 Import해야 한다고 안내한다.
 
 ## 7. 이메일 구독자에게 발송
+
+### 7-1. 밀린 발송(catch-up) 먼저 확인
+`send_broadcast.py`가 발송에 성공할 때마다 `docs/archive/<날짜>.sent.json`을 남긴다(구독자
+0명이었던 날도 포함). 이게 "그날 발송이 실제로 끝났다"의 유일한 기록이므로, 오늘자를
+보내기 **전에** 먼저 확인한다:
+```
+ls docs/archive/*.json | grep -v '\.sent\.json$'   # 지금까지 생성된 날짜들
+ls docs/archive/*.sent.json                         # 그중 실제로 발송된 날짜들
+```
+오늘을 제외한 **최근 2일 이내**의 날짜 중 `docs/archive/<날짜>.json`은 있는데
+`docs/archive/<날짜>.sent.json`이 없는 날이 있으면(=그날 발송이 실패했었다는 뜻), 오늘자
+발송보다 먼저 그 날짜부터 보정 발송한다:
+```
+python scripts/send_broadcast.py --input docs/archive/<밀린 날짜>.json --catchup
+```
+`--catchup`을 쓰면 이메일 상단에 "발송 오류로 예정보다 늦게 도착했다"는 안내 문구가
+자동으로 붙는다 — 구독자가 왜 뒤늦게, 또는 하루에 메일을 두 통 받는지 이해할 수 있게.
+3일 넘게 지난 미발송 날짜는 신선도가 떨어지므로 자동으로 보내지 않고, 완료 보고에
+"N일 전 브리핑 미발송 상태, 자동 보정 생략"이라고만 남긴다(사람이 판단해서 수동 발송
+여부를 정하도록).
+
+### 7-2. 오늘자 발송
 ```
 python scripts/send_broadcast.py --input data/digest_<날짜>.json
 ```
@@ -222,10 +259,19 @@ python scripts/send_broadcast.py --input data/digest_<날짜>.json
   옵트인을 마친) 이메일만 조회해, 기사 제목+한 줄 요약(`summary_ko`)+원문 링크로 구성된
   가벼운 HTML 이메일을 Resend 배치 발송(`/emails/batch`, 최대 100통씩)으로 보낸다.
 - 웹사이트에는 있는 "시사하는 점"은 이메일에는 넣지 않는다 — 전체 브리핑 링크로 유도한다.
+- Supabase/Resend 호출은 스크립트 내부에서 일시적 오류(5xx, 연결 끊김)에 한해 자동으로
+  3회까지 재시도한다. 그래도 실패하면(주로 인증 오류나 네트워크 정책 문제, 즉 재시도로
+  해결 안 되는 설정 문제) 스크립트가 에러 메시지와 함께 종료한다.
 - 필요한 환경변수: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`,
   `RESEND_SENDER_EMAIL`, `SUBSCRIBE_TOKEN_SECRET`, `SITE_URL`. 하나라도 없으면 스크립트가
   에러 메시지와 함께 종료하니 그대로 보고한다 (Routine Environment에 등록되어 있어야 함).
-- 구독자가 0명이면 "발송 대상 구독자가 없습니다"만 출력하고 정상 종료한다 — 실패가 아니다.
+- 구독자가 0명이면 "발송 대상 구독자가 없습니다"만 출력하고 `.sent.json` 마커를 남긴 뒤
+  정상 종료한다 — 실패가 아니다.
+- **발송이 실패하면(오늘자든 catch-up이든) 완료 보고만으로 끝내지 말고 반드시
+  `PushNotification`으로 즉시 알린다.** 재시도로도 해결 안 됐다는 뜻은 대개 환경변수/
+  네트워크 allowlist 같은 설정 문제라 사람의 개입이 필요하기 때문이다. 실패한 날짜의
+  `docs/archive/<날짜>.json`은 그대로 남아있으니, 원인 해결 후 사람이 같은 명령을 다시
+  실행하거나 다음 실행의 7-1단계가 자동으로 보정 발송을 시도한다.
 
 ## 8. 완료 보고
 다음을 요약해 보고한다: 수집 후보 수와 선별된 기사 수(과거 중복으로 제외된 기사 수 포함),

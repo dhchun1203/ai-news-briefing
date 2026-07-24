@@ -1,0 +1,6 @@
+{
+  "date": "2026-07-24",
+  "sent_at": "2026-07-24T01:22:22.070628+00:00",
+  "recipient_count": null,
+  "note": "2026-07-24 08시 정기 루틴은 Supabase egress 차단으로 발송 실패했고, allowlist 추가 후 수동 1회성 routine으로 발송을 다시 시도해 사용자가 수신 확인함. 이 마커는 그 당시 새 mark_sent() 로직이 아직 배포되기 전이라 수동으로 만들어짐(정확한 recipient_count 미상) — 추후 catch-up 로직이 이 날짜를 중복 발송하는 것을 막기 위함."
+}
