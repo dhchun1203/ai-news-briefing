@@ -363,6 +363,37 @@
     });
   }
 
+  // 뒤로가기/앞으로가기로 브라우저가 페이지를 bfcache에서 그대로 복원하면
+  // (pageshow의 persisted===true) 이 스크립트 블록 자체가 다시 실행되지 않아
+  // 테마/언어가 "이 페이지를 떠날 때의 상태"로 얼어붙는다 — 예를 들어 용어사전에서
+  // 언어를 바꾼 뒤 뒤로가기하면 원래 기사 페이지가 예전 언어로 보이는 문제.
+  // persisted 복원 시에만 쿠키/localStorage 값으로 다시 동기화한다.
+  window.addEventListener("pageshow", function (e) {
+    if (!e.persisted) return;
+    function getCookie(name) {
+      var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+    var t = getCookie("theme");
+    if (t === "dark" || t === "light") {
+      document.documentElement.setAttribute("data-theme", t);
+      if (themeBtn) themeBtn.setAttribute("aria-checked", String(t === "dark"));
+    }
+    {% if default_lang == 'en' %}
+    localStorage.setItem("lang", "en");
+    {% else %}
+    var l = localStorage.getItem("lang");
+    if (l === "ko" || l === "en") {
+      document.documentElement.setAttribute("data-lang", l);
+      document.documentElement.setAttribute("lang", l);
+      var titleAttr = l === "en" ? "data-title-en" : "data-title-ko";
+      var storedTitle = document.documentElement.getAttribute(titleAttr);
+      if (storedTitle) document.title = storedTitle;
+    }
+    {% endif %}
+    updatePlaceholders();
+  });
+
   var langSelect = document.getElementById("lang-select");
   var langTrigger = document.getElementById("lang-select-trigger");
   var langList = document.getElementById("lang-select-list");

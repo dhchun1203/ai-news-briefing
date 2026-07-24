@@ -184,6 +184,33 @@
     });
   }
 
+  // 뒤로가기로 bfcache에서 페이지가 복원되면(pageshow persisted===true) 이
+  // 스크립트가 다시 실행되지 않아 테마/언어가 떠날 때 상태로 얼어붙는다 — 용어사전
+  // 안에서 언어를 바꾼 뒤 뒤로가기 버튼으로 다시 여기 돌아왔을 때를 대비해 다시
+  // 동기화한다(정작 문제가 보고된 건 여기서 다른 페이지로 나갈 때지만, 반대
+  // 방향도 동일한 문제라 같이 고친다).
+  window.addEventListener("pageshow", function (e) {
+    if (!e.persisted) return;
+    function getCookie(name) {
+      var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+    var t = getCookie("theme");
+    if (t === "dark" || t === "light") {
+      document.documentElement.setAttribute("data-theme", t);
+      if (themeBtn) themeBtn.setAttribute("aria-checked", String(t === "dark"));
+    }
+    var l = localStorage.getItem("lang");
+    if (l === "ko" || l === "en") {
+      document.documentElement.setAttribute("data-lang", l);
+      document.documentElement.setAttribute("lang", l);
+      var titleAttr = l === "en" ? "data-title-en" : "data-title-ko";
+      var storedTitle = document.documentElement.getAttribute(titleAttr);
+      if (storedTitle) document.title = storedTitle;
+    }
+    updatePlaceholders();
+  });
+
   var langSelect = document.getElementById("lang-select");
   var langTrigger = document.getElementById("lang-select-trigger");
   var langList = document.getElementById("lang-select-list");
