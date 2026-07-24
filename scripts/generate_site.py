@@ -218,7 +218,10 @@ def main():
     site_url = seo_utils.get_site_url()
     seo_utils.write_robots_txt(docs_dir, site_url)
     verification = seo_utils.load_verification_tags()
-    og_image_url = f"{site_url}/og-image.png"
+    # 글로서리 링크화(HTML 마크업)가 섞이기 전의 raw_digest에서 헤드라인을 가져온다 —
+    # 이미지에 <button> 태그 같은 마크업이 그대로 찍히면 안 되므로.
+    raw_headline_ko = (raw_digest.get("daily_insight") or {}).get("headline_ko", "")
+    og_image_url = seo_utils.build_og_image_url(site_url, docs_dir, date, raw_headline_ko)
 
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),

@@ -42,13 +42,25 @@
   `NewsArticle`로 마크업하면 저작권 오인 신호를 줄 수 있음). 주간 회고는 순수 우리
   원저작물이라 `Article`로 직접 마크업.
 - **이미지 자산**: `templates/static/favicon.svg`(직접 작성), `templates/static/
-  og-image.png`(1200×630, `scripts/tools/generate_og_image.py`로 1회 생성 — 파이프라인
-  상시 의존성 아님, Pillow 필요 시 로컬에서만 임시 설치). 지금은 날짜 없는 범용 브랜드
-  카드 한 장을 모든 페이지가 공유한다 — 나중에 날짜별 동적 카드로 고도화 가능(현재는
-  범위 밖으로 명시적으로 제외).
-- 구현: `scripts/seo_utils.py`(신규 공용 모듈), `scripts/generate_site.py`/
-  `scripts/generate_weekly_site.py`에서 호출, `templates/site.html.j2`/
-  `templates/weekly.html.j2` head 수정.
+  og-image.png`(범용 브랜드 카드, 헤드라인이 없는 날의 최종 대체용).
+- **날짜별 동적 OG 이미지** (`scripts/og_image.py`): 그날 `daily_insight`의
+  `headline_ko`를 1200×630 이미지에 직접 렌더링해 `docs/og/<날짜>.png`(주간 회고는
+  `docs/og/<주차>.png`)로 저장하고, 그 페이지의 `og:image`가 이걸 가리키게 한다.
+  링크를 카카오톡/트위터 등에 공유하면 미리보기 이미지만 보고도 그날 무슨 얘기인지
+  알 수 있다. 한글 렌더링에는 저장소에 커밋해둔 정적 폰트
+  (`templates/static/fonts/NotoSerifKR-Variable.ttf`, Google Fonts 배포본의 한국어
+  서브셋 — CJK 통합 세트 대신 이걸 쓴 이유는 용량 때문, 전체 CJK 폰트는 56MB인 반면
+  이건 23MB)를 쓴다. 헤드라인이 이미지 폭을 넘으면 실제 텍스트 너비를 측정해 자동
+  줄바꿈하고, 3줄을 넘으면 말줄임(…)으로 자른다.
+  - **안전장치**: 이 렌더링(Pillow, 폰트 로딩 등)이 무엇 때문이든 실패하면(Pillow
+    미설치, 폰트 파일 손상 등) `seo_utils.build_og_image_url()`이 예외를 삼키고
+    조용히 기존 정적 `og-image.png`로 대체한다 — 매일 자동 실행되는 파이프라인에서
+    "미리보기 이미지 하나 못 만듦"이 "오늘자 사이트 생성 전체 실패"로 번지지
+    않도록 하는 게 핵심 설계 원칙이다. 폰트 파일을 실제로 지워서 이 대체 동작을
+    검증했다(정상 폴백 확인됨).
+- 구현: `scripts/seo_utils.py`(신규 공용 모듈), `scripts/og_image.py`(동적 이미지
+  렌더링, Pillow 의존), `scripts/generate_site.py`/`scripts/generate_weekly_site.py`
+  에서 호출, `templates/site.html.j2`/`templates/weekly.html.j2` head 수정.
 
 ## 3. 구글/네이버 등록 체크리스트 (사람이 직접 — 계정 기반이라 대행 불가)
 
@@ -165,8 +177,6 @@
 
 ## 6. 다음에 할 만한 것 (지금은 범위 밖)
 
-- 날짜별 동적 OG 이미지(그날 헤드라인을 이미지에 직접 렌더) — Pillow를 파이프라인
-  상시 의존성으로 추가해야 해서 지금은 보류.
 - `llms.txt` — 표준화되면 재검토.
 - 영어권 전용 착지 페이지(현재는 같은 페이지에서 언어 토글만 지원) — 필요성이 확인되면
   검토.

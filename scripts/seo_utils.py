@@ -81,6 +81,24 @@ def build_sitemap(docs_dir: Path, site_url: str, today: str) -> int:
     return len(urls)
 
 
+def build_og_image_url(site_url: str, docs_dir: Path, identifier: str, headline_ko: str) -> str:
+    """날짜(또는 주차)별 동적 OG 이미지를 시도하고, 성공하면 그 URL을, 실패하면
+    (Pillow 미설치, 폰트 로딩 실패, 렌더링 오류 등 무엇이 됐든) 기존 정적
+    og-image.png URL을 돌려준다. 이 함수는 절대로 예외를 밖으로 던지지 않는다 —
+    OG 이미지는 부가 기능이라 이것 때문에 사이트 생성 자체가 멈추면 안 된다."""
+    static_fallback = f"{site_url}/og-image.png"
+    if not headline_ko:
+        return static_fallback
+    try:
+        import og_image  # 지역 import: Pillow가 없어도 나머지 seo_utils 기능은 안 죽는다
+
+        out_path = docs_dir / "og" / f"{identifier}.png"
+        og_image.generate(identifier, headline_ko, out_path)
+        return f"{site_url}/og/{identifier}.png"
+    except Exception:
+        return static_fallback
+
+
 def load_verification_tags() -> dict:
     """config/site_verification.json에서 구글/네이버 사이트 소유 확인용 메타태그 값을
     읽는다. 값이 비어있으면 None을 돌려줘서 템플릿이 해당 meta 태그를 아예 렌더하지

@@ -178,8 +178,12 @@ python scripts/generate_site.py --input data/digest_<날짜>.json
   따로 지정할 필요 없다.
 - `docs/robots.txt`(AI 크롤러 명시적 허용 포함)와 `docs/sitemap.xml`(모든 아카이브·주간
   회고 페이지 포함)도 이 단계에서 매번 자동으로 (재)생성된다 — Claude가 따로 할 일 없음.
-  각 페이지의 canonical/og:image/JSON-LD 구조화 데이터도 `scripts/seo_utils.py`가
-  자동으로 채운다. 자세한 설계는 `MARKETING.md` 참고.
+  각 페이지의 canonical/JSON-LD 구조화 데이터도 `scripts/seo_utils.py`가 자동으로
+  채운다. 자세한 설계는 `MARKETING.md` 참고.
+- `og:image`는 그날의 `daily_insight` 헤드라인을 직접 렌더링한 날짜별 이미지
+  (`docs/og/<날짜>.png`)가 자동으로 생성된다. 이 렌더링(Pillow)이 어떤 이유로든
+  실패해도 파이프라인은 멈추지 않고 조용히 기존 정적 `og-image.png`로 대체된다 —
+  실패 여부를 확인하거나 조치할 필요 없음.
 - `templates/site-base.css`(공통), `site-mobile.css`(≤767px), `site-desktop.css`(≥768px)도
   `docs/`로 함께 복사된다. PC와 모바일은 서로 다른 CSS 파일이 `media` 속성으로 조건부
   적용되며 화면별로 가독성(글자 크기, 여백, 줄 간격)을 따로 튜닝한다.

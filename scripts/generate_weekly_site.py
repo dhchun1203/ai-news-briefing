@@ -86,6 +86,7 @@ def main():
     site_url = seo_utils.get_site_url()
     verification = seo_utils.load_verification_tags()
     page_url = f"{site_url}/weekly/{week_label}"
+    og_image_url = seo_utils.build_og_image_url(site_url, docs_dir, week_label, weekly.get("headline_ko", ""))
 
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -105,7 +106,7 @@ def main():
         past_weeklies=past_weeklies,
         generated_at=generated_at,
         canonical_url=page_url,
-        og_image_url=f"{site_url}/og-image.png",
+        og_image_url=og_image_url,
         google_site_verification=verification["google_site_verification"],
         naver_site_verification=verification["naver_site_verification"],
         jsonld=seo_utils.build_weekly_page_jsonld(
