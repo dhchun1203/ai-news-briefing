@@ -5,21 +5,24 @@
    - .header-inner와 .content를 같은 720px로 맞춰서(가독성 리서치상 50~75자 구간을
      겨냥) 헤더·구독 박스·본문이 전부 같은 폭의 한 칼럼처럼 보이게 한다 — 문단
      요소에만 별도로 max-width를 주면 그 요소를 감싸는 배경/테두리는 그대로 넓게
-     남아 폭이 서로 어긋나 보이므로, 컨테이너 자체를 줄이는 쪽을 택했다. */
+     남아 폭이 서로 어긋나 보이므로, 컨테이너 자체를 줄이는 쪽을 택했다.
+   - 여백(margin/padding)은 8px 그리드(4/8/12/16/24/32/40/48/56/64/80)에 맞춘다
+     (Apple HIG·Material 공통 표준) — 임의값이 섞여 있으면 미묘하게 정돈 안 된
+     느낌을 준다. */
 
 body {
   font-size: 19px;
   line-height: 1.75;
 }
 
-.utility-bar { padding: 10px 24px; }
+.utility-bar { padding: 8px 24px; }
 .share-button { width: 34px; height: 34px; font-size: 1rem; }
-.share-tooltip { font-size: 0.78rem; padding: 6px 12px; }
+.share-tooltip { font-size: 0.78rem; padding: 8px 12px; }
 .theme-toggle { width: 52px; height: 28px; --toggle-travel: 26px; }
 .theme-toggle-thumb { width: 20px; height: 20px; font-size: 0.72rem; }
 .lang-select-trigger { height: 34px; padding: 0 12px; gap: 6px; font-size: 0.85rem; }
 .lang-select-caret { font-size: 0.65rem; }
-.lang-select-list { padding: 6px; min-width: 130px; }
+.lang-select-list { padding: 8px; min-width: 130px; }
 .lang-select-list li { padding: 8px 12px; font-size: 0.9rem; }
 
 .header-inner {
@@ -29,47 +32,48 @@ body {
 }
 
 .site-header h1 { font-size: 2.6rem; }
-.tagline { margin: 10px 0 0; font-size: 0.82rem; }
-.mission { margin: 14px auto 0; font-size: 0.92rem; line-height: 1.6; }
+.tagline { margin: 8px 0 0; font-size: 0.82rem; }
+.mission { margin: 16px auto 0; font-size: 0.92rem; line-height: 1.6; }
 
-.subscribe-box { padding: 24px 24px 26px; }
+.subscribe-box { padding: 24px 24px 24px; }
 .subscribe-title { font-size: 1.15rem; }
 .subscribe-desc { font-size: 0.88rem; margin-bottom: 16px; }
 .subscribe-form { max-width: 420px; gap: 8px; }
-.subscribe-input { padding: 10px 16px; font-size: 0.95rem; }
-.subscribe-submit { padding: 10px 20px; font-size: 0.9rem; }
-.subscribe-status { font-size: 0.82rem; min-height: 1.2em; margin-top: 10px; }
+.subscribe-input { padding: 8px 16px; font-size: 0.95rem; }
+.subscribe-submit { padding: 8px 20px; font-size: 0.9rem; }
+.subscribe-status { font-size: 0.82rem; min-height: 1.2em; margin-top: 8px; }
 
 .content {
   max-width: 720px;
   margin: 0 auto;
-  padding: 24px 24px 76px;
+  padding: 24px 24px 80px;
 }
 
-.date-bar { padding: 0 0 14px; margin-bottom: 4px; }
+.date-bar { padding: 0 0 16px; margin-bottom: 4px; }
 .date-label { font-size: 0.92rem; }
 .back-link { font-size: 0.84rem; }
 .glossary-back { font-size: 0.84rem; }
 .archive-badge { font-size: 0.76rem; }
+.reading-time { font-size: 0.76rem; }
 
-.weekly-banner { margin: 4px 0 20px; padding: 14px 20px; font-size: 0.92rem; }
+.weekly-banner { margin: 4px 0 20px; padding: 16px 20px; font-size: 0.92rem; }
 
-.insight { margin: 24px 0 4px; padding: 22px 26px; }
-.insight-label { font-size: 0.72rem; margin-bottom: 10px; }
+.insight { margin: 24px 0 16px; padding: 24px; }
+.insight-label { font-size: 0.72rem; margin-bottom: 8px; }
 .insight-headline { font-size: 1.4rem; line-height: 1.4; margin: 0 0 16px; }
 .insight-body { font-size: 1.05rem; line-height: 1.7; }
-.insight-watch { font-size: 0.9rem; line-height: 1.6; margin-top: 18px; padding-top: 16px; }
+.insight-watch { font-size: 0.9rem; line-height: 1.6; margin-top: 16px; padding-top: 16px; }
 
-.toc { margin: 22px 0 10px; padding: 22px 0; }
-.toc-title { font-size: 0.85rem; margin: 0 0 14px; }
-.toc-list { grid-template-columns: 1fr 1fr; gap: 8px 28px; font-size: 0.95rem; line-height: 1.4; }
+.toc { margin: 24px 0 8px; padding: 24px 0; }
+.toc-title { font-size: 0.85rem; margin: 0 0 16px; }
+.toc-list { grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 0.95rem; line-height: 1.4; }
 .toc-num { font-size: 0.85rem; width: 24px; }
 
 .article-card { padding: 32px 0; }
 .article-card:first-child { padding-top: 24px; }
 
-.article-meta { font-size: 0.85rem; margin-bottom: 10px; }
-.source-badge { font-size: 0.68rem; padding: 2px 8px; }
+.article-meta { font-size: 0.85rem; margin-bottom: 8px; }
+.source-badge { font-size: 0.68rem; }
 
 .article-title {
   font-size: 1.65rem;
@@ -77,36 +81,36 @@ body {
   margin: 0 0 16px;
 }
 
-.block-label { font-size: 0.78rem; margin: 0 0 6px; }
+.block-label { font-size: 0.78rem; margin: 0 0 8px; }
 
-.article-summary { margin-bottom: 18px; }
+.article-summary { margin-bottom: 16px; }
 .article-summary p, .article-implication p { font-size: 1.12rem; }
 
-.article-implication { padding: 14px 20px 14px 18px; }
+.article-implication { padding: 16px 20px 16px 16px; }
 
-.archive-section { margin-top: 52px; padding-top: 24px; }
-.archive-title { font-size: 0.9rem; margin: 0 0 14px; }
-.archive-search { margin-bottom: 18px; max-width: 360px; }
-.archive-search-input { padding: 9px 16px; font-size: 0.92rem; }
-.archive-search-results li { padding: 10px 14px; }
+.archive-section { margin-top: 48px; padding-top: 24px; }
+.archive-title { font-size: 0.9rem; margin: 0 0 16px; }
+.archive-search { margin-bottom: 16px; max-width: 360px; }
+.archive-search-input { padding: 8px 16px; font-size: 0.92rem; }
+.archive-search-results li { padding: 8px 16px; }
 .archive-search-results a { font-size: 0.92rem; }
 .archive-search-loading { font-size: 0.92rem; }
-.archive-search-date { font-size: 0.72rem; margin-top: 2px; }
-.archive-list { gap: 10px 22px; }
+.archive-search-date { font-size: 0.72rem; margin-top: 4px; }
+.archive-list { gap: 8px 24px; }
 .archive-list a { font-size: 0.95rem; padding-bottom: 1px; }
 
 .site-footer { font-size: 0.82rem; padding: 24px; }
 
-.term-panel { width: 380px; padding: 64px 30px 30px; }
-.term-panel-close { width: 30px; height: 30px; font-size: 1.1rem; top: 20px; right: 20px; position: absolute; }
-.term-panel-label { font-size: 0.72rem; margin: 0 0 10px; }
-.term-panel-title { font-size: 1.25rem; margin: 0 0 14px; }
+.term-panel { width: 380px; padding: 64px 32px 32px; }
+.term-panel-close { width: 32px; height: 32px; font-size: 1.1rem; top: 20px; right: 20px; position: absolute; }
+.term-panel-label { font-size: 0.72rem; margin: 0 0 8px; }
+.term-panel-title { font-size: 1.25rem; margin: 0 0 16px; }
 .term-panel-body { font-size: 1.02rem; line-height: 1.75; }
 
 .glossary-nav-link { font-size: 0.85rem; }
-.glossary-intro { font-size: 1.05rem; line-height: 1.7; margin: 28px 0 20px; }
-.glossary-search { max-width: 360px; margin-bottom: 28px; }
-.glossary-search-input { padding: 9px 16px; font-size: 0.92rem; }
-.glossary-term { padding: 18px 0; }
-.glossary-term-name { font-size: 1.15rem; margin: 0 0 6px; }
+.glossary-intro { font-size: 1.05rem; line-height: 1.7; margin: 24px 0 16px; }
+.glossary-search { max-width: 360px; margin-bottom: 24px; }
+.glossary-search-input { padding: 8px 16px; font-size: 0.92rem; }
+.glossary-term { padding: 16px 0; }
+.glossary-term-name { font-size: 1.15rem; margin: 0 0 8px; }
 .glossary-term-desc { font-size: 0.98rem; line-height: 1.7; }

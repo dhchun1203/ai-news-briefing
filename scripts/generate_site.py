@@ -22,6 +22,31 @@ DEFAULT_DOCS_DIR = ROOT / "docs"
 MAX_ARCHIVE_LINKS = 60
 MAX_SEARCH_RESULTS_SOURCE_FILES = None  # 제한 없음 — 검색 인덱스는 archive 폴더 전체를 스캔
 
+KO_CHARS_PER_MINUTE = 500  # 한국어는 음절 수 기준(띄어쓰기 단위 "단어"가 불명확해서)
+EN_WORDS_PER_MINUTE = 200  # 영어는 공백 기준 단어 수
+
+
+def estimate_reading_minutes(raw_digest: dict) -> tuple:
+    """기사 요약+시사점+오늘의 인사이트 전체 분량으로 예상 읽기 시간을 계산한다.
+    글로서리 링크화(HTML 마크업)가 섞이기 전의 raw_digest에서 계산해야 <button>
+    태그 같은 마크업이 글자 수에 끼어들지 않는다. 한국어는 음절 수, 영어는
+    단어 수로 각각 따로 계산한다(같은 문장이라도 두 언어 분량 체감이 다름)."""
+    texts_ko, texts_en = [], []
+    for a in raw_digest.get("articles", []):
+        texts_ko.append(a.get("summary_ko", "") + a.get("implication_ko", ""))
+        texts_en.append(a.get("summary_en", "") + a.get("implication_en", ""))
+    insight = raw_digest.get("daily_insight") or {}
+    texts_ko.append(insight.get("headline_ko", "") + " ".join(insight.get("paragraphs_ko", [])))
+    texts_en.append(insight.get("headline_en", "") + " ".join(insight.get("paragraphs_en", [])))
+
+    ko_chars = sum(len(t) for t in texts_ko)
+    en_words = sum(len(t.split()) for t in texts_en)
+    if ko_chars == 0 and en_words == 0:
+        return 0, 0
+    minutes_ko = max(1, round(ko_chars / KO_CHARS_PER_MINUTE))
+    minutes_en = max(1, round(en_words / EN_WORDS_PER_MINUTE))
+    return minutes_ko, minutes_en
+
 
 def load_source_types():
     """config/feeds.json의 feed name -> type(primary/press/community) 매핑을 읽는다.
@@ -246,6 +271,7 @@ def main():
     args = parse_args()
     digest = json.loads(Path(args.input).read_text(encoding="utf-8"))
     raw_digest = copy.deepcopy(digest)  # 글로서리 링크화(HTML 마크업 삽입) 이전의 순수 텍스트본
+    reading_minutes_ko, reading_minutes_en = estimate_reading_minutes(raw_digest)
 
     source_types = load_source_types()
     for article in digest.get("articles", []):
@@ -306,6 +332,8 @@ def main():
         generated_at=generated_at,
         articles=articles,
         daily_insight=daily_insight,
+        reading_minutes_ko=reading_minutes_ko,
+        reading_minutes_en=reading_minutes_en,
         glossary=glossary_lookup,
         archives=past_archives,
         weekly_labels=weekly_labels,
@@ -338,6 +366,8 @@ def main():
         generated_at=generated_at,
         articles=articles,
         daily_insight=daily_insight,
+        reading_minutes_ko=reading_minutes_ko,
+        reading_minutes_en=reading_minutes_en,
         glossary=glossary_lookup,
         archives=past_archives,
         weekly_labels=weekly_labels,
@@ -365,6 +395,8 @@ def main():
         generated_at=generated_at,
         articles=articles,
         daily_insight=daily_insight,
+        reading_minutes_ko=reading_minutes_ko,
+        reading_minutes_en=reading_minutes_en,
         glossary=glossary_lookup,
         archives=past_archives,
         weekly_labels=weekly_labels,

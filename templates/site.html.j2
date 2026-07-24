@@ -135,8 +135,14 @@
 <main class="content" id="main-content">
   <div class="date-bar">
     <span class="date-label">{{ date }}</span>
+    {% if reading_minutes_ko %}
+    <span class="reading-time">
+      <span class="lang-ko">· 약 {{ reading_minutes_ko }}분 분량</span>
+      <span class="lang-en">· ~{{ reading_minutes_en }} min read</span>
+    </span>
+    {% endif %}
     {% if is_archive %}
-      <span class="archive-badge">
+      <span class="badge archive-badge">
         <span class="lang-ko">지난 기록</span>
         <span class="lang-en">Past Edition</span>
       </span>
@@ -231,17 +237,17 @@
       <div class="article-meta">
         <span class="source">{{ article.source }}</span>
         {% if article.source_type == "primary" %}
-        <span class="source-badge source-badge-primary">
+        <span class="badge source-badge source-badge-primary">
           <span class="lang-ko">공식 발표</span>
           <span class="lang-en">Official</span>
         </span>
         {% elif article.source_type == "community" %}
-        <span class="source-badge source-badge-community">
+        <span class="badge source-badge source-badge-community">
           <span class="lang-ko">커뮤니티</span>
           <span class="lang-en">Community</span>
         </span>
         {% else %}
-        <span class="source-badge source-badge-press">
+        <span class="badge source-badge source-badge-press">
           <span class="lang-ko">보도</span>
           <span class="lang-en">Press</span>
         </span>
