@@ -54,6 +54,10 @@
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
+<a class="skip-link" href="#main-content">
+  <span class="lang-ko">본문으로 건너뛰기</span>
+  <span class="lang-en">Skip to content</span>
+</a>
 <header class="site-header">
   <div class="utility-bar">
     <a class="glossary-nav-link" href="../glossary.html">
@@ -76,8 +80,8 @@
         <span class="lang-select-caret" aria-hidden="true">▾</span>
       </button>
       <ul class="lang-select-list" id="lang-select-list" role="listbox" hidden>
-        <li role="option" data-lang-value="ko">한국어</li>
-        <li role="option" data-lang-value="en">English</li>
+        <li role="option" tabindex="-1" data-lang-value="ko">한국어</li>
+        <li role="option" tabindex="-1" data-lang-value="en">English</li>
       </ul>
     </div>
     <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환">
@@ -101,7 +105,7 @@
   </div>
 </header>
 
-<main class="content">
+<main class="content" id="main-content">
   <div class="date-bar">
     <span class="date-label">{{ week_label }}</span>
     <a class="back-link" href="../index.html">
@@ -196,13 +200,16 @@
   var langTrigger = document.getElementById("lang-select-trigger");
   var langList = document.getElementById("lang-select-list");
   if (langSelect && langTrigger && langList) {
-    var closeList = function () {
+    var langOptions = Array.prototype.slice.call(langList.querySelectorAll("li[data-lang-value]"));
+    var closeList = function (returnFocus) {
       langList.hidden = true;
       langTrigger.setAttribute("aria-expanded", "false");
+      if (returnFocus) langTrigger.focus();
     };
-    var openList = function () {
+    var openList = function (focusIndex) {
       langList.hidden = false;
       langTrigger.setAttribute("aria-expanded", "true");
+      if (typeof focusIndex === "number" && langOptions[focusIndex]) langOptions[focusIndex].focus();
     };
     var selectLang = function (next) {
       document.documentElement.setAttribute("data-lang", next);
@@ -211,15 +218,35 @@
       var titleAttr = next === "en" ? "data-title-en" : "data-title-ko";
       var newTitle = document.documentElement.getAttribute(titleAttr);
       if (newTitle) document.title = newTitle;
-      closeList();
+      closeList(true);
     };
     langTrigger.addEventListener("click", function (e) {
       e.stopPropagation();
       if (langList.hidden) openList(); else closeList();
     });
-    Array.prototype.forEach.call(langList.querySelectorAll("li[data-lang-value]"), function (li) {
+    langTrigger.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        openList(e.key === "ArrowDown" ? 0 : langOptions.length - 1);
+      }
+    });
+    langOptions.forEach(function (li, i) {
       li.addEventListener("click", function () {
         selectLang(li.getAttribute("data-lang-value"));
+      });
+      li.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          langOptions[(i + 1) % langOptions.length].focus();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          langOptions[(i - 1 + langOptions.length) % langOptions.length].focus();
+        } else if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectLang(li.getAttribute("data-lang-value"));
+        } else if (e.key === "Escape") {
+          closeList(true);
+        }
       });
     });
     document.addEventListener("click", function (e) {

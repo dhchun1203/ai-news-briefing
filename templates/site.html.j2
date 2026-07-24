@@ -71,6 +71,10 @@
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
+<a class="skip-link" href="#main-content">
+  <span class="lang-ko">본문으로 건너뛰기</span>
+  <span class="lang-en">Skip to content</span>
+</a>
 <header class="site-header">
   <div class="utility-bar">
     <a class="glossary-nav-link" href="{{ css_prefix }}glossary.html">
@@ -93,8 +97,8 @@
         <span class="lang-select-caret" aria-hidden="true">▾</span>
       </button>
       <ul class="lang-select-list" id="lang-select-list" role="listbox" hidden>
-        <li role="option" data-lang-value="ko">한국어</li>
-        <li role="option" data-lang-value="en">English</li>
+        <li role="option" tabindex="-1" data-lang-value="ko">한국어</li>
+        <li role="option" tabindex="-1" data-lang-value="en">English</li>
       </ul>
     </div>
     <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환">
@@ -128,26 +132,7 @@
   </div>
 </header>
 
-<main class="content">
-  <section class="subscribe-box" aria-label="이메일 구독">
-    <p class="subscribe-title">
-      <span class="lang-ko">매일 아침 이메일로 받아보기</span>
-      <span class="lang-en">Get it in your inbox every morning</span>
-    </p>
-    <p class="subscribe-desc">
-      <span class="lang-ko">헤드라인과 한 줄 요약을 매일, 한 주를 정리하는 종합 회고를 매주 일요일에 보내드려요.</span>
-      <span class="lang-en">Daily headlines and summaries, plus a synthesis of the week every Sunday.</span>
-    </p>
-    <form class="subscribe-form" id="subscribe-form">
-      <input type="email" name="email" required class="subscribe-input" placeholder="you@example.com" aria-label="이메일 주소">
-      <button type="submit" class="subscribe-submit">
-        <span class="lang-ko">구독하기</span>
-        <span class="lang-en">Subscribe</span>
-      </button>
-    </form>
-    <p class="subscribe-status" id="subscribe-status" role="status" aria-live="polite"></p>
-  </section>
-
+<main class="content" id="main-content">
   <div class="date-bar">
     <span class="date-label">{{ date }}</span>
     {% if is_archive %}
@@ -206,6 +191,25 @@
     {% endif %}
   </section>
   {% endif %}
+
+  <section class="subscribe-box" aria-label="이메일 구독">
+    <p class="subscribe-title">
+      <span class="lang-ko">매일 아침 이메일로 받아보기</span>
+      <span class="lang-en">Get it in your inbox every morning</span>
+    </p>
+    <p class="subscribe-desc">
+      <span class="lang-ko">헤드라인과 한 줄 요약을 매일, 한 주를 정리하는 종합 회고를 매주 일요일에 보내드려요.</span>
+      <span class="lang-en">Daily headlines and summaries, plus a synthesis of the week every Sunday.</span>
+    </p>
+    <form class="subscribe-form" id="subscribe-form">
+      <input type="email" name="email" required class="subscribe-input" placeholder="you@example.com" aria-label="이메일 주소">
+      <button type="submit" class="subscribe-submit">
+        <span class="lang-ko">구독하기</span>
+        <span class="lang-en">Subscribe</span>
+      </button>
+    </form>
+    <p class="subscribe-status" id="subscribe-status" role="status" aria-live="polite"></p>
+  </section>
 
   {% if articles %}
   <nav class="toc" aria-label="목차">
@@ -289,7 +293,7 @@
   {% endif %}
 
   {% if weekly_labels %}
-  <section class="archive-section">
+  <section class="archive-section archive-section--weekly">
     <h2 class="archive-title">
       <span class="lang-ko">주간 회고</span>
       <span class="lang-en">Weekly Recaps</span>
@@ -357,13 +361,16 @@
   var langTrigger = document.getElementById("lang-select-trigger");
   var langList = document.getElementById("lang-select-list");
   if (langSelect && langTrigger && langList) {
-    var closeList = function () {
+    var langOptions = Array.prototype.slice.call(langList.querySelectorAll("li[data-lang-value]"));
+    var closeList = function (returnFocus) {
       langList.hidden = true;
       langTrigger.setAttribute("aria-expanded", "false");
+      if (returnFocus) langTrigger.focus();
     };
-    var openList = function () {
+    var openList = function (focusIndex) {
       langList.hidden = false;
       langTrigger.setAttribute("aria-expanded", "true");
+      if (typeof focusIndex === "number" && langOptions[focusIndex]) langOptions[focusIndex].focus();
     };
     var selectLang = function (next) {
       document.documentElement.setAttribute("data-lang", next);
@@ -373,15 +380,36 @@
       var newTitle = document.documentElement.getAttribute(titleAttr);
       if (newTitle) document.title = newTitle;
       updatePlaceholders();
-      closeList();
+      closeList(true);
     };
     langTrigger.addEventListener("click", function (e) {
       e.stopPropagation();
       if (langList.hidden) openList(); else closeList();
     });
-    Array.prototype.forEach.call(langList.querySelectorAll("li[data-lang-value]"), function (li) {
+    langTrigger.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        openList(e.key === "ArrowDown" ? 0 : langOptions.length - 1);
+      }
+    });
+    langOptions.forEach(function (li, i) {
       li.addEventListener("click", function () {
         selectLang(li.getAttribute("data-lang-value"));
+      });
+      // 옵션이 2개뿐이라 풀 콤보박스 패턴 대신 화살표(이동)+Enter/Space(선택)+Escape(닫기)만 지원.
+      li.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          langOptions[(i + 1) % langOptions.length].focus();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          langOptions[(i - 1 + langOptions.length) % langOptions.length].focus();
+        } else if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectLang(li.getAttribute("data-lang-value"));
+        } else if (e.key === "Escape") {
+          closeList(true);
+        }
       });
     });
     document.addEventListener("click", function (e) {
@@ -460,31 +488,35 @@
   var termClose = document.getElementById("term-panel-close");
   var termTitle = document.getElementById("term-panel-title");
   var termBody = document.getElementById("term-panel-body");
+  var termTrigger = null;
   var glossaryDataEl = document.getElementById("glossary-data");
   var glossaryData = {};
   if (glossaryDataEl) {
     try { glossaryData = JSON.parse(glossaryDataEl.textContent || "{}"); } catch (e) {}
   }
   if (termPanel && termBackdrop && termTitle && termBody) {
-    var openTermPanel = function (term, entry) {
+    var openTermPanel = function (term, entry, trigger) {
       var lang = document.documentElement.getAttribute("data-lang") || "ko";
       termTitle.textContent = term;
       termBody.textContent = entry[lang] || entry.ko || entry.en || "";
       termPanel.classList.add("open");
       termPanel.setAttribute("aria-hidden", "false");
       termBackdrop.hidden = false;
+      termTrigger = trigger || null;
+      if (termClose) termClose.focus();
     };
     var closeTermPanel = function () {
       termPanel.classList.remove("open");
       termPanel.setAttribute("aria-hidden", "true");
       termBackdrop.hidden = true;
+      if (termTrigger) { termTrigger.focus(); termTrigger = null; }
     };
     document.addEventListener("click", function (e) {
       var btn = e.target.closest && e.target.closest(".term-link");
       if (btn) {
         var term = btn.getAttribute("data-term");
         var entry = glossaryData[term];
-        if (entry) openTermPanel(term, entry);
+        if (entry) openTermPanel(term, entry, btn);
         return;
       }
       if (e.target === termBackdrop) closeTermPanel();
@@ -492,6 +524,12 @@
     if (termClose) termClose.addEventListener("click", closeTermPanel);
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeTermPanel();
+      // 패널이 열려있을 때 Tab이 밖으로 나가지 않게 가둔다 — 포커스 가능한 요소가
+      // 닫기 버튼 하나뿐이라 항상 그 버튼으로 되돌린다(단순한 형태의 focus trap).
+      if (e.key === "Tab" && termPanel.classList.contains("open")) {
+        e.preventDefault();
+        if (termClose) termClose.focus();
+      }
     });
   }
 
@@ -499,11 +537,13 @@
   var searchResults = document.getElementById("archive-search-results");
   if (searchInput && searchResults) {
     var searchIndexPromise = null;
+    var indexLoaded = false;
     var loadSearchIndex = function () {
       if (!searchIndexPromise) {
         searchIndexPromise = fetch("{{ css_prefix }}search-index.json")
           .then(function (r) { return r.json(); })
-          .catch(function () { return []; });
+          .then(function (data) { indexLoaded = true; return data; })
+          .catch(function () { indexLoaded = true; return []; });
       }
       return searchIndexPromise;
     };
@@ -519,6 +559,13 @@
         searchResults.hidden = true;
         searchResults.innerHTML = "";
         return;
+      }
+      // 인덱스를 아직 못 불러온 상태에서 입력하면, fetch가 끝나기 전까지 잠깐이라도
+      // "결과 없음"으로 오인되지 않도록 로딩 상태를 먼저 보여준다.
+      if (!indexLoaded) {
+        searchResults.hidden = false;
+        searchResults.innerHTML = '<li class="archive-search-loading">' +
+          '<span class="lang-ko">불러오는 중...</span><span class="lang-en">Loading...</span></li>';
       }
       loadSearchIndex().then(function (data) {
         var matches = data.filter(function (item) {
