@@ -69,6 +69,7 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .lang-select-trigger:focus-visible,
 .term-link:focus-visible,
 .glossary-nav-link:focus-visible,
+.glossary-back:focus-visible,
 .term-panel-close:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -653,6 +654,25 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   margin-right: auto;
 }
 .glossary-nav-link:hover { color: var(--accent); }
+
+/* 용어사전은 오늘자 홈/지난 아카이브/영어권 착지 페이지 등 어디서든 들어올 수 있어,
+   고정된 "돌아가기" 링크 하나로는 정확한 원래 위치를 못 알려준다 — 그래서
+   history.back()으로 실제로 왔던 페이지로 되돌아가는 버튼을 쓴다. */
+.glossary-back {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-family: var(--sans);
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.glossary-back:hover { color: var(--accent); text-decoration-color: var(--accent); }
 
 .glossary-intro {
   font-family: var(--serif);

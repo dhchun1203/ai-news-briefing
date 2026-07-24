@@ -106,6 +106,13 @@
 </header>
 
 <main class="content" id="main-content">
+  <div class="date-bar">
+    <button type="button" class="glossary-back" id="glossary-back">
+      <span class="lang-ko">← 이전 화면으로</span>
+      <span class="lang-en">← Back</span>
+    </button>
+  </div>
+
   <p class="glossary-intro">
     <span class="lang-ko">매일 브리핑에서 어려운 용어가 나올 때마다 쉬운 말로 설명을 덧붙여왔습니다. 그 설명들을 한곳에 모았습니다.</span>
     <span class="lang-en">Every jargon term explained in a daily briefing ends up here, in plain language.</span>
@@ -131,8 +138,8 @@
 
 <footer class="site-footer">
   <p>
-    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-24T07:38:50.696582</span>
-    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-24T07:38:50.696582</span>
+    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-24T07:53:14.540689</span>
+    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-24T07:53:14.540689</span>
   </p>
 </footer>
 
@@ -225,6 +232,20 @@
     });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeList();
+    });
+  }
+
+  var glossaryBack = document.getElementById("glossary-back");
+  if (glossaryBack) {
+    // 용어사전은 오늘자/지난 아카이브/영어권 페이지 등 어디서든 들어올 수 있어
+    // 고정된 링크 하나로는 정확한 원래 위치를 알 수 없다 — 실제 방문 이력으로 되돌아간다.
+    // 직접 주소로 들어와 이력이 없는 경우(history.length가 1)에는 홈으로 대체.
+    glossaryBack.addEventListener("click", function () {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = "index.html";
+      }
     });
   }
 
