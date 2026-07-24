@@ -39,6 +39,7 @@ body {
 .date-bar { padding: 0 0 12px; margin-bottom: 2px; row-gap: 8px; }
 .date-label { font-size: 0.8rem; }
 .back-link { font-size: 0.72rem; width: 100%; }
+.glossary-back { font-size: 0.72rem; }
 .archive-badge { font-size: 0.68rem; }
 
 .weekly-banner { margin: 2px 0 16px; padding: 12px 14px; font-size: 0.82rem; }
