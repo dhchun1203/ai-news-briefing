@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+
+<html lang="ko" data-lang="ko" data-title-ko="AI 용어사전 · Daily AI Thread" data-title-en="AI Glossary · Daily AI Thread">
+<head>
+<meta charset="UTF-8">
+<title>AI 용어사전 · Daily AI Thread</title>
+<meta name="description" content="AI 뉴스 브리핑에 등장한 AI 용어를 쉬운 말로 설명하는 용어사전">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AI 용어사전 · Daily AI Thread">
+<meta property="og:description" content="AI 뉴스 브리핑에 등장한 AI 용어를 쉬운 말로 설명하는 용어사전">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI 용어사전 · Daily AI Thread">
+<meta name="twitter:description" content="AI 뉴스 브리핑에 등장한 AI 용어를 쉬운 말로 설명하는 용어사전">
+<link rel="canonical" href="https://www.dailyaithread.com/glossary">
+<meta name="robots" content="index, follow">
+<meta property="og:url" content="https://www.dailyaithread.com/glossary">
+<meta property="og:image" content="https://www.dailyaithread.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
+<meta name="twitter:image" content="https://www.dailyaithread.com/og-image.png">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+<meta name="naver-site-verification" content="dc1f1b7afe7e5fd35492bb281219bfea4c5d8424">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@id": "https://www.dailyaithread.com/#website", "@type": "WebSite", "inLanguage": ["ko", "en"], "name": "AI \ub274\uc2a4 \ube0c\ub9ac\ud551 \u00b7 Daily AI Thread", "publisher": {"@id": "https://www.dailyaithread.com/#organization"}, "url": "https://www.dailyaithread.com/"}, {"@id": "https://www.dailyaithread.com/#organization", "@type": "Organization", "logo": "https://www.dailyaithread.com/og-image.png", "name": "Daily AI Thread", "url": "https://www.dailyaithread.com/"}, {"@id": "https://www.dailyaithread.com/glossary#glossary", "@type": "DefinedTermSet", "hasDefinedTerm": [], "inLanguage": ["ko", "en"], "isPartOf": {"@id": "https://www.dailyaithread.com/#website"}, "name": "AI \uc6a9\uc5b4\uc0ac\uc804", "publisher": {"@id": "https://www.dailyaithread.com/#organization"}, "url": "https://www.dailyaithread.com/glossary"}]}</script>
+<script>
+(function () {
+  function getCookie(name) {
+    var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+  try {
+    var t = getCookie("theme");
+    if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    var l = localStorage.getItem("lang");
+    if (l === "ko" || l === "en") {
+      document.documentElement.setAttribute("data-lang", l);
+      document.documentElement.setAttribute("lang", l);
+      var titleAttr = l === "en" ? "data-title-en" : "data-title-ko";
+      var storedTitle = document.documentElement.getAttribute(titleAttr);
+      if (storedTitle) document.title = storedTitle;
+    }
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="site-base.css">
+<link rel="stylesheet" href="site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="site-desktop.css" media="(min-width: 768px)">
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">
+  <span class="lang-ko">본문으로 건너뛰기</span>
+  <span class="lang-en">Skip to content</span>
+</a>
+<header class="site-header">
+  <div class="utility-bar">
+    <a class="glossary-nav-link" href="glossary.html">
+      <span class="lang-ko">용어사전</span>
+      <span class="lang-en">Glossary</span>
+    </a>
+    <div class="share-wrap" id="share-wrap">
+      <button id="share-button" class="share-button" type="button" aria-label="링크 복사 / Copy link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+      <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite">
+        <span class="lang-ko">복사되었습니다</span>
+        <span class="lang-en">Copied!</span>
+      </span>
+    </div>
+    <div class="lang-select" id="lang-select">
+      <button type="button" class="lang-select-trigger" id="lang-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+        <span class="lang-select-current lang-ko">한국어</span>
+        <span class="lang-select-current lang-en">English</span>
+        <span class="lang-select-caret" aria-hidden="true">▾</span>
+      </button>
+      <ul class="lang-select-list" id="lang-select-list" role="listbox" hidden>
+        <li role="option" tabindex="-1" data-lang-value="ko">한국어</li>
+        <li role="option" tabindex="-1" data-lang-value="en">English</li>
+      </ul>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환">
+      <span class="theme-toggle-thumb">
+        <span class="icon-moon" aria-hidden="true">&#9789;</span>
+        <span class="icon-sun" aria-hidden="true">&#9728;</span>
+      </span>
+    </button>
+  </div>
+  <div class="header-inner">
+    <h1>
+      <a href="index.html">
+        <span class="lang-ko">AI 뉴스 브리핑</span>
+        <span class="lang-en">AI News Briefing</span>
+      </a>
+    </h1>
+    <p class="tagline">
+      <span class="lang-ko">AI 용어사전 · 지금까지 브리핑에 등장한 용어 0개</span>
+      <span class="lang-en">AI Glossary · 0 terms explained so far</span>
+    </p>
+  </div>
+</header>
+
+<main class="content" id="main-content">
+  <p class="glossary-intro">
+    <span class="lang-ko">매일 브리핑에서 어려운 용어가 나올 때마다 쉬운 말로 설명을 덧붙여왔습니다. 그 설명들을 한곳에 모았습니다.</span>
+    <span class="lang-en">Every jargon term explained in a daily briefing ends up here, in plain language.</span>
+  </p>
+
+  <div class="glossary-search">
+    <input type="search" id="glossary-search-input" class="glossary-search-input"
+           data-placeholder-ko="용어 검색..." data-placeholder-en="Search terms..."
+           aria-label="용어 검색 / Search terms">
+  </div>
+
+  
+  <p class="empty-state">
+    <span class="lang-ko">아직 등록된 용어가 없습니다. 브리핑이 쌓이면 여기도 함께 채워집니다.</span>
+    <span class="lang-en">No terms yet — this fills in as daily briefings accumulate.</span>
+  </p>
+  
+
+  <dl class="glossary-list" id="glossary-list">
+    
+  </dl>
+</main>
+
+<footer class="site-footer">
+  <p>
+    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-24T07:11:19.829385</span>
+    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-24T07:11:19.829385</span>
+  </p>
+</footer>
+
+<script>
+(function () {
+  var updatePlaceholders = function () {
+    var lang = document.documentElement.getAttribute("data-lang") || "ko";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-placeholder-ko]"), function (el) {
+      var attr = lang === "en" ? "data-placeholder-en" : "data-placeholder-ko";
+      el.setAttribute("placeholder", el.getAttribute(attr) || "");
+    });
+  };
+  updatePlaceholders();
+
+  var themeBtn = document.getElementById("theme-toggle");
+  if (themeBtn) {
+    var isDarkActive = function () {
+      return document.documentElement.getAttribute("data-theme") === "dark";
+    };
+    var setThemeCookie = function (value) {
+      var expires = new Date();
+      expires.setTime(expires.getTime() + 365 * 24 * 60 * 60 * 1000);
+      document.cookie = "theme=" + encodeURIComponent(value) + "; expires=" + expires.toUTCString() + "; path=/; SameSite=Lax";
+    };
+    themeBtn.setAttribute("aria-checked", String(isDarkActive()));
+    themeBtn.addEventListener("click", function () {
+      var next = isDarkActive() ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      setThemeCookie(next);
+      themeBtn.setAttribute("aria-checked", String(next === "dark"));
+    });
+  }
+
+  var langSelect = document.getElementById("lang-select");
+  var langTrigger = document.getElementById("lang-select-trigger");
+  var langList = document.getElementById("lang-select-list");
+  if (langSelect && langTrigger && langList) {
+    var langOptions = Array.prototype.slice.call(langList.querySelectorAll("li[data-lang-value]"));
+    var closeList = function (returnFocus) {
+      langList.hidden = true;
+      langTrigger.setAttribute("aria-expanded", "false");
+      if (returnFocus) langTrigger.focus();
+    };
+    var openList = function (focusIndex) {
+      langList.hidden = false;
+      langTrigger.setAttribute("aria-expanded", "true");
+      if (typeof focusIndex === "number" && langOptions[focusIndex]) langOptions[focusIndex].focus();
+    };
+    var selectLang = function (next) {
+      document.documentElement.setAttribute("data-lang", next);
+      document.documentElement.setAttribute("lang", next);
+      try { localStorage.setItem("lang", next); } catch (e) {}
+      var titleAttr = next === "en" ? "data-title-en" : "data-title-ko";
+      var newTitle = document.documentElement.getAttribute(titleAttr);
+      if (newTitle) document.title = newTitle;
+      updatePlaceholders();
+      closeList(true);
+    };
+    langTrigger.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (langList.hidden) openList(); else closeList();
+    });
+    langTrigger.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        openList(e.key === "ArrowDown" ? 0 : langOptions.length - 1);
+      }
+    });
+    langOptions.forEach(function (li, i) {
+      li.addEventListener("click", function () {
+        selectLang(li.getAttribute("data-lang-value"));
+      });
+      li.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          langOptions[(i + 1) % langOptions.length].focus();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          langOptions[(i - 1 + langOptions.length) % langOptions.length].focus();
+        } else if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectLang(li.getAttribute("data-lang-value"));
+        } else if (e.key === "Escape") {
+          closeList(true);
+        }
+      });
+    });
+    document.addEventListener("click", function (e) {
+      if (!langSelect.contains(e.target)) closeList();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeList();
+    });
+  }
+
+  var shareBtn = document.getElementById("share-button");
+  var shareTooltip = document.getElementById("share-tooltip");
+  var shareTooltipTimer = null;
+  if (shareBtn) {
+    shareBtn.addEventListener("click", function () {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) return;
+      navigator.clipboard.writeText(window.location.href).then(function () {
+        if (!shareTooltip) return;
+        shareTooltip.classList.add("visible");
+        if (shareTooltipTimer) clearTimeout(shareTooltipTimer);
+        shareTooltipTimer = setTimeout(function () {
+          shareTooltip.classList.remove("visible");
+        }, 1600);
+      }).catch(function () {});
+    });
+  }
+
+  // 용어사전은 이미 전체 목록이 서버에서 렌더링돼 있어서(fetch 불필요), 입력할 때마다
+  // 각 항목의 data-search 속성과 단순 부분 문자열 비교만 하면 된다.
+  var glossarySearch = document.getElementById("glossary-search-input");
+  var glossaryList = document.getElementById("glossary-list");
+  if (glossarySearch && glossaryList) {
+    var terms = Array.prototype.slice.call(glossaryList.querySelectorAll(".glossary-term"));
+    glossarySearch.addEventListener("input", function () {
+      var q = glossarySearch.value.trim().toLowerCase();
+      terms.forEach(function (el) {
+        var haystack = el.getAttribute("data-search") || "";
+        el.hidden = q.length > 0 && haystack.indexOf(q) === -1;
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>

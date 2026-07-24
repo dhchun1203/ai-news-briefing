@@ -7,11 +7,14 @@ body {
   line-height: 1.75;
 }
 
-.utility-bar { padding: 8px 16px; }
-.share-button { width: 32px; height: 32px; font-size: 0.95rem; }
+/* 4개 항목(용어사전 링크·공유·언어·다크모드)이 아주 좁은 화면에서 한 줄에 안
+   들어갈 경우, 잘리거나 가로 스크롤이 생기는 대신 다음 줄로 자연스럽게
+   넘어가도록 안전장치를 둔다. */
+.utility-bar { padding: 8px 16px; flex-wrap: wrap; row-gap: 6px; }
+.share-button { width: 40px; height: 40px; font-size: 1rem; }
 .share-tooltip { font-size: 0.74rem; padding: 5px 10px; }
-.theme-toggle { width: 46px; height: 25px; --toggle-travel: 22px; }
-.theme-toggle-thumb { width: 18px; height: 18px; font-size: 0.65rem; }
+.theme-toggle { width: 54px; height: 30px; --toggle-travel: 26px; }
+.theme-toggle-thumb { width: 22px; height: 22px; font-size: 0.72rem; }
 .lang-select-trigger { height: 32px; padding: 0 10px; gap: 5px; font-size: 0.78rem; }
 .lang-select-caret { font-size: 0.6rem; }
 .lang-select-list { padding: 5px; min-width: 116px; }
@@ -77,6 +80,7 @@ body {
 .archive-search-input { padding: 8px 14px; font-size: 0.88rem; }
 .archive-search-results li { padding: 9px 12px; }
 .archive-search-results a { font-size: 0.88rem; }
+.archive-search-loading { font-size: 0.88rem; }
 .archive-search-date { font-size: 0.68rem; margin-top: 2px; }
 .archive-list { gap: 8px 16px; }
 .archive-list a { font-size: 0.86rem; display: inline-block; padding-bottom: 1px; }
@@ -88,3 +92,11 @@ body {
 .term-panel-label { font-size: 0.66rem; margin: 0 0 8px; }
 .term-panel-title { font-size: 1.08rem; margin: 0 0 10px; }
 .term-panel-body { font-size: 0.95rem; line-height: 1.65; }
+
+.glossary-nav-link { font-size: 0.76rem; }
+.glossary-intro { font-size: 0.95rem; line-height: 1.6; margin: 18px 0 16px; }
+.glossary-search { margin-bottom: 20px; }
+.glossary-search-input { padding: 8px 14px; font-size: 0.88rem; }
+.glossary-term { padding: 14px 0; }
+.glossary-term-name { font-size: 1.02rem; margin: 0 0 4px; }
+.glossary-term-desc { font-size: 0.88rem; line-height: 1.6; }

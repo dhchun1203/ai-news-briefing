@@ -40,6 +40,38 @@ body {
 a { color: var(--text); text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }
 a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 
+/* ---------- 접근성: 스킵 링크 + 공통 포커스 스타일 ---------- */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 12px;
+  z-index: 100;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--text);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-family: var(--sans);
+  font-weight: 700;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+.skip-link:focus { top: 12px; }
+
+.theme-toggle:focus-visible,
+.share-button:focus-visible,
+.lang-select-trigger:focus-visible,
+.term-link:focus-visible,
+.glossary-nav-link:focus-visible,
+.term-panel-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.lang-select-list li:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 /* ---------- 헤더 / 마스트헤드 ---------- */
 .site-header { background: var(--bg); }
 
@@ -450,6 +482,11 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 /* ---------- 아카이브 ---------- */
 .archive-section { border-top: 3px double var(--rule); }
 
+/* "지난 브리핑"과 "주간 회고"가 똑같은 마크업을 공유해 스캔할 때 구분이 안 되던
+   문제 — 주간 회고 쪽만 accent 색으로 살짝 구분한다. */
+.archive-section--weekly { border-top-style: solid; border-top-color: var(--accent); }
+.archive-section--weekly .archive-title { color: var(--accent); }
+
 .archive-title {
   font-family: var(--sans);
   font-weight: 700;
@@ -514,6 +551,11 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   text-decoration: none;
 }
 .archive-search-results a:hover { color: var(--accent); }
+
+.archive-search-loading {
+  color: var(--text-muted);
+  font-style: italic;
+}
 
 .archive-search-date {
   display: block;
@@ -594,4 +636,49 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .term-panel-body {
   font-family: var(--serif);
   color: var(--text);
+}
+
+/* ---------- 용어사전 페이지 (모든 브리핑에 등장한 용어를 모은 별도 페이지) ---------- */
+.glossary-nav-link {
+  font-family: var(--sans);
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  margin-right: auto;
+}
+.glossary-nav-link:hover { color: var(--accent); }
+
+.glossary-intro {
+  font-family: var(--serif);
+  color: var(--text-muted);
+}
+
+.glossary-search-input {
+  width: 100%;
+  font-family: var(--sans);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+}
+.glossary-search-input:focus { outline: none; border-color: var(--text); }
+
+.glossary-list { margin: 0; padding: 0; }
+
+.glossary-term {
+  border-bottom: 1px solid var(--border);
+}
+.glossary-term[hidden] { display: none; }
+
+.glossary-term-name {
+  font-family: var(--serif);
+  font-weight: 700;
+  color: var(--text);
+}
+.glossary-term-name .lang-en { color: var(--text-muted); font-weight: 400; }
+
+.glossary-term-desc {
+  font-family: var(--serif);
+  color: var(--text);
+  margin: 0;
 }
