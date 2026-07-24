@@ -96,3 +96,11 @@ body {
 .term-panel-label { font-size: 0.72rem; margin: 0 0 10px; }
 .term-panel-title { font-size: 1.25rem; margin: 0 0 14px; }
 .term-panel-body { font-size: 1.02rem; line-height: 1.75; }
+
+.glossary-nav-link { font-size: 0.85rem; }
+.glossary-intro { font-size: 1.05rem; line-height: 1.7; margin: 28px 0 20px; }
+.glossary-search { max-width: 360px; margin-bottom: 28px; }
+.glossary-search-input { padding: 9px 16px; font-size: 0.92rem; }
+.glossary-term { padding: 18px 0; }
+.glossary-term-name { font-size: 1.15rem; margin: 0 0 6px; }
+.glossary-term-desc { font-size: 0.98rem; line-height: 1.7; }

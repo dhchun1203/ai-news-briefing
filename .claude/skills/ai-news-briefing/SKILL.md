@@ -167,9 +167,14 @@ python scripts/generate_site.py --input data/digest_<날짜>.json
 ```
 - Jinja2로 `templates/site.html.j2`를 렌더링해 `docs/index.html`(오늘자, 항상 최신)과
   `docs/archive/<날짜>.html`(과거 기록 누적)을 생성한다.
-- 같은 digest의 원본(글로서리 링크화 이전 순수 텍스트)을 `docs/archive/<날짜>.json`으로도
-  영구 보관하고, `docs/archive/*.json` 전체를 모아 `docs/search-index.json`(아카이브 검색용)을
-  다시 만든다 — 1단계의 "과거 중복 제외"와 5단계의 "주간 회고"가 이 파일들을 읽는다.
+- 같은 digest의 원본(글로서리 링크화 이전 순수 텍스트, `glossary` 배열 포함)을
+  `docs/archive/<날짜>.json`으로도 영구 보관하고, `docs/archive/*.json` 전체를 모아
+  `docs/search-index.json`(아카이브 검색용)을 다시 만든다 — 1단계의 "과거 중복 제외",
+  5단계의 "주간 회고", 아래 "용어사전"이 이 파일들을 읽는다.
+- `docs/archive/*.json`의 `glossary`를 전부 모아 `docs/glossary.html`(용어사전)을
+  매번 다시 만든다 — 새로 쓸 콘텐츠 없이 3단계에서 이미 작성한 설명을 재활용하는
+  기계적 집계라 Claude가 따로 할 일 없다. 같은 용어가 여러 날 다시 나오면 가장 최근
+  설명으로 자동 갱신된다. 사이트 상단 유틸리티 바에 "용어사전" 링크가 항상 노출된다.
 - `config/feeds.json`의 `type`(primary/press/community)을 기준으로 기사 카드에 "공식
   발표"/"보도"/"커뮤니티" 배지가 자동으로 붙는다 — Claude가 따로 지정할 필요 없다.
 - `docs/index.html` 하단에는 지난 아카이브 링크 목록과 검색창, 주간 회고 목록이 자동으로

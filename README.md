@@ -25,9 +25,9 @@ supabase/schema.sql         # 구독자 테이블 스키마 (Supabase SQL Editor
 vercel.json                 # Vercel 배포 설정 (outputDirectory: docs)
 data/                        # 중간 산출물, git에는 포함 안 됨
 docs/                        # 배포 대상 — index.html, archive/<날짜>.html·json(영구 보관)·
-                            # sent.json(발송 완료 마커), weekly/<주차>.html, search-index.json,
-                            # robots.txt, sitemap.xml, favicon.svg, og-image.png, og/<날짜>.png
-                            # 전부 커밋 필요
+                            # sent.json(발송 완료 마커), weekly/<주차>.html, glossary.html(용어사전),
+                            # search-index.json, robots.txt, sitemap.xml, favicon.svg, og-image.png,
+                            # og/<날짜>.png 전부 커밋 필요
 ```
 
 ## 최초 설정 (사람이 직접 해야 하는 부분)

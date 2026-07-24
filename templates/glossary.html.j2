@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-{% set title_ko = "주간 AI 회고 — " + week_label %}
-{% set title_en = "Weekly AI Recap — " + week_label %}
+{% set title_ko = "AI 용어사전 · Daily AI Thread" %}
+{% set title_en = "AI Glossary · Daily AI Thread" %}
 <html lang="ko" data-lang="ko" data-title-ko="{{ title_ko }}" data-title-en="{{ title_en }}">
 <head>
 <meta charset="UTF-8">
 <title>{{ title_ko }}</title>
-<meta name="description" content="{{ week_label }} 주간 AI 뉴스 회고 ({{ start_date }} ~ {{ end_date }})">
+<meta name="description" content="AI 뉴스 브리핑에 등장한 AI 용어를 쉬운 말로 설명하는 용어사전">
 <meta property="og:type" content="website">
 <meta property="og:title" content="{{ title_ko }}">
-<meta property="og:description" content="{{ week_label }} 주간 AI 뉴스 회고">
+<meta property="og:description" content="AI 뉴스 브리핑에 등장한 AI 용어를 쉬운 말로 설명하는 용어사전">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ title_ko }}">
-<meta name="twitter:description" content="{{ week_label }} 주간 AI 뉴스 회고">
+<meta name="twitter:description" content="AI 뉴스 브리핑에 등장한 AI 용어를 쉬운 말로 설명하는 용어사전">
 <link rel="canonical" href="{{ canonical_url }}">
 <meta name="robots" content="index, follow">
 <meta property="og:url" content="{{ canonical_url }}">
@@ -20,7 +20,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
 <meta name="twitter:image" content="{{ og_image_url }}">
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
 {% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
 <script type="application/ld+json">{{ jsonld|tojson }}</script>
@@ -48,15 +48,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="../site-base.css">
-<link rel="stylesheet" href="../site-mobile.css" media="(max-width: 767px)">
-<link rel="stylesheet" href="../site-desktop.css" media="(min-width: 768px)">
+<link rel="stylesheet" href="site-base.css">
+<link rel="stylesheet" href="site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="site-desktop.css" media="(min-width: 768px)">
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 <header class="site-header">
   <div class="utility-bar">
-    <a class="glossary-nav-link" href="../glossary.html">
+    <a class="glossary-nav-link" href="glossary.html">
       <span class="lang-ko">용어사전</span>
       <span class="lang-en">Glossary</span>
     </a>
@@ -89,90 +89,71 @@
   </div>
   <div class="header-inner">
     <h1>
-      <a href="../index.html">
+      <a href="index.html">
         <span class="lang-ko">AI 뉴스 브리핑</span>
         <span class="lang-en">AI News Briefing</span>
       </a>
     </h1>
     <p class="tagline">
-      <span class="lang-ko">주간 회고 · {{ week_label }} ({{ start_date }} ~ {{ end_date }})</span>
-      <span class="lang-en">Weekly Recap · {{ week_label }} ({{ start_date }} – {{ end_date }})</span>
+      <span class="lang-ko">AI 용어사전 · 지금까지 브리핑에 등장한 용어 {{ terms|length }}개</span>
+      <span class="lang-en">AI Glossary · {{ terms|length }} terms explained so far</span>
     </p>
   </div>
 </header>
 
 <main class="content">
-  <div class="date-bar">
-    <span class="date-label">{{ week_label }}</span>
-    <a class="back-link" href="../index.html">
-      <span class="lang-ko">오늘자 브리핑 보기 →</span>
-      <span class="lang-en">View today's briefing →</span>
-    </a>
+  <p class="glossary-intro">
+    <span class="lang-ko">매일 브리핑에서 어려운 용어가 나올 때마다 쉬운 말로 설명을 덧붙여왔습니다. 그 설명들을 한곳에 모았습니다.</span>
+    <span class="lang-en">Every jargon term explained in a daily briefing ends up here, in plain language.</span>
+  </p>
+
+  <div class="glossary-search">
+    <input type="search" id="glossary-search-input" class="glossary-search-input"
+           data-placeholder-ko="용어 검색..." data-placeholder-en="Search terms..."
+           aria-label="용어 검색 / Search terms">
   </div>
 
-  <section class="insight" aria-label="주간 종합">
-    <p class="insight-label">
-      <span class="lang-ko">이번 주 종합</span>
-      <span class="lang-en">This Week's Synthesis</span>
-    </p>
-    <h2 class="insight-headline">
-      <span class="lang-ko">{{ headline_ko }}</span>
-      <span class="lang-en">{{ headline_en }}</span>
-    </h2>
-    <div class="insight-body">
-      <div class="lang-ko">
-        {% for para in paragraphs_ko %}<p>{{ para }}</p>{% endfor %}
-      </div>
-      <div class="lang-en">
-        {% for para in paragraphs_en %}<p>{{ para }}</p>{% endfor %}
-      </div>
+  {% if not terms %}
+  <p class="empty-state">
+    <span class="lang-ko">아직 등록된 용어가 없습니다. 브리핑이 쌓이면 여기도 함께 채워집니다.</span>
+    <span class="lang-en">No terms yet — this fills in as daily briefings accumulate.</span>
+  </p>
+  {% endif %}
+
+  <dl class="glossary-list" id="glossary-list">
+    {% for t in terms %}
+    <div class="glossary-term" data-search="{{ (t.term_ko ~ ' ' ~ t.term_en)|lower }}">
+      <dt class="glossary-term-name">
+        <span class="lang-ko">{{ t.term_ko }}</span>
+        <span class="lang-en">{{ t.term_en }}</span>
+      </dt>
+      <dd class="glossary-term-desc">
+        <span class="lang-ko">{{ t.explanation_ko }}</span>
+        <span class="lang-en">{{ t.explanation_en }}</span>
+      </dd>
     </div>
-  </section>
-
-  {% if daily_briefings %}
-  <section class="archive-section">
-    <h2 class="archive-title">
-      <span class="lang-ko">이번 주 일별 브리핑</span>
-      <span class="lang-en">This Week's Daily Briefings</span>
-    </h2>
-    <ul class="archive-list weekly-daily-list">
-      {% for d in daily_briefings %}
-      <li>
-        <a href="{{ d.date }}.html">
-          <span class="weekly-daily-date">{{ d.date }}</span>
-          <span class="lang-ko">{{ d.headline_ko }}</span>
-          <span class="lang-en">{{ d.headline_en }}</span>
-        </a>
-      </li>
-      {% endfor %}
-    </ul>
-  </section>
-  {% endif %}
-
-  {% if past_weeklies %}
-  <section class="archive-section">
-    <h2 class="archive-title">
-      <span class="lang-ko">지난 주간 회고</span>
-      <span class="lang-en">Past Weekly Recaps</span>
-    </h2>
-    <ul class="archive-list">
-      {% for w in past_weeklies %}
-      <li><a href="{{ w }}.html">{{ w }}</a></li>
-      {% endfor %}
-    </ul>
-  </section>
-  {% endif %}
+    {% endfor %}
+  </dl>
 </main>
 
 <footer class="site-footer">
   <p>
-    <span class="lang-ko">매주 일요일 자동 생성 · 마지막 생성: {{ generated_at }}</span>
-    <span class="lang-en">Auto-generated every Sunday · Last updated: {{ generated_at }}</span>
+    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: {{ generated_at }}</span>
+    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}</span>
   </p>
 </footer>
 
 <script>
 (function () {
+  var updatePlaceholders = function () {
+    var lang = document.documentElement.getAttribute("data-lang") || "ko";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-placeholder-ko]"), function (el) {
+      var attr = lang === "en" ? "data-placeholder-en" : "data-placeholder-ko";
+      el.setAttribute("placeholder", el.getAttribute(attr) || "");
+    });
+  };
+  updatePlaceholders();
+
   var themeBtn = document.getElementById("theme-toggle");
   if (themeBtn) {
     var isDarkActive = function () {
@@ -211,6 +192,7 @@
       var titleAttr = next === "en" ? "data-title-en" : "data-title-ko";
       var newTitle = document.documentElement.getAttribute(titleAttr);
       if (newTitle) document.title = newTitle;
+      updatePlaceholders();
       closeList();
     };
     langTrigger.addEventListener("click", function (e) {
@@ -244,6 +226,21 @@
           shareTooltip.classList.remove("visible");
         }, 1600);
       }).catch(function () {});
+    });
+  }
+
+  // 용어사전은 이미 전체 목록이 서버에서 렌더링돼 있어서(fetch 불필요), 입력할 때마다
+  // 각 항목의 data-search 속성과 단순 부분 문자열 비교만 하면 된다.
+  var glossarySearch = document.getElementById("glossary-search-input");
+  var glossaryList = document.getElementById("glossary-list");
+  if (glossarySearch && glossaryList) {
+    var terms = Array.prototype.slice.call(glossaryList.querySelectorAll(".glossary-term"));
+    glossarySearch.addEventListener("input", function () {
+      var q = glossarySearch.value.trim().toLowerCase();
+      terms.forEach(function (el) {
+        var haystack = el.getAttribute("data-search") || "";
+        el.hidden = q.length > 0 && haystack.indexOf(q) === -1;
+      });
     });
   }
 })();

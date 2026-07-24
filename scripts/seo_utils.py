@@ -69,6 +69,8 @@ def build_sitemap(docs_dir: Path, site_url: str, today: str) -> int:
     if weekly_dir.exists():
         for f in sorted(weekly_dir.glob("*.html")):
             urls.append((f"{site_url}/weekly/{f.stem}", _weekly_lastmod(f.stem)))
+    if (docs_dir / "glossary.html").exists():
+        urls.append((f"{site_url}/glossary", today))  # 매일 새 용어가 쌓일 수 있어 lastmod는 오늘
     body = "\n".join(
         f"  <url><loc>{escape(loc)}</loc><lastmod>{lastmod}</lastmod></url>" for loc, lastmod in urls
     )
@@ -201,5 +203,33 @@ def build_weekly_page_jsonld(site_url, page_url, headline_ko, end_date, generate
         "mentions": [
             {"@type": "CreativeWork", "url": f"{site_url}/archive/{d['date']}"} for d in (daily_briefings or [])
         ],
+    }
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}
+
+
+def build_glossary_page_jsonld(site_url: str, page_url: str, terms: list) -> dict:
+    """용어사전 페이지용 JSON-LD. schema.org가 정의문 콘텐츠에 딱 맞는 타입
+    (DefinedTermSet/DefinedTerm)을 제공해서, 다른 페이지처럼 우회할 필요 없이
+    바로 의미에 맞게 마크업할 수 있다 — GEO 관점에서도 "[용어]는 [정의]다" 구조를
+    구조화 데이터로 한 번 더 못박아주는 셈이라 유리하다."""
+    defined_terms = [
+        {
+            "@type": "DefinedTerm",
+            "name": t["term_ko"],
+            "alternateName": t.get("term_en") or t["term_ko"],
+            "description": t.get("explanation_ko", ""),
+            "inDefinedTermSet": f"{page_url}#glossary",
+        }
+        for t in terms
+    ]
+    node = {
+        "@type": "DefinedTermSet",
+        "@id": f"{page_url}#glossary",
+        "url": page_url,
+        "name": "AI 용어사전",
+        "inLanguage": ["ko", "en"],
+        "isPartOf": {"@id": f"{site_url}/#website"},
+        "publisher": {"@id": f"{site_url}/#organization"},
+        "hasDefinedTerm": defined_terms,
     }
     return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}

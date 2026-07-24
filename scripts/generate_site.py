@@ -132,13 +132,14 @@ def collect_weekly_labels(docs_dir: Path):
 def save_archive_json(archive_dir: Path, raw_digest: dict):
     """이 날짜의 원본 digest(글로서리 링크화로 마크업이 섞이기 전의 순수 텍스트)를
     docs/archive/<날짜>.json으로 영구 보관한다. data/*.json은 git에 커밋되지 않아
-    실행이 끝나면 사라지므로, 검색·주간 회고 기능이 과거 데이터를 읽을 수 있는
-    유일한 경로가 이 파일이다."""
+    실행이 끝나면 사라지므로, 검색·주간 회고·용어사전 기능이 과거 데이터를 읽을 수
+    있는 유일한 경로가 이 파일이다."""
     date = raw_digest["date"]
     payload = {
         "date": date,
         "generated_at": raw_digest.get("generated_at"),
         "daily_insight": raw_digest.get("daily_insight"),
+        "glossary": raw_digest.get("glossary") or [],
         "articles": [
             {
                 "title": a.get("title"),
@@ -156,6 +157,60 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
     (archive_dir / f"{date}.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+
+
+def collect_glossary_terms(archive_dir: Path) -> list:
+    """docs/archive/*.json 전체에서 glossary 배열을 모아 term_ko 기준으로 중복
+    제거한다. 같은 용어가 여러 날 다시 등장하면 가장 최근(파일명 날짜 기준) 설명으로
+    덮어쓴다 — 용어 설명이 시간이 지나며 더 다듬어질 수 있다고 보고, 과거 버전을
+    따로 보존하지는 않는다. 결과는 term_ko 기준 가나다순으로 정렬한다(한글 음절은
+    유니코드 코드포인트 순서가 자모 순서와 일치해 별도 정렬 규칙 없이도 가나다순이
+    나온다)."""
+    terms = {}
+    if not archive_dir.exists():
+        return []
+    for f in sorted(archive_dir.glob("*.json")):  # 파일명이 YYYY-MM-DD라 문자열 정렬 = 날짜순
+        if f.name.endswith(".sent.json"):
+            continue
+        try:
+            day = json.loads(f.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        date = day.get("date", f.stem)
+        for g in day.get("glossary") or []:
+            term_ko = g.get("term_ko")
+            if not term_ko:
+                continue
+            entry = terms.setdefault(term_ko, {"term_ko": term_ko, "first_seen": date})
+            entry["term_en"] = g.get("term_en", "")
+            entry["explanation_ko"] = g.get("explanation_ko", "")
+            entry["explanation_en"] = g.get("explanation_en", "")
+            entry["last_seen"] = date
+    return sorted(terms.values(), key=lambda t: t["term_ko"])
+
+
+def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification: dict, og_image_url: str):
+    """지금까지 브리핑에 등장한 모든 용어를 모아 docs/glossary.html로 렌더링한다.
+    새로 작성하는 콘텐츠가 없다(Claude가 매일 이미 쓰는 glossary를 재활용) —
+    generate_weekly_site.py의 '건너뛸 날도 있는' 판단형 단계와 달리, 이건
+    search-index.json처럼 매 실행마다 항상 자동으로 다시 만드는 기계적 집계다."""
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html", "j2"]),
+    )
+    template = env.get_template("glossary.html.j2")
+    page_url = f"{site_url}/glossary"
+    html_out = template.render(
+        terms=terms,
+        generated_at=datetime.now().isoformat(),
+        canonical_url=page_url,
+        og_image_url=og_image_url,
+        google_site_verification=verification["google_site_verification"],
+        naver_site_verification=verification["naver_site_verification"],
+        jsonld=seo_utils.build_glossary_page_jsonld(site_url, page_url, terms),
+    )
+    (docs_dir / "glossary.html").write_text(html_out, encoding="utf-8")
+    return len(terms)
 
 
 def build_search_index(archive_dir: Path, docs_dir: Path):
@@ -222,6 +277,10 @@ def main():
     # 이미지에 <button> 태그 같은 마크업이 그대로 찍히면 안 되므로.
     raw_headline_ko = (raw_digest.get("daily_insight") or {}).get("headline_ko", "")
     og_image_url = seo_utils.build_og_image_url(site_url, docs_dir, date, raw_headline_ko)
+
+    glossary_terms = collect_glossary_terms(archive_dir)
+    glossary_og_image_url = f"{site_url}/og-image.png"  # 용어사전은 날짜성 콘텐츠가 아니라 범용 카드 재사용
+    glossary_count = build_glossary_page(docs_dir, glossary_terms, site_url, verification, glossary_og_image_url)
 
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -290,7 +349,10 @@ def main():
     sitemap_count = seo_utils.build_sitemap(docs_dir, site_url, date)
 
     print(f"생성 완료: {docs_dir / 'index.html'}, {archive_dir / f'{date}.html'}")
-    print(f"기사 {len(articles)}건, 지난 아카이브 {len(past_archives)}건, 검색 인덱스 {indexed_count}건, sitemap {sitemap_count}건")
+    print(
+        f"기사 {len(articles)}건, 지난 아카이브 {len(past_archives)}건, 검색 인덱스 {indexed_count}건, "
+        f"용어사전 {glossary_count}건, sitemap {sitemap_count}건"
+    )
 
 
 if __name__ == "__main__":
