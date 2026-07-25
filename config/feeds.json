@@ -1,9 +1,9 @@
 {
-  "_comment": "AI 뉴스 RSS 피드 목록. 자유롭게 추가/삭제 가능. 각 URL은 서비스 개편으로 바뀔 수 있으니 주기적으로 유효성을 재검증할 것 (WebFetch나 curl로 200 응답 + item 존재 확인). Anthropic은 공식 RSS 피드를 제공하지 않아(2026-07-23 기준 www.anthropic.com/rss.xml 등 404) 제외했다.",
+  "_comment": "AI 뉴스 RSS 피드 목록. 자유롭게 추가/삭제 가능. 각 URL은 서비스 개편으로 바뀔 수 있으니 주기적으로 유효성을 재검증할 것 (WebFetch나 curl로 200 응답 + item 존재 확인, 그리고 최신 item 날짜가 실제로 최근인지도 함께 — 200을 줘도 발행이 멈춘 '오래된 피드'는 fetch_articles.py가 feeds_stale로 감지해 경고한다). Anthropic은 공식 RSS 피드를 제공하지 않아(2026-07-23 기준 www.anthropic.com/rss.xml 등 404) 제외했다. VentureBeat는 2026-07-26에 category/ai/feed가 308로 살아있는 것처럼 보이지만 실제로는 5월 이후 새 글이 없어(사이트가 카테고리 체계를 개편하며 그 태그를 더 이상 안 씀) 메인 피드(전부 AI 콘텐츠로 확인됨)로 교체했다.",
   "_type_comment": "type: primary(기업/기관의 공식 발표) · press(언론·기술 매체 보도) · community(커뮤니티 링크 모음). generate_site.py가 이 값을 기사 카드의 출처 배지로 표시한다.",
   "feeds": [
     { "name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/", "type": "press" },
-    { "name": "VentureBeat AI", "url": "https://venturebeat.com/category/ai/feed/", "type": "press" },
+    { "name": "VentureBeat AI", "url": "https://venturebeat.com/feed/", "type": "press" },
     { "name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "type": "press" },
     { "name": "MarkTechPost", "url": "https://www.marktechpost.com/feed/", "type": "press" },
     { "name": "OpenAI News", "url": "https://openai.com/news/rss.xml", "type": "primary" },

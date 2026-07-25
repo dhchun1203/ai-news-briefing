@@ -110,10 +110,19 @@ POST /api/subscribe (Vercel 서버리스 함수)
 ## 구성 요소
 
 ### 1. RSS 피드 목록 (`config/feeds.json`)
-검증 완료(2026-07-23, WebFetch/curl로 200 응답 + 유효한 RSS/Atom 구조 + 최근 item 존재
-확인): TechCrunch AI, VentureBeat AI, The Verge AI, MarkTechPost, OpenAI News, Google
-DeepMind Blog, Google AI Blog, Ars Technica AI, Wired AI, MIT Technology Review AI,
+검증 완료(2026-07-26 재검증, WebFetch/curl로 200 응답 + 유효한 RSS/Atom 구조 + 최근
+item 존재 확인): TechCrunch AI, VentureBeat AI, The Verge AI, MarkTechPost, OpenAI News,
+Google DeepMind Blog, Google AI Blog, Ars Technica AI, Wired AI, MIT Technology Review AI,
 Hacker News(AI 키워드, hnrss.org). 자유롭게 추가/삭제 가능.
+
+**VentureBeat AI URL 교체(2026-07-26)**: §24 전면 점검에서 `category/ai/feed/`가
+200(308 리다이렉트 경유)을 줘서 "정상"으로 보였지만, 실제로는 2026-05-19 이후 새
+글이 없다는 걸 `feeds_stale` 감지로 발견했다. VentureBeat가 카테고리 체계를 개편하며
+그 태그에 더 이상 새 글을 안 붙이는 것으로 보인다(사이트 자체는 계속 AI 기사를
+활발히 낸다). 메인 피드(`venturebeat.com/feed/`)로 바꿨다 — 직접 확인 결과 최근
+항목 6~7개가 전부 AI 콘텐츠(Claude Opus 5, Microsoft 자체 AI 모델, GPT-Live 등)라
+비AI 콘텐츠 희석 위험도 낮다. 다른 매체보다 피드 크기가 작지만(6~7개), 매일 다시
+받아오는 구조라 신선도에는 문제없다.
 
 **Anthropic 블로그는 제외했다** — `anthropic.com/rss.xml` 등 후보 URL을 모두 검증했으나
 2026-07-23 기준 공식 RSS 피드를 제공하지 않는다(전부 404, 페이지 소스에도 `rss`/`feed`
