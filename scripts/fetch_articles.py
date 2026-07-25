@@ -25,7 +25,7 @@ MAX_PER_SOURCE = 3
 TITLE_STOPWORDS = {
     "The", "This", "That", "With", "From", "After", "Says", "New", "How",
     "Why", "What", "Its", "For", "And", "But", "Are", "Is", "Was", "Will",
-    "AI", "Show", "Ask",
+    "AI", "Show", "Ask", "Meet", "You", "Your", "Watch", "Inside", "Explore",
 }
 
 
@@ -90,6 +90,51 @@ def compute_cross_source_counts(candidates: list) -> None:
             sources |= keyword_sources.get(kw, set())
         sources.discard(c["source"])
         c["_cross_source_count"] = len(sources)
+
+
+SAME_STORY_MAX_DOC_FREQ = 6  # 이보다 많은 서로 다른 제목에 등장하면 "흔한 키워드"로 본다
+
+
+def build_same_story_clusters(candidates: list) -> list:
+    """제목 키워드가 겹치는 후보들을 "같은 사건"으로 묶는다(union-find). 단순히
+    키워드 하나만 겹쳐도 묶으면 "OpenAI"처럼 그날 여러 무관한 기사에 두루 등장하는
+    흔한 회사명 하나 때문에 완전히 다른 두 사건이 잘못 합쳐진다(예: "OpenAI가 새
+    음성 모드 출시"와 "OpenAI 소송 피소"). 그래서 후보 전체에서 각 키워드가 몇 개의
+    서로 다른 제목에 등장하는지(document frequency) 먼저 세고, 그날 기준 흔한
+    키워드(`SAME_STORY_MAX_DOC_FREQ`개 초과 제목에 등장)는 "사건을 특정하지 못하는
+    일반 명사"로 보고 매칭에서 제외한다. 남은 소수의 제목에만 등장하는 키워드
+    (제품명·버전·구체적 수치 등, 예: "GPT-6", "AlphaFold")가 하나라도 겹치면 같은
+    사건으로 판단한다. `compute_cross_source_counts`(순위 매기기용, 느슨한 기준)와는
+    다른 용도라 별도 함수로 둔다 — 이건 "최종 선택에서 하나만 남길지" 판단에 쓰인다."""
+    n = len(candidates)
+    parent = list(range(n))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    keyword_sets = [extract_keywords(c["title"]) for c in candidates]
+    doc_freq = {}
+    for kws in keyword_sets:
+        for kw in kws:
+            doc_freq[kw] = doc_freq.get(kw, 0) + 1
+    specific_sets = [{kw for kw in kws if doc_freq[kw] <= SAME_STORY_MAX_DOC_FREQ} for kws in keyword_sets]
+
+    for i in range(n):
+        if not specific_sets[i]:
+            continue
+        for j in range(i + 1, n):
+            if specific_sets[i] & specific_sets[j]:
+                union(i, j)
+
+    return [find(i) for i in range(n)]
 
 
 def entry_published_at(entry):
@@ -165,18 +210,42 @@ def main():
         c["cross_source_count"] = c.pop("_cross_source_count")
     candidates.sort(key=lambda a: (a["cross_source_count"], a["published_at"]), reverse=True)
 
+    # 같은 사건을 다루는 후보가 여러 개 있어도(=cross_source_count가 높아 순위는
+    # 위로 올라오지만) top-10 자리를 여러 개 차지하지 않도록, 사건 클러스터마다
+    # 가장 순위 높은 것 하나만 채택한다 — 링크가 달라도 내용이 겹치는 기사가
+    # 브리핑에 나란히 실리는 걸 막는 핵심 로직.
+    cluster_ids = build_same_story_clusters(candidates)
+
     selected = []
     per_source_count = {}
-    for article in candidates:
+    used_clusters = set()
+    for article, cid in zip(candidates, cluster_ids):
         if len(selected) >= args.top_n:
             break
+        if cid in used_clusters:
+            continue
         count = per_source_count.get(article["source"], 0)
         if count >= args.max_per_source:
             continue
         selected.append(article)
         per_source_count[article["source"]] = count + 1
+        used_clusters.add(cid)
 
-    # 다양성 제한 때문에 top-n을 못 채웠다면, 남은 후보로 부족분을 채운다.
+    # 출처 다양성 제한 때문에 top-n을 못 채웠다면, 이번엔 그 제한만 풀고
+    # 사건 클러스터 중복 방지는 유지한 채로 부족분을 채운다.
+    if len(selected) < args.top_n:
+        chosen_links = {a["link"] for a in selected}
+        for article, cid in zip(candidates, cluster_ids):
+            if len(selected) >= args.top_n:
+                break
+            if article["link"] in chosen_links or cid in used_clusters:
+                continue
+            selected.append(article)
+            chosen_links.add(article["link"])
+            used_clusters.add(cid)
+
+    # 그래도 못 채웠다면(사건 종류 자체가 top-n보다 적을 만큼 뉴스가 적은 날)
+    # 마지막으로 클러스터 중복 방지까지 풀어서 채운다 — 자리를 비워두는 것보다는 낫다.
     if len(selected) < args.top_n:
         chosen_links = {a["link"] for a in selected}
         for article in candidates:
