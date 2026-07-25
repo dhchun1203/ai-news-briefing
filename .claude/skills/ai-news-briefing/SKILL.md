@@ -18,7 +18,14 @@ MIT Technology Review AI, Hacker News AI 등). 특정 매체를 고정 편애하
 기사 중 출처 다양성을 지키면서 상위 10개만 매번 새로 선별한다.
 
 ## 0. 사전 점검
-- **오늘 실행이 처음인지 먼저 확인한다.** `docs/archive/<오늘 날짜>.json`이 이미 존재하고
+- **가장 먼저 오늘 날짜(KST)를 확정한다.**
+  ```
+  python scripts/kst_date.py
+  ```
+  이 문서에서 `<오늘 날짜>`는 **항상 이 출력의 `today` 값**을 가리킨다. 셸 `date`로
+  직접 구하지 말 것 — 이 Routine은 `0 23 * * *`(UTC)로 돌아 컨테이너 시계가 UTC이므로
+  bare `date +%Y-%m-%d`는 **하루 이전 날짜**를 준다. (자세한 배경은 5단계 주석 참고.)
+- **오늘 실행이 처음인지 확인한다.** `docs/archive/<오늘 날짜>.json`이 이미 존재하고
   git에 커밋되어 있다면(`git log --oneline -1 -- docs/archive/<오늘 날짜>.json`), 오늘자
   파이프라인은 이미 한 번 완료된 것이다 — 스케줄이 의도치 않게 중복 발동했거나 사람이
   수동으로 다시 실행시킨 경우다. 이때는:
@@ -28,9 +35,13 @@ MIT Technology Review AI, Hacker News AI 등). 특정 매체를 고정 편애하
   - `docs/archive/<오늘 날짜>.sent.json`이 있는지만 확인한다. **있으면** 발송까지 이미
     끝난 것이니 아무것도 하지 않고 "오늘자는 이미 완료됨"이라고 짧게 보고하고 종료한다.
     **없으면** 발송만 빠진 것이니 7단계로 바로 건너뛰어 발송만 시도한다(1~6단계는 생략).
+    이때 `--input`은 반드시 `docs/archive/<오늘 날짜>.json`을 쓴다 — `data/`는
+    `.gitignore`로 제외돼 있어 새 체크아웃에는 `data/digest_*.json`이 아예 없다.
   - 이 판단 근거를 완료 보고에 남긴다.
-- `python -m pip install -r requirements.txt` 로 의존성(feedparser, Jinja2, python-dateutil)이
-  설치되어 있는지 확인한다 (Routine Environment의 setup script에서 이미 설치되어 있다면 생략 가능).
+- `python -m pip install -r requirements.txt` 로 의존성(feedparser, Jinja2, Pillow,
+  tzdata)이 설치되어 있는지 확인한다 (Routine Environment의 setup script에서 이미
+  설치되어 있다면 생략 가능). `tzdata`는 위 KST 날짜 계산에, `Pillow`는 날짜별 OG
+  이미지 생성에 필요하다.
 - `config/feeds.json`의 피드 URL이 최근에 검증된 적이 있는지 확인한다. 반년 이상 검증 이력이
   없거나 실행 중 특정 피드가 계속 실패한다면, WebFetch나 `curl`로 URL이 여전히 유효한 RSS/Atom을
   반환하는지 재검증하고 필요하면 대체 URL로 교체한다.
@@ -227,15 +238,28 @@ python scripts/generate_site.py --input data/digest_<날짜>.json
   위 3단계처럼 `glossary`를 채우고 본문에 같은 표기로 쓰는 것뿐이다.
 
 ## 5. (일요일에만) 주간 회고 작성
-오늘이 KST 기준 **일요일**인지 먼저 확인한다 (`date +%u` — 7이면 일요일). 일요일이 아니면
-이 단계 전체를 건너뛰고 다음 단계(배포)로 넘어간다.
+이 단계에 필요한 KST 날짜 정보를 **한 번에** 얻는다:
+```
+python scripts/kst_date.py
+```
+출력 예(`weekday`는 ISO 요일로 1=월 … 7=일):
+```
+weekday=7
+today=2026-07-26
+week_label=2026-W30
+start_date=2026-07-20
+end_date=2026-07-26
+```
+`weekday`가 **7이 아니면** 이 단계 전체를 건너뛰고 다음 단계(배포)로 넘어간다.
 
-일요일이면, 이번 주(월~일)의 날짜 범위와 ISO 주차 라벨을 계산한다:
-```
-date +%G-W%V              # 이번 주 라벨, 예: 2026-W30
-date -d 'last monday' +%Y-%m-%d   # 이번 주 월요일(start_date)
-date +%Y-%m-%d             # 오늘 = 이번 주 일요일(end_date)
-```
+> **날짜·요일을 셸 `date`로 직접 구하지 말 것.** 이 Routine은 `0 23 * * *`(UTC)로 돌아
+> 컨테이너 시계가 **UTC**다. 08:00 KST 일요일 시점에 bare `date +%u`는 **6(토요일)** 을
+> 반환해서, 이 단계가 매주 조용히 건너뛰어진다(2026-07-26 첫 일요일 직전에 발견한 실제
+> 버그). `TZ=Asia/Seoul date`로 고치는 것도 안전하지 않다 — `TZ=<지역명>`은 시스템에
+> IANA tzdata가 있어야 하고, 없으면 **에러 없이 조용히 UTC로 폴백**하기 때문에 고쳤다고
+> 착각한 채 같은 버그가 남는다(개발 환경인 Windows Git Bash가 실제로 그렇다).
+> `scripts/kst_date.py`는 `requirements.txt`에 고정된 `tzdata` 패키지를 쓰는 Python
+> `zoneinfo` 기반이라 시스템 tzdata 유무와 무관하게 항상 옳다.
 그다음 `docs/archive/<날짜>.json` 중 이번 주(start_date~end_date, 오늘 포함) 범위에 있는
 파일들을 읽어(Read 도구로 직접 열어도 되고, `ls docs/archive/`로 목록 확인 후 필요한 것만
 읽어도 된다) 그 주의 `daily_insight`들을 모아 **한 주를 관통하는 흐름**을 종합한다. 개별
@@ -261,23 +285,27 @@ python scripts/generate_weekly_site.py --input data/weekly_<week_label>.json
 - `docs/weekly/<week_label>.html`을 생성한다. 그 주 각 날짜의 `daily_insight` 헤드라인
   목록(일별 브리핑으로 링크)은 스크립트가 `docs/archive/*.json`에서 기계적으로 가져오므로
   Claude가 따로 나열할 필요 없다 — 위 JSON에는 종합 판단(headline/paragraphs)만 담는다.
-- `docs/index.html`에도 "주간 회고" 링크 목록이 자동으로 추가된다(다음 4단계를 다시 실행할
-  필요 없이, 이미 생성된 오늘자 `docs/index.html`을 이 스크립트가 갱신하지는 않으므로, 이
-  단계를 4단계보다 먼저 실행했다면 4단계를 한 번 더 실행해 인덱스에 반영한다. 아래 순서
-  그대로 따르면 이미 4단계 다음에 실행하므로 별도 재실행이 필요 없다).
-- `docs/sitemap.xml`도 이 스크립트가 자체적으로 다시 빌드하므로, 오늘 새로 생긴 주간
-  회고 페이지가 그날 배포되는 sitemap에 바로 포함된다(4단계와 별개로 한 번 더 재빌드 —
-  위 "index.html 배너는 하루 지연" 설명과는 무관한 별개의 동작).
+- **`docs/index.html`의 주간 회고 링크는 하루 늦게 반영된다 — 의도된 동작이다.**
+  이 스크립트는 `docs/weekly/<week_label>.html`과 `sitemap.xml`만 만들고 `index.html`은
+  건드리지 않는다. 위 순서(4단계 → 5단계)대로면 오늘자 인덱스는 이미 만들어진 뒤라
+  이번 주 회고 링크가 빠져 있고, 내일 4단계가 다시 돌 때 목록에 들어온다. 이걸 오늘
+  당장 반영하겠다고 4단계를 다시 실행하지 말 것 — 오늘자 사이트를 통째로 재생성하는
+  일이라 얻는 것(링크 하나)에 비해 위험이 크다.
+- `docs/sitemap.xml`은 이 스크립트가 자체적으로 다시 빌드하므로, 새로 생긴 주간 회고
+  페이지는 **그날 배포되는 sitemap에 바로** 포함된다(위 인덱스 링크의 하루 지연과는
+  별개의 동작이다).
 - 그 주에 종합할 만한 뚜렷한 흐름이 없다면 억지로 만들지 않고 이 단계 자체를 건너뛰어도
   된다 — 완료 보고에 "이번 주는 종합할 만한 뚜렷한 흐름이 없어 주간 회고를 생략함"이라고
   적는다.
 
 ## 6. 배포
 ```
-git add data docs
+git add docs
 git commit -m "AI 뉴스 브리핑 <날짜>"
 git push
 ```
+(`data/`는 `.gitignore`로 제외돼 있어 `git add`에 넣어도 아무것도 담기지 않는다 —
+중간 산출물이고, 영속 기록은 `docs/archive/<날짜>.json` 쪽이다.)
 Vercel Git Integration이 `main` 브랜치 push를 감지해 `vercel.json`의
 `outputDirectory: "docs"` 기준으로 자동 재배포한다. push 후 별도 대기 없이 완료로 간주한다
 (Vercel 배포는 비동기로 처리됨). 저장소가 아직 Vercel 프로젝트와 연결되지 않았다면 이
@@ -310,6 +338,8 @@ python scripts/send_broadcast.py --input docs/archive/<밀린 날짜>.json --cat
 ```
 python scripts/send_broadcast.py --input data/digest_<날짜>.json
 ```
+(0단계의 "발송만 빠진 경우"처럼 이번 실행에서 3단계를 거치지 않았다면 `data/`에 파일이
+없다 — 그때는 `--input docs/archive/<날짜>.json`을 쓴다. 두 파일의 스키마는 같다.)
 - (5단계에서 그 주 주간 회고를 생성했다면) `--weekly-input data/weekly_<week_label>.json`을
   추가로 넘긴다. 그러면 이메일 최상단에 "이번 주 종합" 티저(주간 회고 헤드라인 + 전체 보기
   링크)가 daily insight 티저보다 먼저 추가된다 — 신규 구독 전환과 주간 회고 노출을 함께
@@ -331,6 +361,19 @@ python scripts/send_broadcast.py --input data/digest_<날짜>.json
   네트워크 allowlist 같은 설정 문제라 사람의 개입이 필요하기 때문이다. 실패한 날짜의
   `docs/archive/<날짜>.json`은 그대로 남아있으니, 원인 해결 후 사람이 같은 명령을 다시
   실행하거나 다음 실행의 7-1단계가 자동으로 보정 발송을 시도한다.
+
+### 7-3. 발송 마커 커밋 (빠뜨리면 안 됨)
+발송은 6단계(배포) **뒤에** 일어나므로, `send_broadcast.py`가 만든 `.sent.json`은 그냥
+두면 영원히 커밋되지 않는다. 그러면 7-1단계의 catch-up 판단 근거가 저장소에 남지
+않아, 새 체크아웃에서는 **과거 모든 날짜가 미발송으로 보인다**(실제로 그동안 이
+마커들은 사람이 수동 커밋해왔다). 발송을 시도했다면(성공이든 부분 실패든) 반드시:
+```
+git add docs/archive/*.sent.json
+git commit -m "발송 완료 마커 <날짜>"
+git push
+```
+마커 파일만 담기므로 사이트 재배포에는 영향이 없다. 커밋할 변경이 없으면(`git status`가
+비어 있으면) 그냥 넘어간다.
 
 ## 8. 완료 보고
 다음을 요약해 보고한다: 수집 후보 수와 선별된 기사 수(과거 중복으로 제외된 기사 수 포함),

@@ -37,22 +37,30 @@ def get_site_url() -> str:
 
 
 def write_robots_txt(docs_dir: Path, site_url: str) -> None:
-    lines = ["User-agent: *", "Allow: /", ""]
+    # Disallow는 반드시 User-agent 그룹 "안"에 있어야 한다 — 빈 줄이 그룹을 끝내므로,
+    # 마지막 그룹 뒤에 떼어 놓으면 robots.txt 규격상 어느 그룹에도 속하지 않아 통째로
+    # 무시된다(예전에 그렇게 작성돼 있어서 원본 JSON 색인 금지가 전혀 걸리지 않았다).
+    # `*.json`이 `*.sent.json`도 포함하므로 별도 줄은 두지 않는다.
+    lines = ["User-agent: *", "Allow: /", "Disallow: /archive/*.json", ""]
     for ua in AI_CRAWLERS:
-        lines += [f"User-agent: {ua}", "Allow: /", ""]
-    lines += [
-        "Disallow: /archive/*.json",  # 원본 digest JSON은 검색엔진에 노출할 가치가 없다(HTML만 색인 대상)
-        "Disallow: /archive/*.sent.json",
-        "",
-        f"Sitemap: {site_url}/sitemap.xml",
-    ]
+        lines += [f"User-agent: {ua}", "Allow: /", "Disallow: /archive/*.json", ""]
+    lines.append(f"Sitemap: {site_url}/sitemap.xml")
     (docs_dir / "robots.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _weekly_lastmod(label: str) -> str:
-    """'2026-W30' -> 그 ISO 주의 일요일(=end_date) 날짜 문자열."""
-    iso_year, iso_week = label.split("-W")
-    return date_cls.fromisocalendar(int(iso_year), int(iso_week), 7).isoformat()
+def _weekly_lastmod(label: str, fallback: str) -> str:
+    """'2026-W30' -> 그 ISO 주의 일요일(=end_date) 날짜 문자열.
+
+    이 함수는 주간 빌드뿐 아니라 **매일 도는 일간 빌드에서도** build_sitemap을 통해
+    호출된다. 따라서 docs/weekly/에 예상 못 한 이름의 파일이 하나라도 생기면
+    (`split`/`int`/`fromisocalendar` 어디서든) 예외가 나면서 그날 사이트 생성 전체가
+    죽는다 — sitemap의 lastmod 하나 때문에 파이프라인을 멈출 이유는 없으므로,
+    해석에 실패하면 조용히 fallback(대개 오늘 날짜)을 쓴다."""
+    try:
+        iso_year, iso_week = label.split("-W")
+        return date_cls.fromisocalendar(int(iso_year), int(iso_week), 7).isoformat()
+    except (ValueError, TypeError):
+        return fallback
 
 
 def build_sitemap(docs_dir: Path, site_url: str, today: str) -> int:
@@ -68,7 +76,7 @@ def build_sitemap(docs_dir: Path, site_url: str, today: str) -> int:
             urls.append((f"{site_url}/archive/{f.stem}", f.stem))
     if weekly_dir.exists():
         for f in sorted(weekly_dir.glob("*.html")):
-            urls.append((f"{site_url}/weekly/{f.stem}", _weekly_lastmod(f.stem)))
+            urls.append((f"{site_url}/weekly/{f.stem}", _weekly_lastmod(f.stem, today)))
     if (docs_dir / "glossary.html").exists():
         urls.append((f"{site_url}/glossary", today))  # 매일 새 용어가 쌓일 수 있어 lastmod는 오늘
     if (docs_dir / "en" / "index.html").exists():
