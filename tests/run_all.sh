@@ -44,6 +44,9 @@ run "node: api 핸들러 동작" node tests/api_handlers.test.js
 
 run "node: Python<->Node HMAC 동등성" node tests/hmac_parity.test.js
 
+# jsdom이 있으면 실제 생성된 HTML로 인터랙션까지 확인한다(없으면 스스로 SKIP).
+run "node: 브라우저 동작 스모크(jsdom)" node tests/dom_smoke.test.js
+
 echo ""
 if [ "$fail" -eq 0 ]; then
   echo "ALL TESTS PASSED"

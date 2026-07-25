@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 {% set title_ko = "주간 AI 회고 — " + week_label %}
 {% set title_en = "Weekly AI Recap — " + week_label %}
-<html lang="ko" data-lang="ko" data-title-ko="{{ title_ko }}" data-title-en="{{ title_en }}">
+<html lang="ko" data-lang="ko" data-title-ko="{{ title_ko }}" data-title-en="{{ title_en }}"
+      data-default-lang="ko" data-asset-prefix="../" data-archive-prefix="../archive/">
 <head>
 <meta charset="UTF-8">
 <title>{{ title_ko }}</title>
@@ -68,10 +69,10 @@
       <button id="share-button" class="share-button" type="button" aria-label="링크 복사 / Copy link">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
       </button>
-      <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite">
-        <span class="lang-ko">복사되었습니다</span>
-        <span class="lang-en">Copied!</span>
-      </span>
+      <!-- 비워둔 채 시작해야 한다: aria-live는 CSS 변화가 아니라 "내용이 바뀌는" 순간에만
+           읽어준다. 문구를 미리 넣어두면 복사해도 스크린리더가 아무 말도 하지 않는다.
+           복사 시점에 site.js가 현재 언어에 맞는 문구를 채운다. -->
+      <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite"></span>
     </div>
     <div class="lang-select" id="lang-select">
       <button type="button" class="lang-select-trigger" id="lang-select-trigger" aria-haspopup="listbox" aria-expanded="false">
@@ -175,129 +176,6 @@
   </p>
 </footer>
 
-<script>
-(function () {
-  var themeBtn = document.getElementById("theme-toggle");
-  if (themeBtn) {
-    var isDarkActive = function () {
-      return document.documentElement.getAttribute("data-theme") === "dark";
-    };
-    var setThemeCookie = function (value) {
-      var expires = new Date();
-      expires.setTime(expires.getTime() + 365 * 24 * 60 * 60 * 1000);
-      document.cookie = "theme=" + encodeURIComponent(value) + "; expires=" + expires.toUTCString() + "; path=/; SameSite=Lax";
-    };
-    themeBtn.setAttribute("aria-checked", String(isDarkActive()));
-    themeBtn.addEventListener("click", function () {
-      var next = isDarkActive() ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      setThemeCookie(next);
-      themeBtn.setAttribute("aria-checked", String(next === "dark"));
-    });
-  }
-
-  // 뒤로가기로 bfcache에서 페이지가 복원되면(pageshow persisted===true) 이
-  // 스크립트가 다시 실행되지 않아 테마/언어가 떠날 때 상태로 얼어붙는다 — 다른
-  // 페이지에서 언어를 바꾼 뒤 여기로 돌아왔을 때를 대비해 다시 동기화한다.
-  window.addEventListener("pageshow", function (e) {
-    if (!e.persisted) return;
-    function getCookie(name) {
-      var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
-      return match ? decodeURIComponent(match[1]) : null;
-    }
-    var t = getCookie("theme");
-    if (t === "dark" || t === "light") {
-      document.documentElement.setAttribute("data-theme", t);
-      if (themeBtn) themeBtn.setAttribute("aria-checked", String(t === "dark"));
-    }
-    var l = localStorage.getItem("lang");
-    if (l === "ko" || l === "en") {
-      document.documentElement.setAttribute("data-lang", l);
-      document.documentElement.setAttribute("lang", l);
-      var titleAttr = l === "en" ? "data-title-en" : "data-title-ko";
-      var storedTitle = document.documentElement.getAttribute(titleAttr);
-      if (storedTitle) document.title = storedTitle;
-    }
-  });
-
-  var langSelect = document.getElementById("lang-select");
-  var langTrigger = document.getElementById("lang-select-trigger");
-  var langList = document.getElementById("lang-select-list");
-  if (langSelect && langTrigger && langList) {
-    var langOptions = Array.prototype.slice.call(langList.querySelectorAll("li[data-lang-value]"));
-    var closeList = function (returnFocus) {
-      langList.hidden = true;
-      langTrigger.setAttribute("aria-expanded", "false");
-      if (returnFocus) langTrigger.focus();
-    };
-    var openList = function (focusIndex) {
-      langList.hidden = false;
-      langTrigger.setAttribute("aria-expanded", "true");
-      if (typeof focusIndex === "number" && langOptions[focusIndex]) langOptions[focusIndex].focus();
-    };
-    var selectLang = function (next) {
-      document.documentElement.setAttribute("data-lang", next);
-      document.documentElement.setAttribute("lang", next);
-      try { localStorage.setItem("lang", next); } catch (e) {}
-      var titleAttr = next === "en" ? "data-title-en" : "data-title-ko";
-      var newTitle = document.documentElement.getAttribute(titleAttr);
-      if (newTitle) document.title = newTitle;
-      closeList(true);
-    };
-    langTrigger.addEventListener("click", function (e) {
-      e.stopPropagation();
-      if (langList.hidden) openList(); else closeList();
-    });
-    langTrigger.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        e.preventDefault();
-        openList(e.key === "ArrowDown" ? 0 : langOptions.length - 1);
-      }
-    });
-    langOptions.forEach(function (li, i) {
-      li.addEventListener("click", function () {
-        selectLang(li.getAttribute("data-lang-value"));
-      });
-      li.addEventListener("keydown", function (e) {
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          langOptions[(i + 1) % langOptions.length].focus();
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          langOptions[(i - 1 + langOptions.length) % langOptions.length].focus();
-        } else if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          selectLang(li.getAttribute("data-lang-value"));
-        } else if (e.key === "Escape") {
-          closeList(true);
-        }
-      });
-    });
-    document.addEventListener("click", function (e) {
-      if (!langSelect.contains(e.target)) closeList();
-    });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeList();
-    });
-  }
-
-  var shareBtn = document.getElementById("share-button");
-  var shareTooltip = document.getElementById("share-tooltip");
-  var shareTooltipTimer = null;
-  if (shareBtn) {
-    shareBtn.addEventListener("click", function () {
-      if (!navigator.clipboard || !navigator.clipboard.writeText) return;
-      navigator.clipboard.writeText(window.location.href).then(function () {
-        if (!shareTooltip) return;
-        shareTooltip.classList.add("visible");
-        if (shareTooltipTimer) clearTimeout(shareTooltipTimer);
-        shareTooltipTimer = setTimeout(function () {
-          shareTooltip.classList.remove("visible");
-        }, 1600);
-      }).catch(function () {});
-    });
-  }
-})();
-</script>
+<script defer src="../site.js"></script>
 </body>
 </html>

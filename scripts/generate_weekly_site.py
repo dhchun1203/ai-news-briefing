@@ -6,7 +6,6 @@
 (headline/paragraphs)만 작성하면 된다."""
 import argparse
 import json
-import shutil
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -19,7 +18,6 @@ KST = ZoneInfo("Asia/Seoul")
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = ROOT / "templates"
-STATIC_DIR = TEMPLATES_DIR / "static"
 DEFAULT_DOCS_DIR = ROOT / "docs"
 
 
@@ -76,10 +74,7 @@ def main():
     weekly_dir.mkdir(parents=True, exist_ok=True)
     archive_dir = docs_dir / "archive"
 
-    for css_name in ("site-base.css", "site-mobile.css", "site-desktop.css"):
-        shutil.copyfile(TEMPLATES_DIR / css_name, docs_dir / css_name)
-    for asset_name in ("favicon.svg", "og-image.png"):
-        shutil.copyfile(STATIC_DIR / asset_name, docs_dir / asset_name)
+    seo_utils.copy_shared_assets(docs_dir)
 
     week_label = weekly["week_label"]
     daily_briefings = collect_daily_briefings(archive_dir, weekly["start_date"], weekly["end_date"])

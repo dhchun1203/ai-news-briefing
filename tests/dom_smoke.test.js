@@ -1,0 +1,192 @@
+// 실제로 생성된 HTML을 jsdom에 띄우고 공용 site.js를 실행해, 모든 페이지에서 인터랙션이
+// 정상 동작하는지 확인한다. 브라우저가 없는 환경에서 할 수 있는 가장 실제에 가까운 검증이라,
+// templates/static/site.js를 3개 템플릿에서 추출할 때 회귀를 잡아준 테스트다.
+//
+// jsdom은 devDependency이지만 이 저장소는 package.json을 두지 않는 방침이라(런타임 의존성
+// 0개) 설치돼 있지 않으면 조용히 건너뛴다. CI는 npm install jsdom --no-save로 설치한다.
+//   사용법: node tests/dom_smoke.test.js [docs디렉토리]
+let JSDOM, VirtualConsole;
+try {
+  ({ JSDOM, VirtualConsole } = require("jsdom"));
+} catch (e) {
+  console.log("SKIP: jsdom 미설치 (npm install jsdom --no-save 후 다시 실행)");
+  process.exit(0);
+}
+
+const fs = require("fs");
+const path = require("path");
+
+const DOCS = process.argv[2] || path.join(__dirname, "..", "docs");
+
+const SITE_JS = fs.readFileSync(path.join(DOCS, "site.js"), "utf-8");
+
+const results = [];
+function check(page, name, cond, extra = "") {
+  results.push({ page, name, ok: !!cond, extra });
+}
+
+function load(relPath) {
+  const file = path.join(DOCS, relPath);
+  const html = fs.readFileSync(file, "utf-8");
+  const vc = new VirtualConsole();
+  const errors = [];
+  vc.on("jsdomError", (e) => errors.push(e.message));
+  const dom = new JSDOM(html, {
+    url: "https://www.dailyaithread.com/" + relPath.replace(/\\/g, "/"),
+    runScripts: "dangerously",
+    pretendToBeVisual: true,
+    virtualConsole: vc,
+  });
+  const { window } = dom;
+  // clipboard 스텁 (jsdom 미구현)
+  window.navigator.clipboard = { writeText: () => Promise.resolve() };
+  // 공용 스크립트를 <script defer>처럼 문서 파싱 후 실행
+  window.eval(SITE_JS);
+  return { window, doc: window.document, errors };
+}
+
+function exercise(relPath, label, opts = {}) {
+  const { window, doc, errors } = load(relPath);
+  check(label, "스크립트 실행 중 에러 없음", errors.length === 0, errors.join(" | "));
+
+  // --- 테마 토글 ---
+  const themeBtn = doc.getElementById("theme-toggle");
+  if (themeBtn) {
+    const before = doc.documentElement.getAttribute("data-theme");
+    themeBtn.click();
+    const after = doc.documentElement.getAttribute("data-theme");
+    check(label, "테마 토글이 data-theme을 바꾼다", before !== after, `${before} -> ${after}`);
+    check(label, "테마 토글이 쿠키에 저장한다", /theme=/.test(doc.cookie), doc.cookie);
+    check(label, "테마 토글 aria-checked 반영", themeBtn.getAttribute("aria-checked") === String(after === "dark"));
+  }
+
+  // --- 언어 토글 ---
+  const trigger = doc.getElementById("lang-select-trigger");
+  const list = doc.getElementById("lang-select-list");
+  if (trigger && list) {
+    check(label, "언어 목록 초기 닫힘", list.hidden === true);
+    trigger.click();
+    check(label, "트리거 클릭 시 열림", list.hidden === false && trigger.getAttribute("aria-expanded") === "true");
+    const enOpt = list.querySelector('li[data-lang-value="en"]');
+    enOpt.click();
+    check(label, "영어 선택 시 data-lang=en", doc.documentElement.getAttribute("data-lang") === "en");
+    check(label, "영어 선택 시 lang 속성도 en", doc.documentElement.getAttribute("lang") === "en");
+    check(label, "영어 선택 시 title 교체", doc.title === doc.documentElement.getAttribute("data-title-en"), doc.title);
+    check(label, "선택 후 목록 닫힘", list.hidden === true);
+    check(label, "aria-selected 갱신됨(새로 추가한 접근성 개선)", enOpt.getAttribute("aria-selected") === "true");
+    check(label, "localStorage에 저장", window.localStorage.getItem("lang") === "en");
+
+    // placeholder가 언어에 맞게 바뀌는지 (weekly에는 입력이 없어 skip)
+    const ph = doc.querySelector("[data-placeholder-ko]");
+    if (ph) {
+      check(label, "언어 전환 시 placeholder도 영어로", ph.getAttribute("placeholder") === ph.getAttribute("data-placeholder-en"), ph.getAttribute("placeholder"));
+    }
+    // 되돌리기
+    trigger.click();
+    list.querySelector('li[data-lang-value="ko"]').click();
+    check(label, "한국어로 되돌리면 data-lang=ko", doc.documentElement.getAttribute("data-lang") === "ko");
+  }
+
+  // --- 공유 버튼 (live region) ---
+  const shareBtn = doc.getElementById("share-button");
+  const tooltip = doc.getElementById("share-tooltip");
+  if (shareBtn && tooltip) {
+    check(label, "툴팁이 빈 채로 시작(live region 필수 조건)", tooltip.textContent.trim() === "");
+    shareBtn.click();
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        check(label, "복사 후 툴팁 텍스트가 채워짐(스크린리더가 읽음)", tooltip.textContent.trim().length > 0, JSON.stringify(tooltip.textContent));
+        check(label, "복사 후 visible 클래스", tooltip.classList.contains("visible"));
+        finishPage(label, doc, window, opts);
+        resolve();
+      }, 20);
+    });
+  }
+  finishPage(label, doc, window, opts);
+  return Promise.resolve();
+}
+
+function finishPage(label, doc, window, opts) {
+  // --- 용어 패널 ---
+  const panel = doc.getElementById("term-panel");
+  if (panel) {
+    check(label, "닫힌 패널에 inert (탭 포커스 차단)", panel.hasAttribute("inert"));
+    const termLink = doc.querySelector(".term-link");
+    if (termLink) {
+      termLink.click();
+      check(label, "용어 클릭 시 패널 열림", panel.classList.contains("open"));
+      check(label, "열린 패널은 inert 해제", !panel.hasAttribute("inert"));
+      check(label, "패널에 용어 제목 채워짐", doc.getElementById("term-panel-title").textContent.length > 0);
+      check(label, "패널에 설명 채워짐", doc.getElementById("term-panel-body").textContent.length > 0);
+      const esc = new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true });
+      doc.dispatchEvent(esc);
+      check(label, "Escape로 닫힘", !panel.classList.contains("open"));
+      check(label, "닫으면 다시 inert", panel.hasAttribute("inert"));
+    } else if (opts.expectTermLinks) {
+      check(label, "용어 링크가 존재해야 함", false, "term-link 없음");
+    }
+  }
+
+  // --- 아카이브 검색 입력 존재 시 ---
+  const search = doc.getElementById("archive-search-input");
+  if (search) {
+    check(label, "검색 입력 placeholder 설정됨", (search.getAttribute("placeholder") || "").length > 0);
+  }
+
+  // --- 용어사전 그래프 ---
+  const graph = doc.getElementById("glossary-graph");
+  if (graph) {
+    const nodes = graph.querySelectorAll(".glossary-node");
+    check(label, "그래프 노드가 렌더됨", nodes.length >= 2, `nodes=${nodes.length}`);
+    const lines = doc.querySelectorAll(".glossary-graph-line");
+    check(label, "그래프 엣지가 렌더됨", lines.length >= 1, `lines=${lines.length}`);
+    if (nodes.length) {
+      const x = nodes[0].style.getPropertyValue("--x");
+      check(label, "노드에 좌표가 설정됨", x && x !== "", `--x=${x}`);
+      nodes[0].click();
+      check(label, "그래프 노드 클릭 시 패널 열림", panel && panel.classList.contains("open"));
+    }
+  }
+
+  // --- 용어사전 목록 검색 ---
+  const gs = doc.getElementById("glossary-search-input");
+  if (gs) {
+    const terms = doc.querySelectorAll(".glossary-term");
+    gs.value = "zzzznomatch";
+    gs.dispatchEvent(new window.Event("input", { bubbles: true }));
+    const hidden = Array.from(terms).filter((t) => t.hidden).length;
+    check(label, "용어 검색 필터 동작(전부 숨김)", hidden === terms.length, `${hidden}/${terms.length}`);
+    gs.value = "";
+    gs.dispatchEvent(new window.Event("input", { bubbles: true }));
+    const shown = Array.from(terms).filter((t) => !t.hidden).length;
+    check(label, "검색어 지우면 전부 표시", shown === terms.length);
+  }
+
+  // --- 뒤로가기 버튼 ---
+  const back = doc.getElementById("glossary-back");
+  if (back) check(label, "뒤로가기 버튼 존재", true);
+}
+
+(async () => {
+  await exercise("index.html", "index", { expectTermLinks: true });
+  await exercise("en/index.html", "en/index");
+  await exercise("glossary.html", "glossary");
+  await exercise("archive/2026-07-25.html", "archive");
+  if (fs.existsSync(path.join(DOCS, "weekly"))) {
+    const wk = fs.readdirSync(path.join(DOCS, "weekly"))[0];
+    if (wk) await exercise(path.join("weekly", wk), "weekly");
+  }
+
+  let pass = 0;
+  let lastPage = null;
+  for (const r of results) {
+    if (r.page !== lastPage) {
+      console.log(`\n--- ${r.page} ---`);
+      lastPage = r.page;
+    }
+    console.log((r.ok ? "  PASS " : "  FAIL ") + r.name + (r.ok ? "" : "   << " + r.extra));
+    if (r.ok) pass++;
+  }
+  console.log(`\n${pass}/${results.length} passed`);
+  process.exit(pass === results.length ? 0 : 1);
+})();

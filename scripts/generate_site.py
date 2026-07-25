@@ -5,7 +5,6 @@ import copy
 import html
 import json
 import re
-import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -15,7 +14,6 @@ import seo_utils
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = ROOT / "templates"
-STATIC_DIR = TEMPLATES_DIR / "static"
 CONFIG_DIR = ROOT / "config"
 DEFAULT_DOCS_DIR = ROOT / "docs"
 
@@ -343,10 +341,7 @@ def main():
     save_archive_json(archive_dir, raw_digest)
     indexed_count = build_search_index(archive_dir, docs_dir)
 
-    for css_name in ("site-base.css", "site-mobile.css", "site-desktop.css"):
-        shutil.copyfile(TEMPLATES_DIR / css_name, docs_dir / css_name)
-    for asset_name in ("favicon.svg", "og-image.png"):
-        shutil.copyfile(STATIC_DIR / asset_name, docs_dir / asset_name)
+    seo_utils.copy_shared_assets(docs_dir)
 
     site_url = seo_utils.get_site_url()
     seo_utils.write_robots_txt(docs_dir, site_url)

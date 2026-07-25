@@ -7,13 +7,34 @@ generate_site.py와 generate_weekly_site.py 양쪽에서 import해서 쓴다. �
 동일한 패턴), 여러 날짜에 걸쳐 반복 실행해도 항상 현재 상태와 일치한다.
 """
 import json
+import shutil
 from datetime import date as date_cls
 from html import escape
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = ROOT / "config"
+TEMPLATES_DIR = ROOT / "templates"
+STATIC_DIR = TEMPLATES_DIR / "static"
 DEFAULT_SITE_URL = "https://www.dailyaithread.com"
+
+# 모든 페이지가 공유하는 정적 자산. generate_site.py와 generate_weekly_site.py가 각각
+# 똑같은 복사 루프를 갖고 있었는데, 새 자산(site.js)을 추가할 때 한쪽만 고치면 그
+# 페이지에서만 조용히 404가 나므로 목록과 복사를 여기 한 곳으로 모았다.
+SHARED_ASSETS = (
+    TEMPLATES_DIR / "site-base.css",
+    TEMPLATES_DIR / "site-mobile.css",
+    TEMPLATES_DIR / "site-desktop.css",
+    STATIC_DIR / "site.js",
+    STATIC_DIR / "favicon.svg",
+    STATIC_DIR / "og-image.png",
+)
+
+
+def copy_shared_assets(docs_dir: Path) -> None:
+    """CSS/JS/아이콘 등 페이지 공용 자산을 docs/ 루트로 복사한다."""
+    for src in SHARED_ASSETS:
+        shutil.copyfile(src, docs_dir / src.name)
 
 # AI 답변엔진 크롤러는 User-agent별로 가장 구체적인 블록만 따르는 경우가 많아,
 # 와일드카드(*) 하나로 뭉뚱그리지 않고 명시적으로 하나씩 허용한다.

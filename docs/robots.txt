@@ -1,34 +1,41 @@
 User-agent: *
 Allow: /
+Disallow: /archive/*.json
 
 User-agent: GPTBot
 Allow: /
+Disallow: /archive/*.json
 
 User-agent: ChatGPT-User
 Allow: /
+Disallow: /archive/*.json
 
 User-agent: ClaudeBot
 Allow: /
+Disallow: /archive/*.json
 
 User-agent: Claude-User
 Allow: /
+Disallow: /archive/*.json
 
 User-agent: Claude-SearchBot
 Allow: /
+Disallow: /archive/*.json
 
 User-agent: Google-Extended
 Allow: /
+Disallow: /archive/*.json
 
 User-agent: PerplexityBot
 Allow: /
+Disallow: /archive/*.json
 
 User-agent: CCBot
 Allow: /
+Disallow: /archive/*.json
 
 User-agent: Bingbot
 Allow: /
-
 Disallow: /archive/*.json
-Disallow: /archive/*.sent.json
 
 Sitemap: https://www.dailyaithread.com/sitemap.xml
