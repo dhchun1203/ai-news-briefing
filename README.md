@@ -70,11 +70,17 @@ docs/                        # 배포 대상 — index.html, en/index.html(영�
 
 ### 3. 랜덤 시크릿 생성
 확인/구독취소 링크에 서명하는 데 쓰는 임의의 문자열이다(별도 DB 저장 없이 HMAC 서명만으로
-링크 위·변조를 막는다). 아래 값을 그대로 써도 되고, 원하면 직접 새로 생성해도 된다
-(`python -c "import secrets; print(secrets.token_urlsafe(32))"`):
+링크 위·변조를 막는다). 아래 명령으로 직접 생성한다:
 ```
-SUBSCRIBE_TOKEN_SECRET=1bblQaRz7FIUjTc9n2XMwLXDm0ovwhW-UphaNS1wzaQ
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
+출력된 값을 `SUBSCRIBE_TOKEN_SECRET`으로 쓴다.
+
+> ⚠️ **이 값은 절대 저장소에 커밋하지 않는다.** `.env`(gitignore됨)와 Vercel·Routine의
+> 환경변수에만 넣는다. 이 키를 아는 사람은 구독 확인 토큰을 위조해 임의 주소를 동의 없이
+> 구독자로 만들거나, 만료 없는 구독취소 토큰으로 기존 구독자를 해지시킬 수 있다.
+> (이 README에 예시랍시고 실제 사용 중인 값이 적혀 있었고 저장소가 공개라, 2026-07-26에
+> 키를 교체하고 값을 제거했다. 같은 실수를 반복하지 말 것.)
 
 ### 4. 환경변수 등록 (두 곳 모두에 동일하게)
 | 변수 | 값 | 필요한 곳 |
@@ -84,7 +90,10 @@ SUBSCRIBE_TOKEN_SECRET=1bblQaRz7FIUjTc9n2XMwLXDm0ovwhW-UphaNS1wzaQ
 | `RESEND_API_KEY` | Resend API 키 | Vercel, Routine |
 | `RESEND_SENDER_EMAIL` | 인증된 도메인의 발신 주소 | Vercel, Routine |
 | `SUBSCRIBE_TOKEN_SECRET` | 위에서 생성한 랜덤 문자열 | Vercel, Routine |
-| `SITE_URL` | 배포된 사이트 URL (예: `https://ai-news-briefing-taupe.vercel.app`, 뒤 슬래시 없이) | Vercel, Routine |
+| `SITE_URL` | 배포된 사이트 URL (운영값: `https://www.dailyaithread.com`, 뒤 슬래시 없이) | Vercel, Routine |
+
+`SITE_URL`은 canonical 태그·sitemap·OG 이미지 주소·이메일의 구독취소 링크에 모두
+쓰이므로, 실제 서비스 도메인과 다르면 그 전부가 잘못된 주소로 나간다.
 
 - **Vercel**: 프로젝트 → Settings → Environment Variables에 위 6개를 모두 추가한다
   (`/api/subscribe`, `/api/confirm`, `/api/unsubscribe`가 사용). 추가 후 재배포해야 반영된다.
