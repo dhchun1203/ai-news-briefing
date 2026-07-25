@@ -36,14 +36,21 @@ function makeConfirmToken(email, ttlSeconds = 60 * 60 * 24) {
 
 function verifyConfirmToken(email, expiry, token) {
   const expiryNum = parseInt(expiry, 10);
-  if (!Number.isFinite(expiryNum) || expiryNum < Math.floor(Date.now() / 1000)) {
-    return { ok: false, reason: "expired" };
-  }
+  if (!Number.isFinite(expiryNum)) return { ok: false, reason: "invalid" };
+  // 서명을 먼저 검증한다. 만료를 먼저 보면 인증되지 않은 호출자에게 "이 토큰은
+  // 서명은 맞는데 만료됐다"와 "아예 위조다"를 구분해 알려주게 된다 — 서명이
+  // 통과한 요청에 대해서만 만료 여부를 알려주는 편이 덜 흘린다.
   const expected = sign(`confirm|${email}|${expiryNum}`);
   if (!safeEqual(expected, token)) return { ok: false, reason: "invalid" };
+  if (expiryNum < Math.floor(Date.now() / 1000)) return { ok: false, reason: "expired" };
   return { ok: true };
 }
 
+// 현재 api/ 안에서는 쓰이지 않는다 — 구독취소 링크는 발송 시점에
+// scripts/send_broadcast.py가 파이썬으로 직접 서명해 만든다. 그럼에도 남겨두는 이유는
+// 이 함수가 파이썬 구현과 맞물려야 하는 **언어를 넘는 계약**을 코드로 드러내기
+// 때문이다(두 구현이 어긋나면 모든 구독취소 링크가 조용히 죽는다). 이 계약은
+// tests/에서 양쪽 결과를 비교해 검증한다.
 function makeUnsubscribeToken(email) {
   return sign(`unsubscribe|${email}`);
 }

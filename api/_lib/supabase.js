@@ -17,6 +17,14 @@ function headers(extra) {
   };
 }
 
+// 에러 본문에는 Supabase 호스트·테이블·컬럼명이 담긴다. 이 Error는 서버 로그용이며,
+// 절대 그대로 HTTP 응답에 실어 보내지 않는다(호출부에서 일반화된 메시지만 반환한다).
+async function assertOk(res, label) {
+  if (!res.ok) {
+    throw new Error(`supabase ${label} failed: ${res.status} ${await res.text()}`);
+  }
+}
+
 // 이미 존재하는 이메일이면 조용히 무시하고(ignore-duplicates), 없으면 새로 만든다.
 async function upsertPendingSubscriber(email) {
   const { url } = config();
@@ -25,33 +33,51 @@ async function upsertPendingSubscriber(email) {
     headers: headers({ Prefer: "resolution=ignore-duplicates,return=minimal" }),
     body: JSON.stringify([{ email }]),
   });
-  if (!res.ok) {
-    throw new Error(`supabase insert failed: ${res.status} ${await res.text()}`);
-  }
+  await assertOk(res, "insert");
 }
 
-async function markConfirmed(email) {
+// 구독 신청 처리에 필요한 필드만 조회한다. 없으면 null.
+async function getSubscriber(email) {
+  const { url } = config();
+  const res = await fetch(
+    `${url}/rest/v1/subscribers?email=eq.${encodeURIComponent(email)}` +
+      `&select=email,confirmed_at,unsubscribed_at,last_confirm_sent_at`,
+    { headers: headers() }
+  );
+  await assertOk(res, "select");
+  const rows = await res.json();
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
+
+// markConfirmed/markUnsubscribed/touchConfirmSent가 전부 같은 PATCH라 하나로 합쳤다.
+async function patchSubscriber(email, patch, label) {
   const { url } = config();
   const res = await fetch(`${url}/rest/v1/subscribers?email=eq.${encodeURIComponent(email)}`, {
     method: "PATCH",
     headers: headers({ Prefer: "return=minimal" }),
-    body: JSON.stringify({ confirmed_at: new Date().toISOString(), unsubscribed_at: null }),
+    body: JSON.stringify(patch),
   });
-  if (!res.ok) {
-    throw new Error(`supabase confirm update failed: ${res.status} ${await res.text()}`);
-  }
+  await assertOk(res, label);
 }
 
-async function markUnsubscribed(email) {
-  const { url } = config();
-  const res = await fetch(`${url}/rest/v1/subscribers?email=eq.${encodeURIComponent(email)}`, {
-    method: "PATCH",
-    headers: headers({ Prefer: "return=minimal" }),
-    body: JSON.stringify({ unsubscribed_at: new Date().toISOString() }),
-  });
-  if (!res.ok) {
-    throw new Error(`supabase unsubscribe update failed: ${res.status} ${await res.text()}`);
-  }
+// 확인 메일을 실제로 보낸 직후에만 호출한다 — 이 타임스탬프가 쿨다운의 기준점이다.
+function touchConfirmSent(email) {
+  return patchSubscriber(email, { last_confirm_sent_at: new Date().toISOString() }, "touch-confirm-sent");
 }
 
-module.exports = { upsertPendingSubscriber, markConfirmed, markUnsubscribed };
+// 구독 확정. 예전에 취소했던 사람이 다시 확인하면 취소 상태를 해제한다.
+function markConfirmed(email) {
+  return patchSubscriber(email, { confirmed_at: new Date().toISOString(), unsubscribed_at: null }, "confirm");
+}
+
+function markUnsubscribed(email) {
+  return patchSubscriber(email, { unsubscribed_at: new Date().toISOString() }, "unsubscribe");
+}
+
+module.exports = {
+  upsertPendingSubscriber,
+  getSubscriber,
+  touchConfirmSent,
+  markConfirmed,
+  markUnsubscribed,
+};

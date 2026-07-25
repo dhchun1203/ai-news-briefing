@@ -1,0 +1,29 @@
+name: tests
+
+# 이 저장소의 유일한 자동 품질 게이트다. 파이프라인은 매일 08:00 KST에 실제 구독자를
+# 상대로 돌기 때문에, 깨진 코드가 머지되면 그날 아침에야 발견된다.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 의존성 설치
+        run: python -m pip install -r requirements.txt
+
+      - name: 전체 테스트
+        run: bash tests/run_all.sh
