@@ -136,7 +136,14 @@ python scripts/send_broadcast.py --input data/digest_<날짜>.json
    정상 동작하는지 확인한 뒤 스케줄을 켠다.
 
 ## RSS 피드 수정
-`config/feeds.json`의 `feeds` 배열에 `{"name": "표시 이름", "url": "RSS URL"}` 형태로
-추가/삭제한다. 피드 하나가 실패해도 해당 피드만 건너뛰고 나머지는 정상 진행된다. URL은
+`config/feeds.json`의 `feeds` 배열에
+`{"name": "표시 이름", "url": "RSS URL", "type": "primary|press|community"}` 형태로
+추가/삭제한다. **`type`을 빠뜨리면 기사 카드의 출처 배지가 잘못 붙는다** — `primary`는
+"공식 발표"(OpenAI/DeepMind 등 당사자 발표), `press`는 "보도"(기본값), `community`는
+"커뮤니티"(Hacker News 등)로 표시된다.
+
+피드 하나가 실패해도 해당 피드만 건너뛰고 나머지는 정상 진행된다. 응답은 정상인데
+최근 기사가 없는(= 사실상 발행이 멈춘) 피드는 실행 로그에 "오래된 피드"로 경고가
+뜨므로, 그때 교체 여부를 판단하면 된다. URL은
 매체 개편으로 바뀔 수 있으므로 주기적으로(또는 파이프라인이 계속 실패할 때) WebFetch나
 `curl`로 재검증한다.
