@@ -81,6 +81,16 @@ function exercise(relPath, label, opts = {}) {
     if (ph) {
       check(label, "언어 전환 시 placeholder도 영어로", ph.getAttribute("placeholder") === ph.getAttribute("data-placeholder-en"), ph.getAttribute("placeholder"));
     }
+    // aria-label은 속성값이라 .lang-ko/.lang-en CSS 토글로는 안 바뀐다 — 영어 모드에서
+    // 스크린리더가 한국어 라벨을 읽던 문제.
+    const arias = doc.querySelectorAll("[data-aria-ko]");
+    check(label, "이중언어 aria-label 요소가 존재", arias.length > 0, `count=${arias.length}`);
+    let ariaOk = true;
+    arias.forEach((el) => {
+      if (el.getAttribute("aria-label") !== el.getAttribute("data-aria-en")) ariaOk = false;
+    });
+    check(label, "언어 전환 시 aria-label도 영어로", ariaOk,
+      Array.from(arias).map((e) => e.getAttribute("aria-label")).join(" | "));
     // 되돌리기
     trigger.click();
     list.querySelector('li[data-lang-value="ko"]').click();

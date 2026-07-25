@@ -14,7 +14,7 @@ body {
 .utility-bar { padding: 8px 16px; flex-wrap: wrap; row-gap: 8px; }
 .share-button { width: 40px; height: 40px; font-size: 1rem; }
 .share-tooltip { font-size: 0.74rem; padding: 4px 8px; }
-.theme-toggle { width: 54px; height: 30px; --toggle-travel: 26px; }
+.theme-toggle { width: 54px; height: 30px; --toggle-travel: 24px; }  /* 54 - 보더2 - 패딩6 - 썸22 */
 .theme-toggle-thumb { width: 22px; height: 22px; font-size: 0.72rem; }
 .lang-select-trigger { height: 32px; padding: 0 8px; gap: 4px; font-size: 0.78rem; }
 .lang-select-caret { font-size: 0.6rem; }
@@ -70,7 +70,7 @@ body {
 }
 .article-title a { display: inline-block; padding: 2px 0; }
 
-.block-label { font-size: 0.68rem; }
+.block-label { font-size: 0.68rem; margin: 0 0 8px; }
 
 .article-summary { margin-bottom: 12px; }
 .article-summary p, .article-implication p { font-size: 0.98rem; }
@@ -91,7 +91,7 @@ body {
 .site-footer { font-size: 0.72rem; padding: 16px; }
 
 .term-panel { width: 86vw; max-width: 340px; padding: 56px 20px 24px; }
-.term-panel-close { width: 28px; height: 28px; font-size: 1rem; top: 14px; right: 14px; position: absolute; }
+.term-panel-close { width: 28px; height: 28px; font-size: 1rem; top: 14px; right: 14px; }
 .term-panel-label { font-size: 0.66rem; margin: 0 0 8px; }
 .term-panel-title { font-size: 1.08rem; margin: 0 0 8px; }
 .term-panel-body { font-size: 0.95rem; line-height: 1.65; }

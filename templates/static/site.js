@@ -36,15 +36,22 @@
     return root.getAttribute("data-lang") || "ko";
   }
 
-  /* ---------- 언어에 따라 placeholder 문구 교체 ---------- */
-  function updatePlaceholders() {
+  /* ---------- 언어에 따라 화면에 안 보이는 문구도 교체 ----------
+   * 본문은 .lang-ko/.lang-en을 CSS로 숨기고 보여주는 방식이라 알아서 바뀌지만,
+   * placeholder와 aria-label은 속성값이라 그 방식이 통하지 않는다. 그대로 두면
+   * 영어 모드로 보고 있는 스크린리더 사용자가 "다크모드 전환" 같은 한국어 라벨을
+   * 그대로 듣게 된다. */
+  function updateLocalizedAttrs() {
     var lang = currentLang();
+    var suffix = lang === "en" ? "-en" : "-ko";
     Array.prototype.forEach.call(document.querySelectorAll("[data-placeholder-ko]"), function (el) {
-      var attr = lang === "en" ? "data-placeholder-en" : "data-placeholder-ko";
-      el.setAttribute("placeholder", el.getAttribute(attr) || "");
+      el.setAttribute("placeholder", el.getAttribute("data-placeholder" + suffix) || "");
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-aria-ko]"), function (el) {
+      el.setAttribute("aria-label", el.getAttribute("data-aria" + suffix) || "");
     });
   }
-  updatePlaceholders();
+  updateLocalizedAttrs();
 
   /* ---------- 다크모드 토글 ---------- */
   var themeBtn = document.getElementById("theme-toggle");
@@ -75,7 +82,7 @@
     var titleAttr = lang === "en" ? "data-title-en" : "data-title-ko";
     var stored = root.getAttribute(titleAttr);
     if (stored) document.title = stored;
-    updatePlaceholders();
+    updateLocalizedAttrs();
   }
 
   /* ---------- bfcache 복원 시 테마/언어 재동기화 ----------
@@ -101,7 +108,7 @@
     } catch (err) {
       /* localStorage 차단 환경 — 테마만 복원하고 넘어간다 */
     }
-    updatePlaceholders();
+    updateLocalizedAttrs();
   });
 
   /* ---------- 한국어/영어 선택 드롭다운 ---------- */

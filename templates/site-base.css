@@ -10,7 +10,7 @@
   --rule: #121212;
   --accent: #a2201d;
   --implication-bg: #f5f4f1;
-  --serif: "Noto Serif KR", Georgia, "Times New Roman", serif;
+  --serif: "Noto Serif KR", "Noto Serif KR Fallback", Georgia, "Times New Roman", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Malgun Gothic", sans-serif;
 }
 
@@ -34,6 +34,22 @@
 :root[data-theme="dark"] .lang-select-list,
 :root[data-theme="dark"] .archive-search-results {
   background: var(--implication-bg);
+}
+
+/* Noto Serif KR은 Google Fonts에서 받아오는데(웹폰트) 도착 전까지는 폴백인 Georgia로
+   그려진다. 두 폰트는 자형 크기가 꽤 달라서, 폰트가 도착해 교체되는 순간 모든 헤드라인
+   높이가 바뀌며 화면이 덜컥 밀린다(CLS) — 특히 3em짜리 드롭캡이 있는 인사이트 문단에서
+   크게 튄다. 폴백 폰트의 메트릭을 실제 웹폰트에 맞춰 조정해두면 교체 시점에 글자 크기가
+   거의 그대로라 밀림이 눈에 띄지 않는다.
+   (자체 호스팅은 하지 않는다 — 저장소의 NotoSerifKR TTF는 23MB짜리 OG 이미지 렌더링용
+   원본이라 웹으로 내보내려면 별도 서브셋팅이 필요하고, 그건 이 작업의 범위 밖이다.) */
+@font-face {
+  font-family: "Noto Serif KR Fallback";
+  src: local("Georgia"), local("Times New Roman"), local("serif");
+  size-adjust: 108%;
+  ascent-override: 88%;
+  descent-override: 22%;
+  line-gap-override: 0%;
 }
 
 * { box-sizing: border-box; }
@@ -648,12 +664,25 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
   z-index: 41;
   transform: translateX(100%);
-  transition: transform 0.25s ease;
+  /* 닫힌 패널은 화면 밖으로 밀려나 있을 뿐 여전히 "보이는" 요소라 탭 포커스를 받는다.
+     JS가 inert도 함께 걸지만, visibility로도 막아 두 겹으로 안전하게 만든다.
+     visibility 전환은 슬라이드가 끝난 뒤 일어나야 애니메이션이 잘리지 않으므로
+     닫힐 때만 0.25s 지연시킨다(열 때는 즉시 보여야 하니 지연 0). */
+  visibility: hidden;
+  transition: transform 0.25s ease, visibility 0s linear 0.25s;
   overflow-y: auto;
 }
-.term-panel.open { transform: translateX(0); }
+.term-panel.open {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.25s ease, visibility 0s linear 0s;
+}
 
 .term-panel-close {
+  /* position은 구조라 base에 둔다 — 예전엔 mobile/desktop 양쪽에만 있어서, 두 미디어
+     쿼리 중 어느 쪽도 매칭되지 않는 상황에서는 버튼이 문서 흐름에 얹혀 엉뚱한 곳에
+     놓였다(크기·좌표값만 브레이크포인트별로 다르면 된다). */
+  position: absolute;
   background: none;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -739,11 +768,16 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 }
 .glossary-graph-line { stroke: var(--border); stroke-width: 1; }
 
+/* 위치는 JS가 매 프레임 --x/--y로 갱신하고, 확대는 hover에서만 일어난다. 예전엔 둘 다
+   하나의 transform에 묶여 있고 그 transform에 transition이 걸려 있어서, 매 프레임
+   바뀌는 위치를 브라우저가 계속 0.15초짜리 애니메이션으로 보간하느라 부유 움직임이
+   뭉개졌다. translate/scale을 개별 속성으로 분리해 확대에만 transition을 건다. */
 .glossary-node {
   position: absolute;
   top: 0;
   left: 0;
-  transform: translate(calc(var(--x, 0px) - 50%), calc(var(--y, 0px) - 50%)) scale(1);
+  translate: calc(var(--x, 0px) - 50%) calc(var(--y, 0px) - 50%);
+  scale: 1;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -751,11 +785,11 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   white-space: nowrap;
   cursor: pointer;
   color: var(--text);
-  transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: scale 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .glossary-node:hover,
 .glossary-node:focus-visible {
-  transform: translate(calc(var(--x, 0px) - 50%), calc(var(--y, 0px) - 50%)) scale(1.15);
+  scale: 1.15;
   border-color: var(--accent);
   color: var(--accent);
   z-index: 1;
@@ -789,4 +823,25 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   font-family: var(--serif);
   color: var(--text);
   margin: 0;
+}
+
+/* ---------- 모션 최소화 설정 존중 ----------
+   OS/브라우저에서 "동작 줄이기"를 켠 사용자에게는 장식적 전환을 걷어낸다. 전정기관
+   장애·편두통·멀미에 실제로 영향을 주는 접근성 항목이라(WCAG 2.3.3), 애니메이션을
+   완전히 없애는 대신 사실상 즉시 끝나도록(0.01ms) 만들어 전환 완료 이벤트에
+   의존하는 코드가 깨지지 않게 한다.
+
+   용어 지도의 부유 애니메이션은 CSS가 아니라 JS라, site.js가 같은 미디어 쿼리를
+   matchMedia로 직접 확인해 정지 상태로 렌더링한다. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* 다만 용어 패널의 visibility 전환은 "지연"이 목적이라 그대로 두면 닫히는 순간
+     내용이 사라져 보인다 — 지연 없이 즉시 처리한다. */
+  .term-panel { transition: visibility 0s !important; }
 }
