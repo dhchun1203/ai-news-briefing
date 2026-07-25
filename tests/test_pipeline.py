@@ -138,6 +138,71 @@ class TestEmailHtmlEscaping(unittest.TestCase):
         self.assertIn("https://ex.com/a?x=1&amp;y=2", html_out)
 
 
+class TestDigestValidation(unittest.TestCase):
+    """digest는 매일 Claude가 손으로 쓰는 유일한 입력 — 파이프라인에서 가장 깨지기 쉽다."""
+
+    GOOD_ARTICLE = {
+        "title": "T", "link": "http://x", "source": "S",
+        "published_at": "2026-07-26T00:00:00+00:00",
+        "summary_ko": "a", "summary_en": "b",
+        "implication_ko": "c", "implication_en": "d",
+    }
+
+    def load(self, payload, raw=None):
+        import json
+        import tempfile
+        from generate_site import load_digest
+
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / "d.json"
+            f.write_text(raw if raw is not None else json.dumps(payload), encoding="utf-8")
+            return load_digest(f)
+
+    def assertRejects(self, payload, needle, raw=None):
+        with self.assertRaises(SystemExit) as cm:
+            self.load(payload, raw=raw)
+        self.assertIn(needle, str(cm.exception))
+
+    def test_valid_digest_passes(self):
+        d = self.load({"date": "2026-07-26", "articles": [self.GOOD_ARTICLE]})
+        self.assertEqual(d["date"], "2026-07-26")
+
+    def test_malformed_json_reports_position(self):
+        self.assertRejects(None, "JSON 문법 오류", raw="{not json")
+
+    def test_missing_date(self):
+        self.assertRejects({"articles": [self.GOOD_ARTICLE]}, "date")
+
+    def test_wrong_date_format(self):
+        self.assertRejects({"date": "2026/07/26", "articles": [self.GOOD_ARTICLE]}, "YYYY-MM-DD")
+
+    def test_empty_articles(self):
+        self.assertRejects({"date": "2026-07-26", "articles": []}, "articles")
+
+    def test_blank_required_field_is_caught(self):
+        bad = dict(self.GOOD_ARTICLE, summary_ko="   ")
+        self.assertRejects({"date": "2026-07-26", "articles": [bad]}, "summary_ko")
+
+    def test_missing_published_at_is_caught(self):
+        # 템플릿이 article.published_at[:10]으로 조건 없이 잘라 써서, 없으면 렌더링
+        # 단계에서 UndefinedError로 죽는다 — 검증 단계에서 잡아야 원인이 드러난다.
+        bad = {k: v for k, v in self.GOOD_ARTICLE.items() if k != "published_at"}
+        self.assertRejects({"date": "2026-07-26", "articles": [bad]}, "published_at")
+
+    def test_daily_insight_may_be_omitted(self):
+        d = self.load({"date": "2026-07-26", "articles": [self.GOOD_ARTICLE]})
+        self.assertIsNone(d.get("daily_insight"))
+
+    def test_daily_insight_wrong_shape_is_caught(self):
+        payload = {
+            "date": "2026-07-26",
+            "articles": [self.GOOD_ARTICLE],
+            "daily_insight": {"headline_ko": "h", "headline_en": "h",
+                              "paragraphs_ko": "not a list", "paragraphs_en": []},
+        }
+        self.assertRejects(payload, "paragraphs_ko")
+
+
 class TestSentMarker(unittest.TestCase):
     """부분 발송 마커에 구독자 이메일이 새어 들어가면 안 된다 — 공개 저장소에 커밋된다."""
 

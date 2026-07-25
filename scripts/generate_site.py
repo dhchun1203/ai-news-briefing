@@ -18,7 +18,11 @@ CONFIG_DIR = ROOT / "config"
 DEFAULT_DOCS_DIR = ROOT / "docs"
 
 MAX_ARCHIVE_LINKS = 60
-MAX_SEARCH_RESULTS_SOURCE_FILES = None  # 제한 없음 — 검색 인덱스는 archive 폴더 전체를 스캔
+# 검색 인덱스에 담을 최근 일수 상한. 이 파일은 검색창 포커스 시 브라우저가 통째로
+# 받아가는데 하루 약 14KB씩 자라서, 상한이 없으면 1년 뒤 5MB짜리를 내려받게 된다.
+# 반년치면 실사용 검색 범위로 충분하고, 더 오래된 날짜도 아카이브 페이지·sitemap에는
+# 그대로 남아 검색엔진 색인에서는 빠지지 않는다.
+SEARCH_INDEX_MAX_DAYS = 180
 
 KO_CHARS_PER_MINUTE = 500  # 한국어는 음절 수 기준(띄어쓰기 단위 "단어"가 불명확해서)
 EN_WORDS_PER_MINUTE = 200  # 영어는 공백 기준 단어 수
@@ -289,13 +293,18 @@ def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification
 
 
 def build_search_index(archive_dir: Path, docs_dir: Path):
-    """docs/archive/*.json 전체를 스캔해 검색용 인덱스 하나(docs/search-index.json)로
-    합친다. 매번 archive 폴더 전체에서 다시 만들기 때문에, 이 스크립트를 여러 날짜에
-    걸쳐 반복 실행해도 인덱스는 항상 현재 archive 폴더 상태와 일치한다(멱등적)."""
+    """docs/archive/*.json을 스캔해 검색용 인덱스 하나(docs/search-index.json)로
+    합친다. 매번 archive 폴더에서 다시 만들기 때문에, 이 스크립트를 여러 날짜에
+    걸쳐 반복 실행해도 인덱스는 항상 현재 archive 폴더 상태와 일치한다(멱등적).
+
+    최근 SEARCH_INDEX_MAX_DAYS일치까지만 담는다. 이 파일은 검색창에 포커스가 가는
+    순간 브라우저가 통째로 내려받으므로 무한정 커지면 안 된다 — 하루 약 14KB씩
+    늘어나 상한이 없으면 1년이면 5MB에 이른다. 더 오래된 날짜도 아카이브 페이지와
+    sitemap에는 그대로 남아 있어 검색엔진 색인에서 빠지지는 않는다."""
     entries = []
-    for f in sorted(archive_dir.glob("*.json"), reverse=True):
-        if f.name.endswith(".sent.json"):
-            continue  # 발송 완료 마커(send_broadcast.py) — 검색 대상 원본이 아니다
+    # .sent.json은 발송 완료 마커(send_broadcast.py)라 검색 대상 원본이 아니다.
+    day_files = [f for f in sorted(archive_dir.glob("*.json"), reverse=True) if not f.name.endswith(".sent.json")]
+    for f in day_files[:SEARCH_INDEX_MAX_DAYS]:
         try:
             day = json.loads(f.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
@@ -317,9 +326,79 @@ def build_search_index(archive_dir: Path, docs_dir: Path):
     return len(entries)
 
 
+def load_digest(path: Path) -> dict:
+    """digest JSON을 읽고 필수 구조를 확인한다.
+
+    이 파일은 매일 Claude가 손으로 쓰는 유일한 입력이라 파이프라인에서 가장 깨지기 쉬운
+    지점이다. 검증 없이 바로 digest["date"] 같은 걸 꺼내 쓰면 오타 하나에 KeyError
+    스택 트레이스만 남아 "무엇이 잘못됐는지"가 드러나지 않는다 — 무인 실행이라 그
+    메시지가 사람이 받는 유일한 단서이므로, 어디가 어떻게 잘못됐는지 짚어준다.
+
+    형식만 본다(내용의 품질은 판단하지 않는다). 선택 필드인 daily_insight/glossary는
+    없어도 통과시키되, 있으면 타입은 확인한다."""
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as e:
+        raise SystemExit(f"[ERROR] digest 파일을 읽지 못했습니다: {path} ({e})")
+    try:
+        digest = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise SystemExit(f"[ERROR] digest JSON 문법 오류: {path} {e.lineno}행 {e.colno}열 — {e.msg}")
+
+    problems = []
+    if not isinstance(digest, dict):
+        raise SystemExit(f"[ERROR] digest 최상위는 객체여야 합니다: {path} (실제: {type(digest).__name__})")
+
+    date = digest.get("date")
+    if not isinstance(date, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date or ""):
+        problems.append(f'"date"가 YYYY-MM-DD 문자열이어야 합니다 (실제: {date!r})')
+
+    articles = digest.get("articles")
+    if not isinstance(articles, list) or not articles:
+        problems.append(f'"articles"는 비어 있지 않은 배열이어야 합니다 (실제: {type(articles).__name__})')
+    else:
+        # published_at도 필수다 — 템플릿이 article.published_at[:10]으로 조건 없이
+        # 잘라 쓰기 때문에 없으면 렌더링 단계에서 UndefinedError로 죽는다
+        # (fetch_articles.py가 항상 채워주므로 실제로 빠지는 건 사람이 직접 digest를
+        # 손볼 때뿐이지만, 그때 이유를 알 수 있어야 한다).
+        required = (
+            "title", "link", "source", "published_at",
+            "summary_ko", "summary_en", "implication_ko", "implication_en",
+        )
+        for i, a in enumerate(articles):
+            if not isinstance(a, dict):
+                problems.append(f"articles[{i}]가 객체가 아닙니다")
+                continue
+            missing = [k for k in required if not str(a.get(k) or "").strip()]
+            if missing:
+                problems.append(f"articles[{i}] ({a.get('title', '제목없음')!r}) 필드 누락/빈값: {', '.join(missing)}")
+
+    insight = digest.get("daily_insight")
+    if insight is not None:
+        if not isinstance(insight, dict):
+            problems.append('"daily_insight"는 객체이거나 아예 없어야 합니다')
+        else:
+            for k in ("headline_ko", "headline_en"):
+                if not (insight.get(k) or "").strip():
+                    problems.append(f'daily_insight.{k}가 비어 있습니다 (섹션 전체를 생략하려면 daily_insight 자체를 빼세요)')
+            for k in ("paragraphs_ko", "paragraphs_en"):
+                if not isinstance(insight.get(k), list):
+                    problems.append(f"daily_insight.{k}는 배열이어야 합니다")
+
+    glossary = digest.get("glossary")
+    if glossary is not None and not isinstance(glossary, list):
+        problems.append('"glossary"는 배열이거나 아예 없어야 합니다')
+
+    if problems:
+        raise SystemExit(
+            f"[ERROR] digest 형식 오류 ({path}):\n  - " + "\n  - ".join(problems)
+        )
+    return digest
+
+
 def main():
     args = parse_args()
-    digest = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    digest = load_digest(Path(args.input))
     raw_digest = copy.deepcopy(digest)  # 글로서리 링크화(HTML 마크업 삽입) 이전의 순수 텍스트본
     reading_minutes_ko, reading_minutes_en = estimate_reading_minutes(raw_digest)
 

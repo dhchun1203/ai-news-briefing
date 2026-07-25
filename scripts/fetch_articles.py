@@ -3,6 +3,7 @@
 import argparse
 import json
 import re
+import socket
 import sys
 from calendar import timegm
 from datetime import datetime, timedelta, timezone
@@ -19,6 +20,11 @@ DEFAULT_DOCS_DIR = ROOT / "docs"
 
 # 한 출처가 상위 목록을 독점하지 않도록 출처당 최대 채택 개수를 둔다.
 MAX_PER_SOURCE = 3
+
+# 피드 하나가 응답하지 않을 때 전체 실행이 멈추지 않도록 거는 소켓 타임아웃(초).
+FEED_TIMEOUT_SEC = 20
+# Cloudflare 뒤에 있는 매체들이 기본 urllib UA를 봇으로 보고 403으로 막는 일이 있다.
+USER_AGENT = "ai-news-briefing-bot/1.0 (+https://www.dailyaithread.com)"
 
 # 제목에서 고유명사/버전명을 추정하기 위해 제외할 흔한 대문자 시작 단어들
 # (문장 맨 앞 단어나 흔한 관사·부사라 "화제성 키워드"로 보기엔 너무 일반적인 것들).
@@ -154,7 +160,15 @@ def entry_summary(entry):
 
 
 def fetch_feed(name, url):
-    parsed = feedparser.parse(url)
+    # feedparser는 내부적으로 urllib을 쓰는데 기본 소켓 타임아웃이 None(무한)이라,
+    # 응답을 끝내 주지 않는 호스트가 하나만 있어도 매일 08:00 무인 실행이 영원히
+    # 멈춘다. 전역 소켓 타임아웃으로 상한을 건다(feedparser에 per-call 타임아웃
+    # 인자가 없어 이 방법을 쓴다).
+    socket.setdefaulttimeout(FEED_TIMEOUT_SEC)
+    # 기본 UA(Python-urllib/x.x)는 Cloudflare가 봇으로 보고 403으로 막는 경우가 있다.
+    # send_broadcast.py가 같은 이유로 이미 UA를 지정하고 있는데, 정작 Cloudflare 뒤에
+    # 있는 피드(Wired, Ars Technica, TechCrunch)를 긁는 이쪽에는 빠져 있었다.
+    parsed = feedparser.parse(url, agent=USER_AGENT)
     if parsed.bozo and not parsed.entries:
         raise RuntimeError(f"파싱 실패: {parsed.bozo_exception}")
     return parsed.entries
@@ -170,6 +184,7 @@ def main():
 
     candidates = []
     failed_feeds = []
+    stale_feeds = []
     skipped_duplicates = 0
     for feed in feeds:
         name, url = feed["name"], feed["url"]
@@ -179,6 +194,20 @@ def main():
             print(f"[WARN] {name} 수집 실패: {exc}", file=sys.stderr)
             failed_feeds.append(name)
             continue
+
+        # 피드가 200을 주고 항목도 있는데 전부 룩백 기간보다 오래된 경우 = 그 매체가
+        # 사실상 발행을 멈춘 상태다. 실패로 잡히지 않아 조용히 0건만 기여하므로,
+        # 눈에 띄게 보고해 사람이 피드 교체 여부를 판단할 수 있게 한다.
+        newest = max((d for d in (entry_published_at(e) for e in entries) if d), default=None)
+        if entries and (newest is None or newest < cutoff):
+            stale_feeds.append(
+                {"name": name, "latest": newest.date().isoformat() if newest else None}
+            )
+            print(
+                f"[WARN] {name}: 최근 {args.lookback_days}일 이내 기사 없음"
+                f"(최신 {newest.date().isoformat() if newest else '날짜없음'}) — 피드가 죽었는지 확인 필요",
+                file=sys.stderr,
+            )
 
         for entry in entries:
             published_at = entry_published_at(entry)
@@ -266,6 +295,7 @@ def main():
         "lookback_days": args.lookback_days,
         "feeds_total": len(feeds),
         "feeds_failed": failed_feeds,
+        "feeds_stale": stale_feeds,  # 200은 오지만 룩백 기간 내 기사가 없는 = 사실상 죽은 피드
         "candidates_total": len(candidates),
         "skipped_duplicates": skipped_duplicates,
         "articles": selected,
@@ -278,6 +308,9 @@ def main():
     )
     if failed_feeds:
         print(f"실패한 피드: {', '.join(failed_feeds)}", file=sys.stderr)
+    if stale_feeds:
+        detail = ", ".join(f"{s['name']}(최신 {s['latest'] or '날짜없음'})" for s in stale_feeds)
+        print(f"오래된 피드(최근 기사 없음): {detail}", file=sys.stderr)
 
 
 if __name__ == "__main__":
