@@ -322,9 +322,15 @@ Import해야 한다고 안내한다.
 ls docs/archive/*.json | grep -v '\.sent\.json$'   # 지금까지 생성된 날짜들
 ls docs/archive/*.sent.json                         # 그중 실제로 발송된 날짜들
 ```
+> **`.sent.json`이 있어도 내용을 열어 `"partial": true`인지 확인한다.** 이건 "일부
+> 구독자에게는 이미 보냈는데 중간 배치가 실패했다"는 뜻이다. 이 날짜는 **절대 자동으로
+> 재발송하지 않는다** — 다시 보내면 이미 받은 사람이 같은 메일을 두 번 받는다. 대신
+> `PushNotification`으로 "N명 중 M명만 발송된 날짜가 있다"고 알리고, 완료 보고에도
+> 남겨 사람이 판단하게 한다.
+
 오늘을 제외한 **최근 2일 이내**의 날짜 중 `docs/archive/<날짜>.json`은 있는데
-`docs/archive/<날짜>.sent.json`이 없는 날이 있으면(=그날 발송이 실패했었다는 뜻), 오늘자
-발송보다 먼저 그 날짜부터 보정 발송한다:
+`docs/archive/<날짜>.sent.json`이 아예 없는 날이 있으면(=그날 발송이 한 통도 못 나갔다는
+뜻), 오늘자 발송보다 먼저 그 날짜부터 보정 발송한다:
 ```
 python scripts/send_broadcast.py --input docs/archive/<밀린 날짜>.json --catchup
 ```
