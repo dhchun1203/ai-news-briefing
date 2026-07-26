@@ -143,21 +143,6 @@ function finishPage(label, doc, window, opts) {
     check(label, "검색 입력 placeholder 설정됨", (search.getAttribute("placeholder") || "").length > 0);
   }
 
-  // --- 용어사전 그래프 ---
-  const graph = doc.getElementById("glossary-graph");
-  if (graph) {
-    const nodes = graph.querySelectorAll(".glossary-node");
-    check(label, "그래프 노드가 렌더됨", nodes.length >= 2, `nodes=${nodes.length}`);
-    const lines = doc.querySelectorAll(".glossary-graph-line");
-    check(label, "그래프 엣지가 렌더됨", lines.length >= 1, `lines=${lines.length}`);
-    if (nodes.length) {
-      const x = nodes[0].style.getPropertyValue("--x");
-      check(label, "노드에 좌표가 설정됨", x && x !== "", `--x=${x}`);
-      nodes[0].click();
-      check(label, "그래프 노드 클릭 시 패널 열림", panel && panel.classList.contains("open"));
-    }
-  }
-
   // --- 용어사전 목록 검색 ---
   const gs = doc.getElementById("glossary-search-input");
   if (gs) {

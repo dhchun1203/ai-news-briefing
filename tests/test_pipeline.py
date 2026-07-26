@@ -19,7 +19,12 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import send_broadcast  # noqa: E402
-from fetch_articles import build_same_story_clusters, extract_keywords  # noqa: E402
+from fetch_articles import (  # noqa: E402
+    STALE_FEED_THRESHOLD_DAYS,
+    build_same_story_clusters,
+    extract_keywords,
+    parse_args,
+)
 from kst_date import kst_date_facts  # noqa: E402
 from seo_utils import _weekly_lastmod  # noqa: E402
 
@@ -58,6 +63,23 @@ class TestKstDate(unittest.TestCase):
         f = self.facts("2027-01-04T08:00")
         self.assertEqual(f["week_label"], "2027-W01")
         self.assertEqual(f["weekday"], 1)
+
+
+class TestFreshnessDefaults(unittest.TestCase):
+    """2026-07-27: 12일 룩백 때문에 열흘 넘은 기사가 "여러 매체가 동시에 다룬 사건"
+    으로 순위가 밀려 올라와 신선도가 떨어지던 문제. 1일로 줄였다 — 이 파이프라인이
+    정확히 매일 같은 시각에 도는 일간 주기라, 1일 룩백이면 "지난 실행 이후 새로
+    나온 기사 전부"와 정확히 일치한다. 기본값이 실수로 되돌아가는 걸 막는 회귀 테스트."""
+
+    def test_lookback_default_is_one_day(self):
+        args = parse_args([])
+        self.assertEqual(args.lookback_days, 1)
+
+    def test_stale_feed_threshold_is_independent_of_lookback(self):
+        # 죽은 피드 판단 기준(넉넉하게 14일)이 신선도용 --lookback-days(1일)와 같은
+        # 값으로 묶여 있으면, 며칠에 한 번 발행하는 정상 피드까지 매번 "죽었다"고
+        # 오탐한다 — 실제로 1일로 줄이자마자 이 오탐이 발생해서 분리했다.
+        self.assertGreater(STALE_FEED_THRESHOLD_DAYS, 7)
 
 
 class TestSameStoryClustering(unittest.TestCase):

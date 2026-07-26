@@ -110,7 +110,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 ## 로컬에서 수동 실행해보기 (Routine 활성화 전 검증)
 ```
-python scripts/fetch_articles.py --lookback-days 12 --top-n 10
+python scripts/fetch_articles.py --lookback-days 1 --top-n 10
 ```
 이후 `data/articles_<날짜>.json`을 보고 Claude가 직접 한국어/영어 요약·시사점을 작성해
 `data/digest_<날짜>.json`을 만든다 (`.claude/skills/ai-news-briefing/SKILL.md`의 2~3단계

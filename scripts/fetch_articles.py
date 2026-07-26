@@ -26,6 +26,12 @@ FEED_TIMEOUT_SEC = 20
 # Cloudflare 뒤에 있는 매체들이 기본 urllib UA를 봇으로 보고 403으로 막는 일이 있다.
 USER_AGENT = "ai-news-briefing-bot/1.0 (+https://www.dailyaithread.com)"
 
+# "죽은 피드"(발행이 사실상 멈춘 매체) 판단 기준은 후보 선정용 --lookback-days와
+# 별개로 고정한다. lookback-days를 신선도 때문에 짧게(1~2일) 줄이면, 발행 주기가
+# 원래 느린 정상 피드(예: 격일 발행)까지 매번 "죽었다"고 오탐하게 되기 때문이다 —
+# 이 값은 "그 매체가 정말 발행을 멈췄는지"만 넉넉하게 판단하는 별도 기준이다.
+STALE_FEED_THRESHOLD_DAYS = 14
+
 # 제목에서 고유명사/버전명을 추정하기 위해 제외할 흔한 대문자 시작 단어들
 # (문장 맨 앞 단어나 흔한 관사·부사라 "화제성 키워드"로 보기엔 너무 일반적인 것들).
 TITLE_STOPWORDS = {
@@ -35,10 +41,13 @@ TITLE_STOPWORDS = {
 }
 
 
-def parse_args():
+def parse_args(argv=None):
+    """argv=None이면 argparse가 평소처럼 sys.argv를 읽는다 — 테스트에서 실제 CLI
+    인자 없이 기본값(예: --lookback-days 기본이 1인지)을 확인할 수 있도록 명시적
+    argv를 받는 통로만 열어둔다."""
     p = argparse.ArgumentParser(description="RSS 피드에서 최근 AI 기사를 수집한다.")
     p.add_argument("--feeds", default=str(DEFAULT_FEEDS_PATH), help="feeds.json 경로")
-    p.add_argument("--lookback-days", type=int, default=12, help="최근 며칠 이내 기사만 대상으로 할지")
+    p.add_argument("--lookback-days", type=int, default=1, help="최근 며칠 이내 기사만 대상으로 할지")
     p.add_argument("--top-n", type=int, default=10, help="최종 선별할 기사 개수")
     p.add_argument("--max-per-source", type=int, default=MAX_PER_SOURCE, help="출처당 최대 채택 개수")
     p.add_argument("--output", default=None, help="출력 파일 경로 (기본: data/articles_<오늘날짜>.json)")
@@ -47,7 +56,7 @@ def parse_args():
         default=str(DEFAULT_DOCS_DIR),
         help="과거 브리핑 기록(docs/archive/*.json)이 있는 디렉토리 — 중복 기사 제외에 사용",
     )
-    return p.parse_args()
+    return p.parse_args(argv)
 
 
 def load_published_links(docs_dir: Path) -> set:
@@ -180,6 +189,7 @@ def main():
     feeds = feeds_config["feeds"]
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=args.lookback_days)
+    stale_cutoff = datetime.now(timezone.utc) - timedelta(days=STALE_FEED_THRESHOLD_DAYS)
     published_links = load_published_links(Path(args.docs_dir))
 
     candidates = []
@@ -195,16 +205,19 @@ def main():
             failed_feeds.append(name)
             continue
 
-        # 피드가 200을 주고 항목도 있는데 전부 룩백 기간보다 오래된 경우 = 그 매체가
-        # 사실상 발행을 멈춘 상태다. 실패로 잡히지 않아 조용히 0건만 기여하므로,
-        # 눈에 띄게 보고해 사람이 피드 교체 여부를 판단할 수 있게 한다.
+        # 피드가 200을 주고 항목도 있는데 전부 STALE_FEED_THRESHOLD_DAYS보다 오래된
+        # 경우 = 그 매체가 사실상 발행을 멈춘 상태다. 실패로 잡히지 않아 조용히 0건만
+        # 기여하므로, 눈에 띄게 보고해 사람이 피드 교체 여부를 판단할 수 있게 한다.
+        # (candidates용 cutoff가 아니라 별도의 넉넉한 기준을 쓴다 — cutoff는 신선도
+        # 때문에 1~2일까지 짧아질 수 있는데, 그 기준으로 죽음을 판단하면 며칠에 한 번
+        # 발행하는 정상 피드까지 매번 죽었다고 오탐한다.)
         newest = max((d for d in (entry_published_at(e) for e in entries) if d), default=None)
-        if entries and (newest is None or newest < cutoff):
+        if entries and (newest is None or newest < stale_cutoff):
             stale_feeds.append(
                 {"name": name, "latest": newest.date().isoformat() if newest else None}
             )
             print(
-                f"[WARN] {name}: 최근 {args.lookback_days}일 이내 기사 없음"
+                f"[WARN] {name}: 최근 {STALE_FEED_THRESHOLD_DAYS}일 이내 기사 없음"
                 f"(최신 {newest.date().isoformat() if newest else '날짜없음'}) — 피드가 죽었는지 확인 필요",
                 file=sys.stderr,
             )

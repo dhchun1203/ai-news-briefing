@@ -115,24 +115,10 @@
   </div>
 
   <p class="glossary-intro">
-    <span class="lang-ko">매일 브리핑에서 어려운 용어가 나올 때마다 쉬운 말로 설명을 덧붙여왔습니다. 그 설명들을 한곳에 모았습니다.
-      {% if graph_data.nodes|length >= 2 %}이 개념들이 서로 어떻게 연결되는지 한눈에 볼 수 있도록 아래에 지도로도 표현했습니다.{% endif %}</span>
-    <span class="lang-en">Every jargon term explained in a daily briefing ends up here, in plain language.
-      {% if graph_data.nodes|length >= 2 %}Below, they're also mapped out to show how these concepts connect to one another.{% endif %}</span>
+    <span class="lang-ko">매일 브리핑에서 어려운 용어가 나올 때마다 쉬운 말로 설명을 덧붙여왔습니다. 그 설명들을 한곳에 모았습니다.</span>
+    <span class="lang-en">Every jargon term explained in a daily briefing ends up here, in plain language.</span>
   </p>
 
-  {% if graph_data.nodes|length >= 2 %}
-  <div class="glossary-graph-wrap" style="--graph-width: {{ graph_width_px }}px; --graph-height-desktop: {{ graph_height_desktop_px }}px; --graph-height-mobile: {{ graph_height_mobile_px }}px;">
-    <p class="glossary-graph-label">
-      <span class="lang-ko">용어 지도 · 점을 눌러 설명 보기</span>
-      <span class="lang-en">Concept map · tap a node to see its explanation</span>
-    </p>
-    <div class="glossary-graph" id="glossary-graph">
-      <svg class="glossary-graph-edges" id="glossary-graph-edges"></svg>
-    </div>
-  </div>
-  <script type="application/json" id="glossary-graph-data">{{ graph_data|tojson }}</script>
-  {% endif %}
   <script type="application/json" id="glossary-data">{{ term_lookup|tojson }}</script>
 
   <div class="glossary-search">

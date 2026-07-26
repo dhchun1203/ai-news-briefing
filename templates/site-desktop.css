@@ -109,18 +109,6 @@ body {
 
 .glossary-nav-link { font-size: 0.85rem; }
 .glossary-intro { font-size: 1.05rem; line-height: 1.7; margin: 24px 0 16px; }
-.glossary-graph-label { font-size: 0.72rem; margin: 0 0 8px; }
-/* 연결된 용어가 많아지면 그래프 영역을 본문 컨테이너(720px) 밖으로 조금씩
-   넓힌다 — 데스크톱은 가로 여백이 넉넉해 이 "브레이크아웃"이 자연스럽지만,
-   모바일은 이미 화면 폭을 거의 다 쓰고 있어 적용하지 않는다(높이만 늘어남). */
-.glossary-graph-wrap {
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(var(--graph-width, 720px), calc(100vw - 32px));
-}
-.glossary-graph { height: var(--graph-height-desktop, 360px); margin-bottom: 32px; }
-.glossary-node { padding: 6px 14px; font-size: 0.82rem; }
 .glossary-search { max-width: 360px; margin-bottom: 24px; }
 .glossary-search-input { padding: 8px 16px; font-size: 0.92rem; }
 .glossary-term { padding: 16px 0; }
