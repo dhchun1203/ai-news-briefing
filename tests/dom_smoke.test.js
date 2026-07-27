@@ -25,14 +25,14 @@ function check(page, name, cond, extra = "") {
   results.push({ page, name, ok: !!cond, extra });
 }
 
-function load(relPath) {
+function load(relPath, urlOverride) {
   const file = path.join(DOCS, relPath);
   const html = fs.readFileSync(file, "utf-8");
   const vc = new VirtualConsole();
   const errors = [];
   vc.on("jsdomError", (e) => errors.push(e.message));
   const dom = new JSDOM(html, {
-    url: "https://www.dailyaithread.com/" + relPath.replace(/\\/g, "/"),
+    url: urlOverride || "https://www.dailyaithread.com/" + relPath.replace(/\\/g, "/"),
     runScripts: "dangerously",
     pretendToBeVisual: true,
     virtualConsole: vc,
@@ -43,6 +43,39 @@ function load(relPath) {
   // 공용 스크립트를 <script defer>처럼 문서 파싱 후 실행
   window.eval(SITE_JS);
   return { window, doc: window.document, errors };
+}
+
+// vercel.json의 cleanUrls:true는 <파일명>.html 요청을 확장자·트레일링 슬래시 없는
+// 경로로 308 리다이렉트한다(예: /topics/index.html -> /topics). 그 결과 실제로
+// 브라우저에 남는 URL은 이 파일의 디스크 경로와 "세그먼트 깊이"가 다를 수 있고,
+// 페이지 안의 상대경로(href="agents.html" 등)는 파일 경로가 아니라 이 최종 URL
+// 기준으로 풀린다. templates/topic.html.j2가 항상 "한 단계 아래"로 가정해 깨졌던
+// 사고(주제 목록 페이지 /topics에서 개별 주제 링크가 /agents.html로 잘못 풀려 404)가
+// 바로 이 어긋남 때문이었다. 이 함수는 실제 배포 시 브라우저가 보게 될 clean URL을
+// base로 놓고 모든 상대 링크/자산이 실제 파일로 해석되는지 전수 검사해, 같은 종류의
+// 사고가 어느 페이지에서도 조용히 재발하지 않게 한다.
+function resolveExists(absUrl) {
+  let p = absUrl.replace(/^https?:\/\/[^/]+/, "").replace(/^\//, "");
+  if (p === "") p = "index.html";
+  const candidates = [path.join(DOCS, p), path.join(DOCS, p + ".html"), path.join(DOCS, p, "index.html")];
+  return candidates.some((c) => fs.existsSync(c));
+}
+
+function checkCleanUrlLinks(relPath, canonicalUrl, label) {
+  const { doc } = load(relPath, canonicalUrl);
+  const refs = [];
+  doc.querySelectorAll("a[href]").forEach((a) => refs.push([a.getAttribute("href"), a.href]));
+  doc.querySelectorAll("link[href]").forEach((l) => refs.push([l.getAttribute("href"), l.href]));
+  doc.querySelectorAll("script[src]").forEach((s) => refs.push([s.getAttribute("src"), s.src]));
+  const broken = [];
+  refs.forEach(([raw, resolved]) => {
+    if (!raw || raw.startsWith("#") || raw.startsWith("http") || raw.startsWith("mailto:")) return;
+    // Vercel이 런타임에 직접 서빙하는 절대경로라 로컬 docs/에는 실존하지 않는 게 정상 —
+    // 상대경로 계산과 무관하므로 이 검사 대상이 아니다.
+    if (raw.startsWith("/_vercel/")) return;
+    if (!resolveExists(resolved)) broken.push(`${raw} -> ${resolved}`);
+  });
+  check(label, `실제 배포 URL(${canonicalUrl})에서 모든 상대 링크가 실존 파일로 해석됨`, broken.length === 0, broken.join(" | "));
 }
 
 function exercise(relPath, label, opts = {}) {
@@ -204,10 +237,30 @@ function finishPage(label, doc, window, opts) {
   }
   // 주제별 아카이브 — 같은 크롬(언어·테마·공유)을 별도 템플릿으로 복제한 페이지라
   // 다른 페이지에서 잡히는 회귀가 여기서만 빠질 수 있다.
+  let firstTopicSlug = null;
   if (fs.existsSync(path.join(DOCS, "topics", "index.html"))) {
     await exercise(path.join("topics", "index.html"), "topics/index");
     const first = fs.readdirSync(path.join(DOCS, "topics")).find((f) => f !== "index.html");
-    if (first) await exercise(path.join("topics", first), "topics/" + first);
+    if (first) {
+      firstTopicSlug = first.replace(/\.html$/, "");
+      await exercise(path.join("topics", first), "topics/" + first);
+    }
+  }
+
+  // cleanUrls 실제 배포 URL 기준 링크 무결성 — /topics(세그먼트 1개, 슬래시 없음)에서
+  // 터졌던 사고를 다시 잡아낸다. 같은 위험을 안고 있는 다른 depth-0 페이지(/glossary)와
+  // depth-2 페이지(/archive/<날짜>)도 함께 실제 clean URL로 검사한다.
+  checkCleanUrlLinks("glossary.html", "https://www.dailyaithread.com/glossary", "glossary (clean URL)");
+  checkCleanUrlLinks("archive/2026-07-25.html", "https://www.dailyaithread.com/archive/2026-07-25", "archive (clean URL)");
+  if (fs.existsSync(path.join(DOCS, "topics", "index.html"))) {
+    checkCleanUrlLinks("topics/index.html", "https://www.dailyaithread.com/topics", "topics/index (clean URL)");
+  }
+  if (firstTopicSlug) {
+    checkCleanUrlLinks(
+      path.join("topics", firstTopicSlug + ".html"),
+      `https://www.dailyaithread.com/topics/${firstTopicSlug}`,
+      `topics/${firstTopicSlug} (clean URL)`
+    );
   }
 
   let pass = 0;

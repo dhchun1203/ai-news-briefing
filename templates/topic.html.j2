@@ -12,8 +12,17 @@
 {% set desc_ko = topic.description_ko %}
 {% set desc_en = topic.description_en %}
 {% endif %}
+{# 이 템플릿은 두 가지 다른 URL 깊이를 함께 렌더한다 — 목록 페이지(/topics, cleanUrls가
+   index.html을 벗겨내 세그먼트 1개·슬래시 없음이 되므로 상대경로 기준 디렉터리가 루트다,
+   /glossary와 같은 깊이)와 개별 페이지(/topics/<slug>, 세그먼트 2개, /archive/<날짜>와
+   같은 깊이)다. 예전엔 항상 "한 단계 아래"로 가정해 하드코딩했는데, 목록 페이지에서
+   `../`가 없는 형제 링크(예: href="agents.html")만 루트 기준으로 잘못 풀려 404가 났다
+   (`../`가 붙은 나머지는 루트에서 클램핑돼 우연히 맞았을 뿐이다). p/tp로 깊이별
+   접두사를 분리해 이 클래스의 버그를 다시 만들지 않는다. #}
+{% set p = '' if is_index else '../' %}
+{% set tp = 'topics/' if is_index else '' %}
 <html lang="ko" data-lang="ko" data-title-ko="{{ title_ko }}" data-title-en="{{ title_en }}"
-      data-default-lang="ko" data-asset-prefix="../" data-archive-prefix="../archive/">
+      data-default-lang="ko" data-asset-prefix="{{ p }}" data-archive-prefix="{{ p }}archive/">
 <head>
 <meta charset="UTF-8">
 <title>{{ title_ko }}</title>
@@ -32,8 +41,8 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
 <meta name="twitter:image" content="{{ og_image_url }}">
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
-<link rel="alternate" type="application/rss+xml" title="AI 뉴스 브리핑" href="../feed.xml">
+<link rel="icon" type="image/svg+xml" href="{{ p }}favicon.svg">
+<link rel="alternate" type="application/rss+xml" title="AI 뉴스 브리핑" href="{{ p }}feed.xml">
 {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
 {% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
 <script type="application/ld+json">{{ jsonld|tojson }}</script>
@@ -61,9 +70,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="../site-base.css">
-<link rel="stylesheet" href="../site-mobile.css" media="(max-width: 767px)">
-<link rel="stylesheet" href="../site-desktop.css" media="(min-width: 768px)">
+<link rel="stylesheet" href="{{ p }}site-base.css">
+<link rel="stylesheet" href="{{ p }}site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="{{ p }}site-desktop.css" media="(min-width: 768px)">
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
@@ -73,12 +82,14 @@
 </a>
 <header class="site-header">
   <div class="utility-bar">
-    <a class="site-nav-link site-nav-link-current" href="index.html" aria-current="page">
+    {# 목록·개별 페이지 둘 다 "주제별" 섹션 안이므로 여기선 항상 현재로 표시한다 —
+       어느 특정 주제를 보고 있는지는 아래 topic-nav 열에서 따로 표시된다. #}
+    <a class="site-nav-link site-nav-link-current" href="{{ tp }}index.html" aria-current="page">
       <span class="lang-ko">주제별</span>
       <span class="lang-en">Topics</span>
       {% if nav_counts and nav_counts.topics %}<span class="site-nav-link-count">{{ nav_counts.topics }}</span>{% endif %}
     </a>
-    <a class="site-nav-link" href="../glossary.html">
+    <a class="site-nav-link" href="{{ p }}glossary.html">
       <span class="lang-ko">용어사전</span>
       <span class="lang-en">Glossary</span>
       {% if nav_counts and nav_counts.terms %}<span class="site-nav-link-count">{{ nav_counts.terms }}</span>{% endif %}
@@ -109,7 +120,7 @@
   </div>
   <div class="header-inner">
     <h1>
-      <a href="../index.html">
+      <a href="{{ p }}index.html">
         <span class="lang-ko">AI 뉴스 브리핑</span>
         <span class="lang-en">AI News Briefing</span>
       </a>
@@ -128,12 +139,12 @@
 
 <main class="content" id="main-content">
   <div class="date-bar">
-    <a class="back-link" href="../index.html">
+    <a class="back-link" href="{{ p }}index.html">
       <span class="lang-ko">← 오늘자 브리핑</span>
       <span class="lang-en">← Today's briefing</span>
     </a>
     {% if not is_index %}
-    <a class="back-link" href="index.html">
+    <a class="back-link" href="{{ tp }}index.html">
       <span class="lang-ko">모든 주제 보기</span>
       <span class="lang-en">All topics</span>
     </a>
@@ -156,7 +167,7 @@
     {% for t in topic_summary %}
     {% if t.count %}
     <a class="topic-nav-item{% if not is_index and t.slug == topic.slug %} topic-nav-item-current{% endif %}"
-       href="{{ t.slug }}.html"{% if not is_index and t.slug == topic.slug %} aria-current="page"{% endif %}>
+       href="{{ tp }}{{ t.slug }}.html"{% if not is_index and t.slug == topic.slug %} aria-current="page"{% endif %}>
       <span class="lang-ko">{{ t.label_ko }}</span>
       <span class="lang-en">{{ t.label_en }}</span>
       <span class="topic-nav-count">{{ t.count }}</span>
@@ -176,7 +187,7 @@
     {% for e in entries %}
     <li class="topic-entry">
       <div class="article-meta">
-        <a class="topic-entry-date" href="../archive/{{ e.date }}.html">{{ e.date }}</a>
+        <a class="topic-entry-date" href="{{ p }}archive/{{ e.date }}.html">{{ e.date }}</a>
         <span class="source">{{ e.source }}</span>
       </div>
       <h2 class="topic-entry-title"><a href="{{ e.link }}" target="_blank" rel="noopener noreferrer">{{ e.title }}</a></h2>
@@ -196,14 +207,14 @@
     <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}</span>
   </p>
   <p class="footer-links">
-    <a href="../feed.xml">RSS</a>
+    <a href="{{ p }}feed.xml">RSS</a>
     <span aria-hidden="true">·</span>
-    <a href="../glossary.html"><span class="lang-ko">용어사전</span><span class="lang-en">Glossary</span></a>
+    <a href="{{ p }}glossary.html"><span class="lang-ko">용어사전</span><span class="lang-en">Glossary</span></a>
     <span aria-hidden="true">·</span>
-    <a href="index.html"><span class="lang-ko">주제별 보기</span><span class="lang-en">Topics</span></a>
+    <a href="{{ tp }}index.html"><span class="lang-ko">주제별 보기</span><span class="lang-en">Topics</span></a>
   </p>
 </footer>
 
-<script defer src="../site.js"></script>
+<script defer src="{{ p }}site.js"></script>
 </body>
 </html>

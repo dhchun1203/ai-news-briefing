@@ -6,8 +6,11 @@
 
 
 
+
+
+
 <html lang="ko" data-lang="ko" data-title-ko="주제별 브리핑 · Daily AI Thread" data-title-en="Browse by Topic · Daily AI Thread"
-      data-default-lang="ko" data-asset-prefix="../" data-archive-prefix="../archive/">
+      data-default-lang="ko" data-asset-prefix="" data-archive-prefix="archive/">
 <head>
 <meta charset="UTF-8">
 <title>주제별 브리핑 · Daily AI Thread</title>
@@ -26,8 +29,8 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
 <meta name="twitter:image" content="https://www.dailyaithread.com/og-image.png">
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
-<link rel="alternate" type="application/rss+xml" title="AI 뉴스 브리핑" href="../feed.xml">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="alternate" type="application/rss+xml" title="AI 뉴스 브리핑" href="feed.xml">
 
 <meta name="naver-site-verification" content="dc1f1b7afe7e5fd35492bb281219bfea4c5d8424">
 <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@id": "https://www.dailyaithread.com/#website", "@type": "WebSite", "inLanguage": ["ko", "en"], "name": "AI \ub274\uc2a4 \ube0c\ub9ac\ud551 \u00b7 Daily AI Thread", "publisher": {"@id": "https://www.dailyaithread.com/#organization"}, "url": "https://www.dailyaithread.com/"}, {"@id": "https://www.dailyaithread.com/#organization", "@type": "Organization", "logo": "https://www.dailyaithread.com/og-image.png", "name": "Daily AI Thread", "url": "https://www.dailyaithread.com/"}, {"@id": "https://www.dailyaithread.com/topics/#page", "@type": "CollectionPage", "inLanguage": ["ko", "en"], "isPartOf": {"@id": "https://www.dailyaithread.com/#website"}, "mainEntity": {"@type": "ItemList", "itemListElement": [{"@type": "ListItem", "name": "\ubaa8\ub378\u00b7\uc5f0\uad6c", "position": 1, "url": "https://www.dailyaithread.com/topics/models"}, {"@type": "ListItem", "name": "\uc5d0\uc774\uc804\ud2b8\u00b7\uac1c\ubc1c\ub3c4\uad6c", "position": 2, "url": "https://www.dailyaithread.com/topics/agents"}, {"@type": "ListItem", "name": "\uc778\ud504\ub77c\u00b7\ubc18\ub3c4\uccb4", "position": 3, "url": "https://www.dailyaithread.com/topics/infra"}, {"@type": "ListItem", "name": "\uae30\uc5c5\u00b7\ud22c\uc790", "position": 4, "url": "https://www.dailyaithread.com/topics/business"}, {"@type": "ListItem", "name": "\uc815\ucc45\u00b7\uaddc\uc81c", "position": 5, "url": "https://www.dailyaithread.com/topics/policy"}, {"@type": "ListItem", "name": "\uc548\uc804\u00b7\uc815\ub82c", "position": 6, "url": "https://www.dailyaithread.com/topics/safety"}, {"@type": "ListItem", "name": "\uc81c\ud488\u00b7\uc11c\ube44\uc2a4", "position": 7, "url": "https://www.dailyaithread.com/topics/products"}, {"@type": "ListItem", "name": "\uc624\ud508\uc18c\uc2a4", "position": 8, "url": "https://www.dailyaithread.com/topics/opensource"}, {"@type": "ListItem", "name": "\ub85c\ubcf4\ud2f1\uc2a4\u00b7\ud53c\uc9c0\uceec AI", "position": 9, "url": "https://www.dailyaithread.com/topics/robotics"}, {"@type": "ListItem", "name": "\uc0ac\ud68c\u00b7\ub178\ub3d9", "position": 10, "url": "https://www.dailyaithread.com/topics/society"}, {"@type": "ListItem", "name": "\uc0dd\uc131 \ubbf8\ub514\uc5b4", "position": 11, "url": "https://www.dailyaithread.com/topics/media"}]}, "name": "\uc8fc\uc81c\ubcc4 \ube0c\ub9ac\ud551 \u2014 AI \ub274\uc2a4 \ube0c\ub9ac\ud551", "publisher": {"@id": "https://www.dailyaithread.com/#organization"}, "url": "https://www.dailyaithread.com/topics/"}]}</script>
@@ -55,9 +58,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="../site-base.css">
-<link rel="stylesheet" href="../site-mobile.css" media="(max-width: 767px)">
-<link rel="stylesheet" href="../site-desktop.css" media="(min-width: 768px)">
+<link rel="stylesheet" href="site-base.css">
+<link rel="stylesheet" href="site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="site-desktop.css" media="(min-width: 768px)">
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
@@ -67,12 +70,13 @@
 </a>
 <header class="site-header">
   <div class="utility-bar">
-    <a class="site-nav-link site-nav-link-current" href="index.html" aria-current="page">
+    
+    <a class="site-nav-link site-nav-link-current" href="topics/index.html" aria-current="page">
       <span class="lang-ko">주제별</span>
       <span class="lang-en">Topics</span>
       <span class="site-nav-link-count">11</span>
     </a>
-    <a class="site-nav-link" href="../glossary.html">
+    <a class="site-nav-link" href="glossary.html">
       <span class="lang-ko">용어사전</span>
       <span class="lang-en">Glossary</span>
       <span class="site-nav-link-count">23</span>
@@ -103,7 +107,7 @@
   </div>
   <div class="header-inner">
     <h1>
-      <a href="../index.html">
+      <a href="index.html">
         <span class="lang-ko">AI 뉴스 브리핑</span>
         <span class="lang-en">AI News Briefing</span>
       </a>
@@ -119,7 +123,7 @@
 
 <main class="content" id="main-content">
   <div class="date-bar">
-    <a class="back-link" href="../index.html">
+    <a class="back-link" href="index.html">
       <span class="lang-ko">← 오늘자 브리핑</span>
       <span class="lang-en">← Today's briefing</span>
     </a>
@@ -138,7 +142,7 @@
     
     
     <a class="topic-nav-item"
-       href="models.html">
+       href="topics/models.html">
       <span class="lang-ko">모델·연구</span>
       <span class="lang-en">Models &amp; Research</span>
       <span class="topic-nav-count">10</span>
@@ -147,7 +151,7 @@
     
     
     <a class="topic-nav-item"
-       href="agents.html">
+       href="topics/agents.html">
       <span class="lang-ko">에이전트·개발도구</span>
       <span class="lang-en">Agents &amp; Dev Tools</span>
       <span class="topic-nav-count">9</span>
@@ -156,7 +160,7 @@
     
     
     <a class="topic-nav-item"
-       href="infra.html">
+       href="topics/infra.html">
       <span class="lang-ko">인프라·반도체</span>
       <span class="lang-en">Infrastructure &amp; Chips</span>
       <span class="topic-nav-count">4</span>
@@ -165,7 +169,7 @@
     
     
     <a class="topic-nav-item"
-       href="business.html">
+       href="topics/business.html">
       <span class="lang-ko">기업·투자</span>
       <span class="lang-en">Business &amp; Funding</span>
       <span class="topic-nav-count">13</span>
@@ -174,7 +178,7 @@
     
     
     <a class="topic-nav-item"
-       href="policy.html">
+       href="topics/policy.html">
       <span class="lang-ko">정책·규제</span>
       <span class="lang-en">Policy &amp; Regulation</span>
       <span class="topic-nav-count">7</span>
@@ -183,7 +187,7 @@
     
     
     <a class="topic-nav-item"
-       href="safety.html">
+       href="topics/safety.html">
       <span class="lang-ko">안전·정렬</span>
       <span class="lang-en">Safety &amp; Alignment</span>
       <span class="topic-nav-count">9</span>
@@ -192,7 +196,7 @@
     
     
     <a class="topic-nav-item"
-       href="products.html">
+       href="topics/products.html">
       <span class="lang-ko">제품·서비스</span>
       <span class="lang-en">Products &amp; Services</span>
       <span class="topic-nav-count">9</span>
@@ -201,7 +205,7 @@
     
     
     <a class="topic-nav-item"
-       href="opensource.html">
+       href="topics/opensource.html">
       <span class="lang-ko">오픈소스</span>
       <span class="lang-en">Open Source</span>
       <span class="topic-nav-count">2</span>
@@ -210,7 +214,7 @@
     
     
     <a class="topic-nav-item"
-       href="robotics.html">
+       href="topics/robotics.html">
       <span class="lang-ko">로보틱스·피지컬 AI</span>
       <span class="lang-en">Robotics &amp; Physical AI</span>
       <span class="topic-nav-count">1</span>
@@ -227,7 +231,7 @@
     
     
     <a class="topic-nav-item"
-       href="society.html">
+       href="topics/society.html">
       <span class="lang-ko">사회·노동</span>
       <span class="lang-en">Society &amp; Work</span>
       <span class="topic-nav-count">7</span>
@@ -236,7 +240,7 @@
     
     
     <a class="topic-nav-item"
-       href="media.html">
+       href="topics/media.html">
       <span class="lang-ko">생성 미디어</span>
       <span class="lang-en">Generative Media</span>
       <span class="topic-nav-count">1</span>
@@ -250,18 +254,18 @@
 
 <footer class="site-footer">
   <p>
-    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-27T12:41:21.827577</span>
-    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-27T12:41:21.827577</span>
+    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-27T13:02:42.790092</span>
+    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: 2026-07-27T13:02:42.790092</span>
   </p>
   <p class="footer-links">
-    <a href="../feed.xml">RSS</a>
+    <a href="feed.xml">RSS</a>
     <span aria-hidden="true">·</span>
-    <a href="../glossary.html"><span class="lang-ko">용어사전</span><span class="lang-en">Glossary</span></a>
+    <a href="glossary.html"><span class="lang-ko">용어사전</span><span class="lang-en">Glossary</span></a>
     <span aria-hidden="true">·</span>
-    <a href="index.html"><span class="lang-ko">주제별 보기</span><span class="lang-en">Topics</span></a>
+    <a href="topics/index.html"><span class="lang-ko">주제별 보기</span><span class="lang-en">Topics</span></a>
   </p>
 </footer>
 
-<script defer src="../site.js"></script>
+<script defer src="site.js"></script>
 </body>
 </html>
