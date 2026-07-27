@@ -123,7 +123,10 @@ body {
 .term-panel-title { font-size: 1.25rem; margin: 0 0 16px; }
 .term-panel-body { font-size: 1.02rem; line-height: 1.75; }
 
-.glossary-nav-link { font-size: 0.85rem; }
+/* 높이를 옆 컨트롤(공유 버튼·언어 선택 34px)에 맞춘다 — 유틸리티 바 안에서 높이가
+   제각각이면 정돈이 안 돼 보인다. 글자는 0.85 → 0.95rem으로 키웠다. */
+.site-nav-link { height: 34px; padding: 0 14px; font-size: 0.95rem; }
+.site-nav-link-count { font-size: 0.85rem; }
 .glossary-intro { font-size: 1.05rem; line-height: 1.7; margin: 24px 0 16px; }
 .glossary-search { max-width: 360px; margin-bottom: 24px; }
 .glossary-search-input { padding: 8px 16px; font-size: 0.92rem; }

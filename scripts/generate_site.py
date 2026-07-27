@@ -238,7 +238,7 @@ def collect_glossary_terms(archive_dir: Path) -> list:
     return sorted(terms.values(), key=lambda t: t["term_ko"])
 
 
-def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification: dict, og_image_url: str):
+def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification: dict, og_image_url: str, nav_counts: dict = None):
     """지금까지 브리핑에 등장한 모든 용어를 모아 docs/glossary.html로 렌더링한다.
     새로 작성하는 콘텐츠가 없다(Claude가 매일 이미 쓰는 glossary를 재활용) —
     generate_weekly_site.py의 '건너뛸 날도 있는' 판단형 단계와 달리, 이건
@@ -253,6 +253,7 @@ def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification
     html_out = template.render(
         terms=terms,
         term_lookup=term_lookup,
+        nav_counts=nav_counts,
         generated_at=datetime.now().isoformat(),
         canonical_url=page_url,
         og_image_url=og_image_url,
@@ -302,7 +303,7 @@ def collect_topic_entries(archive_dir: Path) -> dict:
     return by_topic
 
 
-def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verification: dict, og_image_url: str):
+def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verification: dict, og_image_url: str, nav_counts: dict = None):
     """docs/topics/<slug>.html과 docs/topics/index.html을 생성한다.
 
     기사가 하나도 없는 토픽은 페이지를 만들지 않는다 — 빈 페이지는 검색엔진에
@@ -336,6 +337,7 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
                 topic=topic,
                 entries=entries,
                 topic_summary=summary,
+                nav_counts=nav_counts,
                 is_index=False,
                 generated_at=generated_at,
                 canonical_url=page_url,
@@ -354,6 +356,7 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
             topic=None,
             entries=[],
             topic_summary=summary,
+            nav_counts=nav_counts,
             is_index=True,
             generated_at=generated_at,
             canonical_url=index_url,
@@ -365,6 +368,19 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
         encoding="utf-8",
     )
     return page_count, sum(t["count"] for t in summary)
+
+
+def collect_nav_counts(archive_dir: Path) -> dict:
+    """상단 내비게이션에 붙일 "뒤에 쌓인 개수". 숫자 자체가 들어갈 이유가 되므로
+    (정보 향), 실제로 페이지가 만들어지는 토픽 — 기사 1건 이상 — 만 센다. 12개
+    전부를 세면 숫자를 보고 들어온 독자가 빈 주제를 만난다.
+
+    generate_weekly_site.py도 같은 내비를 렌더링하므로 이 함수를 import해서 쓴다."""
+    by_topic = collect_topic_entries(archive_dir)
+    return {
+        "topics": sum(1 for t in load_topics() if by_topic.get(t["slug"])),
+        "terms": len(collect_glossary_terms(archive_dir)),
+    }
 
 
 def collect_site_stats(archive_dir: Path, glossary_count: int) -> dict:
@@ -547,8 +563,10 @@ def main():
 
     glossary_terms = collect_glossary_terms(archive_dir)
     generic_og_image_url = f"{site_url}/og-image.png"  # 용어사전·토픽은 날짜성 콘텐츠가 아니라 범용 카드 재사용
-    glossary_count = build_glossary_page(docs_dir, glossary_terms, site_url, verification, generic_og_image_url)
-    topic_page_count, tagged_count = build_topic_pages(docs_dir, archive_dir, site_url, verification, generic_og_image_url)
+    # 내비 개수는 어떤 페이지를 그리든 같아야 하므로 렌더링보다 먼저 한 번만 구한다.
+    nav_counts = collect_nav_counts(archive_dir)
+    glossary_count = build_glossary_page(docs_dir, glossary_terms, site_url, verification, generic_og_image_url, nav_counts)
+    topic_page_count, tagged_count = build_topic_pages(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
     site_stats = collect_site_stats(archive_dir, glossary_count)
     faq = seo_utils.load_faq()
 
@@ -590,6 +608,7 @@ def main():
         home_link=None,
         is_archive=False,
         site_stats=site_stats,
+        nav_counts=nav_counts,
         faq=faq,
         canonical_url=index_url,
         og_image_url=og_image_url,
@@ -629,6 +648,7 @@ def main():
         is_archive=False,
         default_lang="en",
         site_stats=site_stats,
+        nav_counts=nav_counts,
         faq=faq,
         canonical_url=en_url,
         og_image_url=og_image_url,
@@ -661,6 +681,7 @@ def main():
         home_link="../index.html",
         is_archive=True,
         site_stats=site_stats,
+        nav_counts=nav_counts,
         # FAQ는 홈에만 — 아카이브 페이지마다 같은 문답이 반복되면 중복 콘텐츠이고,
         # 매일 늘어나는 페이지 전부에 FAQPage 마크업이 붙는 것도 바람직하지 않다.
         faq=None,

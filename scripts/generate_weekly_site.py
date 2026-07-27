@@ -13,6 +13,9 @@ from zoneinfo import ZoneInfo
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import seo_utils
+# 주간 회고 페이지도 일별 페이지와 같은 상단 내비를 그리므로, 개수 계산을 한 곳에서
+# 가져온다(두 스크립트가 다른 숫자를 보여주면 페이지를 옮길 때마다 값이 달라진다).
+from generate_site import collect_nav_counts
 
 KST = ZoneInfo("Asia/Seoul")
 
@@ -102,6 +105,7 @@ def main():
         paragraphs_en=weekly.get("paragraphs_en", []),
         daily_briefings=daily_briefings,
         past_weeklies=past_weeklies,
+        nav_counts=collect_nav_counts(archive_dir),
         generated_at=generated_at,
         canonical_url=page_url,
         og_image_url=og_image_url,

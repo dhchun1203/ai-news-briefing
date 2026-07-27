@@ -94,7 +94,7 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .share-button:focus-visible,
 .lang-select-trigger:focus-visible,
 .term-link:focus-visible,
-.glossary-nav-link:focus-visible,
+.site-nav-link:focus-visible,
 .glossary-back:focus-visible,
 .term-panel-close:focus-visible {
   outline: 2px solid var(--accent);
@@ -842,17 +842,44 @@ a.topic-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offse
 }
 
 /* ---------- 용어사전 페이지 (모든 브리핑에 등장한 용어를 모은 별도 페이지) ---------- */
-/* 유틸리티 바 왼쪽의 내비 링크들(주제별·용어사전). 나머지 컨트롤을 오른쪽으로 밀어내는
-   건 이 그룹의 "마지막" 링크여야 한다 — 모든 링크에 margin-right:auto를 주면 링크들
-   사이사이가 벌어져 하나의 그룹으로 안 읽힌다. */
-.glossary-nav-link {
+/* 유틸리티 바 왼쪽의 내비 메뉴(주제별·용어사전).
+
+   평문 텍스트로 두면 메뉴로 안 읽힌다 — 이 바에는 공유·언어·다크모드 같은 "설정
+   컨트롤"이 함께 있어서, 테두리 없는 굵은 글씨는 메뉴가 아니라 그 구역의 라벨처럼
+   보이고 눈이 그냥 지나친다. 그래서 (1) 알약 테두리로 눌리는 대상임을 드러내고,
+   (2) 본문 대비 충분히 키우고, (3) 뒤에 쌓인 개수를 붙여 들어갈 이유를 만든다.
+
+   나머지 컨트롤을 오른쪽으로 밀어내는 건 이 그룹의 "마지막" 링크여야 한다 — 모든
+   링크에 margin-right:auto를 주면 링크들 사이가 벌어져 한 그룹으로 안 읽힌다. */
+.site-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--sans);
   font-weight: 700;
   color: var(--text);
   text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
 }
-.utility-bar > .glossary-nav-link:last-of-type { margin-right: auto; }
-.glossary-nav-link:hover { color: var(--accent); }
+.utility-bar > .site-nav-link:last-of-type { margin-right: auto; }
+.site-nav-link:hover { color: var(--accent); border-color: var(--accent); }
+
+/* 개수는 라벨을 밀어내지 않도록 가늘고 흐리게 — 정보이지 강조가 아니다. */
+.site-nav-link-count {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.site-nav-link:hover .site-nav-link-count { color: var(--accent); }
+
+/* 현재 보고 있는 섹션은 채워서 표시한다 — 메뉴가 "지금 어디인지"를 알려주지 않으면
+   내비게이션이 아니라 링크 모음일 뿐이다. */
+.site-nav-link-current {
+  background: var(--implication-bg);
+  border-color: var(--rule);
+}
 
 /* 용어사전은 오늘자 홈/지난 아카이브/영어권 착지 페이지 등 어디서든 들어올 수 있어,
    고정된 "돌아가기" 링크 하나로는 정확한 원래 위치를 못 알려준다 — 그래서

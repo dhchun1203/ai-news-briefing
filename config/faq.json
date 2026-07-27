@@ -20,12 +20,6 @@
       "answer_en": "Articles come from 11 RSS feeds spanning industry press, official lab announcements, technical outlets, and community sources, filtered to the last 24 hours. Stories covered by multiple outlets rank first, then the most recent, with a cap of 3 per source. Duplicate coverage of the same event is collapsed to one, and any link already published in a past briefing is excluded."
     },
     {
-      "question_ko": "누가 쓰나요?",
-      "question_en": "Who writes it?",
-      "answer_ko": "Anthropic의 Claude가 매일 자동으로 작성합니다. RSS 요약을 그대로 옮기지 않고 선정된 기사 10건의 원문을 직접 읽은 뒤 요약과 시사점을 씁니다. 한국어판과 영어판은 기계번역이 아니라 같은 원문을 기준으로 각각 따로 작성합니다. 수집부터 작성, 사이트 생성, 이메일 발송까지 사람의 개입 없이 매일 같은 시각에 실행됩니다.",
-      "answer_en": "Claude, by Anthropic, writes it automatically each day. It reads the full text of all 10 selected articles rather than recycling RSS blurbs. The Korean and English editions are written separately from the same sources — neither is a machine translation of the other. Collection, writing, site generation, and email delivery all run unattended at the same hour every day."
-    },
-    {
       "question_ko": "무료인가요? 이메일은 어떻게 쓰이나요?",
       "question_en": "Is it free? What happens to my email?",
       "answer_ko": "전부 무료이고 유료 등급이나 광고가 없습니다. 구독하면 확인 메일이 한 통 가고, 그 링크를 눌러야 발송 목록에 등록됩니다. 이메일 주소는 브리핑 발송에만 쓰며 제3자에게 제공하거나 판매하지 않습니다. 모든 메일 하단의 링크로 언제든 즉시 구독을 해지할 수 있습니다.",

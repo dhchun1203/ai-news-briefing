@@ -62,13 +62,15 @@
 </a>
 <header class="site-header">
   <div class="utility-bar">
-    <a class="glossary-nav-link" href="../topics/index.html">
+    <a class="site-nav-link" href="../topics/index.html">
       <span class="lang-ko">주제별</span>
       <span class="lang-en">Topics</span>
+      {% if nav_counts and nav_counts.topics %}<span class="site-nav-link-count">{{ nav_counts.topics }}</span>{% endif %}
     </a>
-    <a class="glossary-nav-link" href="../glossary.html">
+    <a class="site-nav-link" href="../glossary.html">
       <span class="lang-ko">용어사전</span>
       <span class="lang-en">Glossary</span>
+      {% if nav_counts and nav_counts.terms %}<span class="site-nav-link-count">{{ nav_counts.terms }}</span>{% endif %}
     </a>
     <div class="share-wrap" id="share-wrap">
       <button id="share-button" class="share-button" type="button" aria-label="링크 복사 / Copy link">
