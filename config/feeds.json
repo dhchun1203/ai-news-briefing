@@ -1,17 +1,18 @@
 {
   "_comment": "AI 뉴스 RSS 피드 목록. 자유롭게 추가/삭제 가능. 각 URL은 서비스 개편으로 바뀔 수 있으니 주기적으로 유효성을 재검증할 것 (WebFetch나 curl로 200 응답 + item 존재 확인, 그리고 최신 item 날짜가 실제로 최근인지도 함께 — 200을 줘도 발행이 멈춘 '오래된 피드'는 fetch_articles.py가 feeds_stale로 감지해 경고한다). Anthropic은 공식 RSS 피드를 제공하지 않아(2026-07-23 기준 www.anthropic.com/rss.xml 등 404) 제외했다. VentureBeat는 2026-07-26에 category/ai/feed가 308로 살아있는 것처럼 보이지만 실제로는 5월 이후 새 글이 없어(사이트가 카테고리 체계를 개편하며 그 태그를 더 이상 안 씀) 메인 피드(전부 AI 콘텐츠로 확인됨)로 교체했다.",
   "_type_comment": "type: primary(기업/기관의 공식 발표) · press(언론·기술 매체 보도) · community(커뮤니티 링크 모음). generate_site.py가 이 값을 기사 카드의 출처 배지로 표시한다.",
+  "_weight_comment": "weight: 랭킹 점수에 더해지는 출처 기본 점수(기본값 1.0). 발행량이 많은 매체가 순위를 독점하는 걸 막고, 발행은 뜸하지만 건당 가치가 높은 출처(공식 발표·심층 분석 매체)가 살아남게 하는 장치다. 2026-07-27에 5일치를 점검해보니 MIT Technology Review와 Wired가 한 건도 채택되지 못했는데, 이 매체들이 '남들이 안 쓰는 걸 쓰는' 곳이라 교차 보도 수가 0이 되어 랭킹 최하위로 밀린 탓이었다. 교차 보도 가점의 상한이 3점이므로, 여기 값을 그 근처로 두면 단독 심층 보도가 흔한 속보와 겨룰 수 있다.",
   "feeds": [
-    { "name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/", "type": "press" },
-    { "name": "VentureBeat AI", "url": "https://venturebeat.com/feed/", "type": "press" },
-    { "name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "type": "press" },
-    { "name": "MarkTechPost", "url": "https://www.marktechpost.com/feed/", "type": "press" },
-    { "name": "OpenAI News", "url": "https://openai.com/news/rss.xml", "type": "primary" },
-    { "name": "Google DeepMind Blog", "url": "https://deepmind.google/blog/rss.xml", "type": "primary" },
-    { "name": "Google AI Blog", "url": "https://blog.google/technology/ai/rss/", "type": "primary" },
-    { "name": "Ars Technica AI", "url": "https://arstechnica.com/ai/feed/", "type": "press" },
-    { "name": "Wired AI", "url": "https://www.wired.com/feed/tag/ai/latest/rss", "type": "press" },
-    { "name": "MIT Technology Review AI", "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed", "type": "press" },
-    { "name": "Hacker News (AI)", "url": "https://hnrss.org/newest?q=AI&points=20", "type": "community" }
+    { "name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/", "type": "press", "weight": 2.5 },
+    { "name": "VentureBeat AI", "url": "https://venturebeat.com/feed/", "type": "press", "weight": 1.5 },
+    { "name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "type": "press", "weight": 2.5 },
+    { "name": "MarkTechPost", "url": "https://www.marktechpost.com/feed/", "type": "press", "weight": 1.5 },
+    { "name": "OpenAI News", "url": "https://openai.com/news/rss.xml", "type": "primary", "weight": 4.0 },
+    { "name": "Google DeepMind Blog", "url": "https://deepmind.google/blog/rss.xml", "type": "primary", "weight": 4.0 },
+    { "name": "Google AI Blog", "url": "https://blog.google/technology/ai/rss/", "type": "primary", "weight": 4.0 },
+    { "name": "Ars Technica AI", "url": "https://arstechnica.com/ai/feed/", "type": "press", "weight": 2.5 },
+    { "name": "Wired AI", "url": "https://www.wired.com/feed/tag/ai/latest/rss", "type": "press", "weight": 3.0 },
+    { "name": "MIT Technology Review AI", "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed", "type": "press", "weight": 4.0 },
+    { "name": "Hacker News (AI)", "url": "https://hnrss.org/newest?q=AI&points=20", "type": "community", "weight": 1.0 }
   ]
 }

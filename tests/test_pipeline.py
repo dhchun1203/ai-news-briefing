@@ -11,7 +11,7 @@
 """
 import sys
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -20,9 +20,12 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import send_broadcast  # noqa: E402
 from fetch_articles import (  # noqa: E402
+    CROSS_SOURCE_CAP,
+    PRIMARY_MIN_SLOTS,
     RESERVE_COUNT,
     STALE_FEED_THRESHOLD_DAYS,
     build_same_story_clusters,
+    compute_rank_score,
     extract_keywords,
     is_self_promo_post,
     parse_args,
@@ -127,6 +130,57 @@ class TestSameStoryClustering(unittest.TestCase):
         # "Meet"/"Your" 같은 헤드라인 관용구는 대문자로 시작할 뿐 사건을 특정하지 않는다.
         for word in ("Meet", "Your", "You", "Watch", "Inside"):
             self.assertNotIn(word, extract_keywords(f"{word} The New Thing"))
+
+
+class TestRankScore(unittest.TestCase):
+    """랭킹 점수. 예전엔 cross_source_count가 단독 최상위 정렬 키여서, 아무도 안 쓴
+    단독 심층 보도(교차 보도 0)가 무조건 꼴찌였다 — 실제로 MIT Technology Review와
+    Wired가 5일간 한 건도 못 실렸다. 그 회귀를 막는 게 이 테스트의 핵심이다."""
+
+    def setUp(self):
+        self.now = datetime(2026, 7, 27, 12, 0, tzinfo=timezone.utc)
+        self.cutoff = self.now - timedelta(days=1)
+
+    def score(self, weight, cross, hours_old=0):
+        published = self.now - timedelta(hours=hours_old)
+        return compute_rank_score(
+            {"source_weight": weight, "cross_source_count": cross, "published_at": published.isoformat()},
+            self.cutoff,
+            self.now,
+        )
+
+    def test_high_weight_exclusive_beats_low_weight_corroborated(self):
+        # 이게 이번 변경의 존재 이유다: MIT Tech Review 단독 보도(가중치 4, 교차 0)가
+        # HN에 올라온 교차 보도 2건짜리 글(가중치 1)보다 위여야 한다.
+        self.assertGreater(self.score(4.0, 0), self.score(1.0, 2))
+
+    def test_corroboration_still_helps_within_same_source(self):
+        # 화제성을 무시하자는 게 아니다 — 같은 매체라면 여러 곳이 다룬 쪽이 위다.
+        self.assertGreater(self.score(2.5, 3), self.score(2.5, 0))
+
+    def test_corroboration_is_capped(self):
+        # 상한이 없으면 "모두가 받아쓴 흔한 속보"가 점수를 무한정 벌어 독주한다.
+        self.assertEqual(self.score(1.0, CROSS_SOURCE_CAP), self.score(1.0, CROSS_SOURCE_CAP + 10))
+
+    def test_newer_wins_when_everything_else_is_equal(self):
+        self.assertGreater(self.score(2.5, 1, hours_old=1), self.score(2.5, 1, hours_old=20))
+
+    def test_missing_weight_falls_back_without_crashing(self):
+        # feeds.json에 weight를 안 적은 피드가 있어도 수집이 멈추면 안 된다.
+        published = self.now.isoformat()
+        got = compute_rank_score({"cross_source_count": 0, "published_at": published}, self.cutoff, self.now)
+        self.assertGreater(got, 0)
+
+    def test_article_published_before_cutoff_does_not_go_negative(self):
+        # 룩백 경계 밖 기사가 섞여 들어와도 점수가 음수로 뒤집히면 정렬이 무너진다.
+        self.assertGreaterEqual(self.score(1.0, 0, hours_old=48), 1.0)
+
+
+class TestPrimarySlots(unittest.TestCase):
+    def test_primary_slot_guarantee_is_positive(self):
+        # 0이면 공식 발표 보장 장치가 통째로 꺼진다. 발행량이 하루 0.3~0.4건뿐이라
+        # 점수만으로는 발행량 많은 매체에 밀려 사라진다.
+        self.assertGreater(PRIMARY_MIN_SLOTS, 0)
 
 
 class TestSelfPromoFilter(unittest.TestCase):

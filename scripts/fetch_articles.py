@@ -25,6 +25,42 @@ MAX_PER_SOURCE = 3
 # 갈아끼울 예비 후보 개수. 하루 10건 중 3건까지 교체가 필요했던 날이 있어 여유를 둔다.
 RESERVE_COUNT = 5
 
+# ---- 랭킹 점수 구성 ----
+# 예전에는 cross_source_count(몇 개 매체가 같은 사건을 다뤘나)가 단독 최상위 정렬
+# 키였다. 그러면 "여러 곳이 받아쓴 흔한 속보"가 항상 이기고, 아무도 안 쓴 단독
+# 심층 보도는 교차 보도 수가 0이라 무조건 꼴찌가 된다 — 2026-07-27에 5일치를
+# 점검했더니 MIT Technology Review와 Wired가 한 건도 못 실린 이유가 정확히 이것이었다.
+# 화제성은 여러 신호 중 하나여야지 절대 우선순위가 되면 안 되므로, 출처 가중치·교차
+# 보도·신선도를 합산한 점수로 정렬한다.
+CROSS_SOURCE_POINT = 1.0  # 교차 보도 1건당 가점
+CROSS_SOURCE_CAP = 3  # 그 이상 다뤄져도 더 쳐주지 않는다(흔한 속보의 무한 독주 방지)
+RECENCY_POINT = 1.0  # 룩백 창에서 가장 최신이면 이만큼, 창 끝이면 0
+DEFAULT_SOURCE_WEIGHT = 1.0  # feeds.json에 weight가 없는 피드의 기본값
+
+# 공식 발표(type: primary)에 최소한 보장하는 자리 수. 1차 출처는 그것을 받아쓴
+# 기사보다 항상 낫고 발행량도 적어서(하루 0.3~0.4건), 점수만으로 겨루게 두면
+# 발행량 많은 매체에 밀려 사라진다. 있으면 우선 채우고, 없으면 그냥 넘어간다.
+PRIMARY_MIN_SLOTS = 2
+
+
+def compute_rank_score(article: dict, cutoff, now) -> float:
+    """후보 하나의 랭킹 점수. 값이 클수록 우선 채택된다.
+
+    세 항목의 합이다:
+      - 출처 가중치: 발행량과 무관하게 그 매체 기사 한 건의 기본 가치
+      - 교차 보도: 여러 매체가 동시에 다룰수록 화제성이 높다(상한 있음)
+      - 신선도: 같은 조건이면 최신 기사를 앞에 둔다
+    """
+    published = datetime.fromisoformat(article["published_at"])
+    window = (now - cutoff).total_seconds()
+    # 룩백 창 안에서의 위치를 0~1로 정규화한다(1=방금, 0=창 끝).
+    recency = 1.0 if window <= 0 else max(0.0, min(1.0, (published - cutoff).total_seconds() / window))
+    return (
+        article.get("source_weight", DEFAULT_SOURCE_WEIGHT)
+        + CROSS_SOURCE_POINT * min(article["cross_source_count"], CROSS_SOURCE_CAP)
+        + RECENCY_POINT * recency
+    )
+
 # 피드 하나가 응답하지 않을 때 전체 실행이 멈추지 않도록 거는 소켓 타임아웃(초).
 FEED_TIMEOUT_SEC = 20
 # Cloudflare 뒤에 있는 매체들이 기본 urllib UA를 봇으로 보고 403으로 막는 일이 있다.
@@ -267,17 +303,23 @@ def main():
                     "title": title.strip(),
                     "link": link,
                     "source": name,
+                    "source_type": feed.get("type", "press"),
+                    "source_weight": float(feed.get("weight", DEFAULT_SOURCE_WEIGHT)),
                     "published_at": published_at.isoformat(),
                     "rss_summary": entry_summary(entry).strip(),
                 }
             )
 
-    # 여러 출처가 동시에 다루는(화제성이 높은) 후보를 먼저 정렬하고, 그 안에서는
-    # 최신순으로 정렬한 뒤, 출처 다양성을 지키면서 top-n을 채운다.
+    # 출처 가중치·교차 보도·신선도를 합산한 점수로 정렬한 뒤, 출처 다양성을 지키면서
+    # top-n을 채운다(점수 구성은 compute_rank_score 주석 참고).
     compute_cross_source_counts(candidates)
     for c in candidates:
         c["cross_source_count"] = c.pop("_cross_source_count")
-    candidates.sort(key=lambda a: (a["cross_source_count"], a["published_at"]), reverse=True)
+    now = datetime.now(timezone.utc)
+    for c in candidates:
+        c["rank_score"] = round(compute_rank_score(c, cutoff, now), 3)
+    # 점수가 같을 때는 최신순 — 정렬이 실행마다 흔들리지 않도록 결정적으로 만든다.
+    candidates.sort(key=lambda a: (a["rank_score"], a["published_at"]), reverse=True)
 
     # 같은 사건을 다루는 후보가 여러 개 있어도(=cross_source_count가 높아 순위는
     # 위로 올라오지만) top-10 자리를 여러 개 차지하지 않도록, 사건 클러스터마다
@@ -288,15 +330,33 @@ def main():
     selected = []
     per_source_count = {}
     used_clusters = set()
+
+    # 공식 발표(primary) 자리를 먼저 확보한다. 1차 출처는 그걸 받아쓴 기사보다 항상
+    # 낫지만 발행량이 하루 0.3~0.4건뿐이라, 점수만으로 겨루게 두면 하루 6건씩 쏟아내는
+    # 매체에 밀려 사라진다. 점수 순서는 그대로 존중하고(이미 정렬돼 있다) 개수만
+    # 보장하며, 그날 공식 발표가 없으면 아무 일도 하지 않는다.
+    for article, cid in zip(candidates, cluster_ids):
+        if len(selected) >= min(PRIMARY_MIN_SLOTS, args.top_n):
+            break
+        if article.get("source_type") != "primary" or cid in used_clusters:
+            continue
+        if per_source_count.get(article["source"], 0) >= args.max_per_source:
+            continue
+        selected.append(article)
+        per_source_count[article["source"]] = per_source_count.get(article["source"], 0) + 1
+        used_clusters.add(cid)
+
+    selected_links = {a["link"] for a in selected}
     for article, cid in zip(candidates, cluster_ids):
         if len(selected) >= args.top_n:
             break
-        if cid in used_clusters:
+        if cid in used_clusters or article["link"] in selected_links:
             continue
         count = per_source_count.get(article["source"], 0)
         if count >= args.max_per_source:
             continue
         selected.append(article)
+        selected_links.add(article["link"])
         per_source_count[article["source"]] = count + 1
         used_clusters.add(cid)
 
@@ -324,6 +384,11 @@ def main():
                 continue
             selected.append(article)
             chosen_links.add(article["link"])
+
+    # primary 슬롯 보장은 "뽑히느냐"에만 관여해야지 "몇 번째로 실리느냐"까지 정하면
+    # 안 된다 — 먼저 채운 순서를 그대로 두면 사소한 공식 블로그 글이 그날 가장 큰
+    # 속보보다 위에 실린다. 최종 노출 순서는 점수 순으로 되돌린다.
+    selected.sort(key=lambda a: (a["rank_score"], a["published_at"]), reverse=True)
 
     # 예비 후보(reserves): 원문을 읽을 수 없거나 브리핑에 실을 가치가 없는 기사가
     # 나왔을 때 그 자리를 대신 채울 대체재다.
