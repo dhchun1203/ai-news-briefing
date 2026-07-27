@@ -45,7 +45,9 @@ body {
 .archive-badge { font-size: 0.68rem; }
 .reading-time { font-size: 0.68rem; }
 
-.weekly-banner { margin: 4px 0 16px; padding: 12px 16px; font-size: 0.82rem; }
+.weekly-teaser { margin: 4px 0 16px; padding: 0 0 12px; }
+.weekly-teaser-label { font-size: 0.66rem; margin-bottom: 4px; }
+.weekly-teaser-headline { font-size: 1.02rem; line-height: 1.4; }
 
 .insight { margin: 16px 0 12px; padding: 16px; }
 .insight-label { font-size: 0.66rem; margin-bottom: 8px; }
