@@ -1,4 +1,7 @@
 data/*.json
+# jsdom(dom_smoke 테스트 전용)을 npm install --no-save로 받으면 생긴다 — 이 저장소는
+# package.json을 두지 않는 방침이라 커밋 대상이 아니다.
+node_modules/
 __pycache__/
 *.pyc
 .venv/

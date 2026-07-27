@@ -160,16 +160,54 @@ function finishPage(label, doc, window, opts) {
   // --- 뒤로가기 버튼 ---
   const back = doc.getElementById("glossary-back");
   if (back) check(label, "뒤로가기 버튼 존재", true);
+
+  // --- 주제 칩 / FAQ / 피드 링크 ---
+  // 칩과 배지는 digest에 필드가 있어야만 렌더링되므로, 옵션으로 기대치를 넘긴
+  // 페이지에서만 확인한다(과거 아카이브에는 없을 수 있다).
+  if (opts.expectTopicChips) {
+    const chips = doc.querySelectorAll(".topic-chip");
+    check(label, "주제 칩이 렌더링됨", chips.length > 0, `count=${chips.length}`);
+    let hrefOk = true;
+    chips.forEach((c) => {
+      // 링크가 페이지 위치에 맞는 상대경로여야 한다(/en/과 /archive/는 한 단계 아래).
+      if (!/topics\/[a-z]+\.html$/.test(c.getAttribute("href") || "")) hrefOk = false;
+    });
+    check(label, "주제 칩 링크가 topics/<slug>.html 형태", hrefOk);
+  }
+
+  if (opts.expectFaq) {
+    const items = doc.querySelectorAll(".faq-item");
+    check(label, "FAQ 항목이 렌더링됨", items.length > 0, `count=${items.length}`);
+    if (items.length) {
+      // <details>는 기본 접힘이어야 본문 흐름을 밀어내지 않는다.
+      check(label, "FAQ가 접힌 채로 시작", !items[0].hasAttribute("open"));
+      items[0].open = true;
+      check(label, "FAQ를 펼칠 수 있음", items[0].hasAttribute("open"));
+    }
+  } else if (opts.expectNoFaq) {
+    // 아카이브 페이지에 반복되면 중복 콘텐츠이고 FAQPage 마크업도 여러 URL에 퍼진다.
+    check(label, "FAQ가 없어야 하는 페이지에 없음", doc.querySelectorAll(".faq-item").length === 0);
+  }
+
+  const feedLink = doc.querySelector('link[type="application/rss+xml"]');
+  check(label, "RSS 피드 link 태그 존재", !!feedLink, feedLink ? feedLink.getAttribute("href") : "없음");
 }
 
 (async () => {
-  await exercise("index.html", "index", { expectTermLinks: true });
-  await exercise("en/index.html", "en/index");
+  await exercise("index.html", "index", { expectTermLinks: true, expectTopicChips: true, expectFaq: true });
+  await exercise("en/index.html", "en/index", { expectTopicChips: true, expectFaq: true });
   await exercise("glossary.html", "glossary");
-  await exercise("archive/2026-07-25.html", "archive");
+  await exercise("archive/2026-07-25.html", "archive", { expectNoFaq: true });
   if (fs.existsSync(path.join(DOCS, "weekly"))) {
     const wk = fs.readdirSync(path.join(DOCS, "weekly"))[0];
     if (wk) await exercise(path.join("weekly", wk), "weekly");
+  }
+  // 주제별 아카이브 — 같은 크롬(언어·테마·공유)을 별도 템플릿으로 복제한 페이지라
+  // 다른 페이지에서 잡히는 회귀가 여기서만 빠질 수 있다.
+  if (fs.existsSync(path.join(DOCS, "topics", "index.html"))) {
+    await exercise(path.join("topics", "index.html"), "topics/index");
+    const first = fs.readdirSync(path.join(DOCS, "topics")).find((f) => f !== "index.html");
+    if (first) await exercise(path.join("topics", first), "topics/" + first);
   }
 
   let pass = 0;

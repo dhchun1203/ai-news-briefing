@@ -24,6 +24,10 @@ MAX_ARCHIVE_LINKS = 60
 # 그대로 남아 검색엔진 색인에서는 빠지지 않는다.
 SEARCH_INDEX_MAX_DAYS = 180
 
+# 토픽 페이지 하나에 실을 기사 수 상한. 검색 인덱스와 달리 브라우저가 통째로 받아가는
+# 파일은 아니지만, 상한이 없으면 인기 토픽 페이지가 몇 년 뒤 수천 건짜리 HTML이 된다.
+TOPIC_PAGE_MAX_ENTRIES = 100
+
 KO_CHARS_PER_MINUTE = 500  # 한국어는 음절 수 기준(띄어쓰기 단위 "단어"가 불명확해서)
 EN_WORDS_PER_MINUTE = 200  # 영어는 공백 기준 단어 수
 
@@ -58,6 +62,19 @@ def load_source_types():
         return {}
     data = json.loads(feeds_path.read_text(encoding="utf-8"))
     return {f["name"]: f.get("type", "press") for f in data.get("feeds", [])}
+
+
+def load_topics():
+    """config/topics.json의 고정 taxonomy를 순서 그대로 읽는다. slug/label_ko가
+    없는 항목은 URL이나 화면 라벨을 만들 수 없으므로 조용히 건너뛴다."""
+    path = CONFIG_DIR / "topics.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    return [t for t in data.get("topics", []) if t.get("slug") and t.get("label_ko")]
 
 
 def build_glossary_maps(glossary):
@@ -177,6 +194,11 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
                 "summary_en": a.get("summary_en"),
                 "implication_ko": a.get("implication_ko"),
                 "implication_en": a.get("implication_en"),
+                # 이 두 필드는 반드시 보존해야 한다 — data/*.json은 커밋되지 않아
+                # 실행이 끝나면 사라지므로, 토픽 페이지(topics)와 커버리지 배지
+                # (cross_source_count)가 과거 데이터를 읽을 수 있는 유일한 경로다.
+                "topics": a.get("topics") or [],
+                "cross_source_count": a.get("cross_source_count", 0),
             }
             for a in raw_digest.get("articles", [])
         ],
@@ -240,6 +262,125 @@ def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification
     )
     (docs_dir / "glossary.html").write_text(html_out, encoding="utf-8")
     return len(terms)
+
+
+def _iter_archive_days(archive_dir: Path, newest_first: bool = True):
+    """docs/archive/*.json을 날짜순으로 하나씩 돌려준다(파일명이 YYYY-MM-DD라
+    문자열 정렬이 곧 날짜순). 발송 마커(.sent.json)와 깨진 파일은 건너뛴다.
+    collect_glossary_terms/build_search_index/토픽 집계가 각자 갖고 있던 같은
+    루프를 한 곳으로 모은 것."""
+    if not archive_dir.exists():
+        return
+    for f in sorted(archive_dir.glob("*.json"), reverse=newest_first):
+        if f.name.endswith(".sent.json"):
+            continue
+        try:
+            yield json.loads(f.read_text(encoding="utf-8")), f.stem
+        except (json.JSONDecodeError, OSError):
+            continue
+
+
+def collect_topic_entries(archive_dir: Path) -> dict:
+    """아카이브 전체를 훑어 토픽 슬러그별 기사 목록을 만든다(최신 날짜가 앞).
+    collect_glossary_terms와 같은 '매 실행마다 전량 재집계' 패턴이라, 과거 기사에
+    나중에 토픽을 채워 넣어도 다음 실행에서 자동으로 반영된다."""
+    by_topic = {}
+    for day, stem in _iter_archive_days(archive_dir):
+        date = day.get("date", stem)
+        for a in day.get("articles", []):
+            for slug in a.get("topics") or []:
+                by_topic.setdefault(slug, []).append(
+                    {
+                        "date": date,
+                        "title": a.get("title", ""),
+                        "link": a.get("link", ""),
+                        "source": a.get("source", ""),
+                        "summary_ko": a.get("summary_ko", ""),
+                        "summary_en": a.get("summary_en", ""),
+                    }
+                )
+    return by_topic
+
+
+def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verification: dict, og_image_url: str):
+    """docs/topics/<slug>.html과 docs/topics/index.html을 생성한다.
+
+    기사가 하나도 없는 토픽은 페이지를 만들지 않는다 — 빈 페이지는 검색엔진에
+    thin content 신호를 줄 뿐이고, 목록 페이지에서도 건수 0으로 링크 없이 표시된다.
+    build_glossary_page와 마찬가지로 새로 쓰는 콘텐츠 없이 기존 데이터를 다시
+    묶기만 하는 기계적 집계다."""
+    topics = load_topics()
+    if not topics:
+        return 0, 0
+    by_topic = collect_topic_entries(archive_dir)
+
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html", "j2"]),
+    )
+    template = env.get_template("topic.html.j2")
+    topics_dir = docs_dir / "topics"
+    topics_dir.mkdir(parents=True, exist_ok=True)
+
+    generated_at = datetime.now().isoformat()
+    summary = [dict(t, count=len(by_topic.get(t["slug"], []))) for t in topics]
+    page_count = 0
+
+    for topic in topics:
+        entries = by_topic.get(topic["slug"], [])[:TOPIC_PAGE_MAX_ENTRIES]
+        if not entries:
+            continue
+        page_url = f"{site_url}/topics/{topic['slug']}"
+        (topics_dir / f"{topic['slug']}.html").write_text(
+            template.render(
+                topic=topic,
+                entries=entries,
+                topic_summary=summary,
+                is_index=False,
+                generated_at=generated_at,
+                canonical_url=page_url,
+                og_image_url=og_image_url,
+                google_site_verification=verification["google_site_verification"],
+                naver_site_verification=verification["naver_site_verification"],
+                jsonld=seo_utils.build_topic_page_jsonld(site_url, page_url, topic, entries),
+            ),
+            encoding="utf-8",
+        )
+        page_count += 1
+
+    index_url = f"{site_url}/topics/"
+    (topics_dir / "index.html").write_text(
+        template.render(
+            topic=None,
+            entries=[],
+            topic_summary=summary,
+            is_index=True,
+            generated_at=generated_at,
+            canonical_url=index_url,
+            og_image_url=og_image_url,
+            google_site_verification=verification["google_site_verification"],
+            naver_site_verification=verification["naver_site_verification"],
+            jsonld=seo_utils.build_topic_index_jsonld(site_url, index_url, [t for t in summary if t["count"]]),
+        ),
+        encoding="utf-8",
+    )
+    return page_count, sum(t["count"] for t in summary)
+
+
+def collect_site_stats(archive_dir: Path, glossary_count: int) -> dict:
+    """랜딩에 띄울 누적 지표(브리핑 일수·기사 수·용어 수·시작일).
+
+    구독자 수는 일부러 넣지 않는다 — 경쟁 뉴스레터들이 소셜 프루프로 쓰는 숫자지만,
+    아직 규모가 작을 때 노출하면 오히려 역효과다. 반면 '며칠째 빠짐없이 나왔는가'는
+    시작 시점부터 정직하게 쌓이는 신뢰 신호라 처음부터 보여줄 수 있다."""
+    days = [stem for _, stem in _iter_archive_days(archive_dir)]
+    article_count = sum(len(day.get("articles", [])) for day, _ in _iter_archive_days(archive_dir))
+    return {
+        "days": len(days),
+        "articles": article_count,
+        "terms": glossary_count,
+        "since": min(days) if days else None,
+    }
 
 
 def build_search_index(archive_dir: Path, docs_dir: Path):
@@ -315,6 +456,7 @@ def load_digest(path: Path) -> dict:
             "title", "link", "source", "published_at",
             "summary_ko", "summary_en", "implication_ko", "implication_en",
         )
+        valid_slugs = {t["slug"] for t in load_topics()}
         for i, a in enumerate(articles):
             if not isinstance(a, dict):
                 problems.append(f"articles[{i}]가 객체가 아닙니다")
@@ -322,6 +464,25 @@ def load_digest(path: Path) -> dict:
             missing = [k for k in required if not str(a.get(k) or "").strip()]
             if missing:
                 problems.append(f"articles[{i}] ({a.get('title', '제목없음')!r}) 필드 누락/빈값: {', '.join(missing)}")
+
+            # topics는 선택 필드지만(과거 아카이브에는 없다), 있으면 config/topics.json의
+            # 슬러그여야 한다 — 오타 하나를 통과시키면 그 기사만 어느 토픽 페이지에도
+            # 안 잡힌 채 조용히 사라진다. 그래서 유효 목록을 붙여 즉시 실패시킨다.
+            topics = a.get("topics")
+            if topics is not None:
+                if not isinstance(topics, list):
+                    problems.append(f'articles[{i}]의 "topics"는 배열이어야 합니다 (실제: {type(topics).__name__})')
+                else:
+                    unknown = [t for t in topics if t not in valid_slugs]
+                    if unknown:
+                        problems.append(
+                            f"articles[{i}]의 topics에 등록되지 않은 슬러그: {', '.join(map(str, unknown))} "
+                            f"(config/topics.json에 있는 값: {', '.join(sorted(valid_slugs))})"
+                        )
+
+            count = a.get("cross_source_count")
+            if count is not None and (not isinstance(count, int) or isinstance(count, bool) or count < 0):
+                problems.append(f'articles[{i}]의 "cross_source_count"는 0 이상의 정수여야 합니다 (실제: {count!r})')
 
     insight = digest.get("daily_insight")
     if insight is not None:
@@ -353,8 +514,12 @@ def main():
     reading_minutes_ko, reading_minutes_en = estimate_reading_minutes(raw_digest)
 
     source_types = load_source_types()
+    # 슬러그만으로는 화면에 라벨을 찍을 수 없으므로, source_type과 같은 방식으로
+    # 렌더링에 필요한 토픽 정보를 기사에 미리 붙여둔다(템플릿에서 조회 로직 없이 쓰도록).
+    topic_lookup = {t["slug"]: t for t in load_topics()}
     for article in digest.get("articles", []):
         article["source_type"] = source_types.get(article.get("source"), "press")
+        article["topic_chips"] = [topic_lookup[s] for s in (article.get("topics") or []) if s in topic_lookup]
 
     glossary_lookup = apply_glossary(digest)  # articles/daily_insight의 텍스트를 in-place로 치환
 
@@ -381,8 +546,11 @@ def main():
     og_image_url = seo_utils.build_og_image_url(site_url, docs_dir, date, raw_headline_ko)
 
     glossary_terms = collect_glossary_terms(archive_dir)
-    glossary_og_image_url = f"{site_url}/og-image.png"  # 용어사전은 날짜성 콘텐츠가 아니라 범용 카드 재사용
-    glossary_count = build_glossary_page(docs_dir, glossary_terms, site_url, verification, glossary_og_image_url)
+    generic_og_image_url = f"{site_url}/og-image.png"  # 용어사전·토픽은 날짜성 콘텐츠가 아니라 범용 카드 재사용
+    glossary_count = build_glossary_page(docs_dir, glossary_terms, site_url, verification, generic_og_image_url)
+    topic_page_count, tagged_count = build_topic_pages(docs_dir, archive_dir, site_url, verification, generic_og_image_url)
+    site_stats = collect_site_stats(archive_dir, glossary_count)
+    faq = seo_utils.load_faq()
 
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -416,16 +584,20 @@ def main():
         show_weekly_banner=show_weekly_banner,
         archive_link_prefix="archive/",
         weekly_link_prefix="weekly/",
+        topic_link_prefix="topics/",
+        feed_href="feed.xml",
         css_prefix="",
         home_link=None,
         is_archive=False,
+        site_stats=site_stats,
+        faq=faq,
         canonical_url=index_url,
         og_image_url=og_image_url,
         google_site_verification=verification["google_site_verification"],
         naver_site_verification=verification["naver_site_verification"],
         hreflang_ko_url=index_url,
         hreflang_en_url=en_url,
-        jsonld=seo_utils.build_archive_page_jsonld(site_url, index_url, date, generated_at, articles, daily_insight),
+        jsonld=seo_utils.build_archive_page_jsonld(site_url, index_url, date, generated_at, articles, daily_insight, faq),
     )
     (docs_dir / "index.html").write_text(index_html, encoding="utf-8")
 
@@ -450,17 +622,21 @@ def main():
         show_weekly_banner=show_weekly_banner,
         archive_link_prefix="../archive/",
         weekly_link_prefix="../weekly/",
+        topic_link_prefix="../topics/",
+        feed_href="feed.xml",  # /en/feed.xml — 영어 항목으로 채워진 별도 피드
         css_prefix="../",
         home_link=None,
         is_archive=False,
         default_lang="en",
+        site_stats=site_stats,
+        faq=faq,
         canonical_url=en_url,
         og_image_url=og_image_url,
         google_site_verification=verification["google_site_verification"],
         naver_site_verification=verification["naver_site_verification"],
         hreflang_ko_url=index_url,
         hreflang_en_url=en_url,
-        jsonld=seo_utils.build_archive_page_jsonld(site_url, en_url, date, generated_at, articles, daily_insight),
+        jsonld=seo_utils.build_archive_page_jsonld(site_url, en_url, date, generated_at, articles, daily_insight, faq),
     )
     (en_dir / "index.html").write_text(en_index_html, encoding="utf-8")
 
@@ -479,9 +655,15 @@ def main():
         show_weekly_banner=False,
         archive_link_prefix="",
         weekly_link_prefix="../weekly/",
+        topic_link_prefix="../topics/",
+        feed_href="../feed.xml",
         css_prefix="../",
         home_link="../index.html",
         is_archive=True,
+        site_stats=site_stats,
+        # FAQ는 홈에만 — 아카이브 페이지마다 같은 문답이 반복되면 중복 콘텐츠이고,
+        # 매일 늘어나는 페이지 전부에 FAQPage 마크업이 붙는 것도 바람직하지 않다.
+        faq=None,
         canonical_url=archive_url,
         og_image_url=og_image_url,
         google_site_verification=verification["google_site_verification"],
@@ -490,12 +672,17 @@ def main():
     )
     (archive_dir / f"{date}.html").write_text(archive_html, encoding="utf-8")
 
+    # sitemap보다 먼저 부를 이유는 없지만, 피드도 아카이브 전량 재스캔이라 이 날짜의
+    # archive JSON이 이미 저장된 뒤여야 오늘자가 첫 항목으로 들어간다.
+    feed_count = seo_utils.build_rss_feed(docs_dir, site_url, "ko")
+    seo_utils.build_rss_feed(docs_dir, site_url, "en")
     sitemap_count = seo_utils.build_sitemap(docs_dir, site_url, date)
 
     print(f"생성 완료: {docs_dir / 'index.html'}, {archive_dir / f'{date}.html'}")
     print(
         f"기사 {len(articles)}건, 지난 아카이브 {len(past_archives)}건, 검색 인덱스 {indexed_count}건, "
-        f"용어사전 {glossary_count}건, sitemap {sitemap_count}건"
+        f"용어사전 {glossary_count}건, 토픽 페이지 {topic_page_count}개(분류된 기사 {tagged_count}건), "
+        f"피드 {feed_count}건, sitemap {sitemap_count}건"
     )
 
 

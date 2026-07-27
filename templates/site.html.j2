@@ -27,6 +27,7 @@
 <meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
 <meta name="twitter:image" content="{{ og_image_url }}">
 <link rel="icon" type="image/svg+xml" href="{{ css_prefix }}favicon.svg">
+<link rel="alternate" type="application/rss+xml" title="{{ title_default }}" href="{{ feed_href }}">
 {% if hreflang_ko_url and hreflang_en_url %}
 <link rel="alternate" hreflang="ko" href="{{ hreflang_ko_url }}">
 <link rel="alternate" hreflang="en" href="{{ hreflang_en_url }}">
@@ -78,6 +79,10 @@
 </a>
 <header class="site-header">
   <div class="utility-bar">
+    <a class="glossary-nav-link" href="{{ topic_link_prefix }}index.html">
+      <span class="lang-ko">주제별</span>
+      <span class="lang-en">Topics</span>
+    </a>
     <a class="glossary-nav-link" href="{{ css_prefix }}glossary.html">
       <span class="lang-ko">용어사전</span>
       <span class="lang-en">Glossary</span>
@@ -130,6 +135,14 @@
         <span class="mission-para mission-emphasis">The goal isn't just what happened, but why it matters, so scattered daily headlines add up to a coherent read on where AI is heading.</span>
       </span>
     </p>
+    {% if site_stats and site_stats.days %}
+    {# 구독자 수 대신 '얼마나 꾸준히 나왔는가'를 보여준다 — 규모가 작을 때도 정직하게
+       쌓이는 신뢰 신호이고, 시작 시점부터 스스로 늘어나서 손댈 일이 없다. #}
+    <p class="site-stats">
+      <span class="lang-ko">브리핑 {{ site_stats.days }}일 · 기사 {{ site_stats.articles }}건 · 용어 {{ site_stats.terms }}개{% if site_stats.since %} · {{ site_stats.since }}부터 하루도 빠짐없이{% endif %}</span>
+      <span class="lang-en">{{ site_stats.days }} editions · {{ site_stats.articles }} stories · {{ site_stats.terms }} terms explained{% if site_stats.since %} · every day since {{ site_stats.since }}{% endif %}</span>
+    </p>
+    {% endif %}
   </div>
 </header>
 
@@ -253,8 +266,23 @@
           <span class="lang-en">Press</span>
         </span>
         {% endif %}
+        {% if article.cross_source_count and article.cross_source_count >= 2 %}
+        {# 여러 매체가 같은 사건을 동시에 다뤘다는 신호. 이 수치는 기사를 고를 때 이미
+           쓰이는데(fetch_articles.py) 지금까지 화면에 드러나지 않았다. 1은 우연히
+           겹친 경우가 많아 노이즈라 2부터만 표시한다. #}
+        <span class="badge coverage-badge">
+          <span class="lang-ko">{{ article.cross_source_count }}개 매체 동시 보도</span>
+          <span class="lang-en">Covered by {{ article.cross_source_count }} more outlets</span>
+        </span>
+        {% endif %}
         <span class="dot">·</span>
         <span class="published">{{ article.published_at[:10] }}</span>
+        {% for t in article.topic_chips %}
+        <a class="topic-chip" href="{{ topic_link_prefix }}{{ t.slug }}.html">
+          <span class="lang-ko">{{ t.label_ko }}</span>
+          <span class="lang-en">{{ t.label_en }}</span>
+        </a>
+        {% endfor %}
       </div>
       <h2 class="article-title">
         <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
@@ -312,12 +340,43 @@
     </ul>
   </section>
   {% endif %}
+
+  {% if faq %}
+  {# 홈(/, /en/)에만 렌더링된다 — 매일 늘어나는 아카이브 페이지마다 같은 문답이
+     반복되면 중복 콘텐츠이고, FAQPage 마크업도 한 URL에만 있어야 한다.
+     기본은 접힌 상태(<details>)라 본문 흐름을 밀어내지 않는다. #}
+  <section class="faq-section" aria-label="자주 묻는 질문" data-aria-ko="자주 묻는 질문" data-aria-en="Frequently asked questions">
+    <h2 class="archive-title">
+      <span class="lang-ko">자주 묻는 질문</span>
+      <span class="lang-en">Frequently Asked</span>
+    </h2>
+    {% for f in faq %}
+    <details class="faq-item">
+      <summary class="faq-question">
+        <span class="lang-ko">{{ f.question_ko }}</span>
+        <span class="lang-en">{{ f.question_en }}</span>
+      </summary>
+      <p class="faq-answer">
+        <span class="lang-ko">{{ f.answer_ko }}</span>
+        <span class="lang-en">{{ f.answer_en }}</span>
+      </p>
+    </details>
+    {% endfor %}
+  </section>
+  {% endif %}
 </main>
 
 <footer class="site-footer">
   <p>
     <span class="lang-ko">매일 08:00 KST 자동 생성 · 마지막 생성: {{ generated_at }}</span>
     <span class="lang-en">Auto-generated daily at 08:00 KST · Last updated: {{ generated_at }}</span>
+  </p>
+  <p class="footer-links">
+    <a href="{{ feed_href }}">RSS</a>
+    <span aria-hidden="true">·</span>
+    <a href="{{ topic_link_prefix }}index.html"><span class="lang-ko">주제별 보기</span><span class="lang-en">Topics</span></a>
+    <span aria-hidden="true">·</span>
+    <a href="{{ css_prefix }}glossary.html"><span class="lang-ko">용어사전</span><span class="lang-en">Glossary</span></a>
   </p>
 </footer>
 

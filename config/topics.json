@@ -1,0 +1,89 @@
+{
+  "_comment": "기사 주제 분류를 위한 고정 taxonomy. 자유 태그가 아니라 닫힌 목록인 이유: 하루 10건 규모에서 자유 태그를 허용하면 태그당 1~2건짜리 페이지가 양산되고(검색엔진의 thin content), 같은 주제가 매일 다른 이름으로 붙어 태그 페이지가 축적되지 않는다. 슬러그는 URL(/topics/<slug>)이 되므로 한 번 정하면 바꾸지 않는다 — 추가는 안전하지만 이름 변경/삭제는 기존 링크를 깬다.",
+  "topics": [
+    {
+      "slug": "models",
+      "label_ko": "모델·연구",
+      "label_en": "Models & Research",
+      "description_ko": "새 모델 공개, 벤치마크 결과, 학습 기법과 논문 등 모델 자체에 관한 소식.",
+      "description_en": "New model releases, benchmark results, training techniques, and research papers."
+    },
+    {
+      "slug": "agents",
+      "label_ko": "에이전트·개발도구",
+      "label_en": "Agents & Dev Tools",
+      "description_ko": "AI 에이전트, 코딩 도우미, 개발자용 프레임워크와 API에 관한 소식.",
+      "description_en": "AI agents, coding assistants, developer frameworks, and APIs."
+    },
+    {
+      "slug": "infra",
+      "label_ko": "인프라·반도체",
+      "label_en": "Infrastructure & Chips",
+      "description_ko": "GPU와 AI 전용 칩, 데이터센터, 전력과 학습 인프라에 관한 소식.",
+      "description_en": "GPUs and AI accelerators, data centers, power, and training infrastructure."
+    },
+    {
+      "slug": "business",
+      "label_ko": "기업·투자",
+      "label_en": "Business & Funding",
+      "description_ko": "투자 유치, 인수합병, 실적, 인재 이동 등 AI 기업의 경영에 관한 소식.",
+      "description_en": "Funding rounds, acquisitions, earnings, and talent moves at AI companies."
+    },
+    {
+      "slug": "policy",
+      "label_ko": "정책·규제",
+      "label_en": "Policy & Regulation",
+      "description_ko": "각국 정부의 AI 규제, 입법, 소송과 저작권 분쟁에 관한 소식.",
+      "description_en": "Government AI regulation, legislation, lawsuits, and copyright disputes."
+    },
+    {
+      "slug": "safety",
+      "label_ko": "안전·정렬",
+      "label_en": "Safety & Alignment",
+      "description_ko": "모델 안전성, 정렬 연구, 오용과 보안 취약점에 관한 소식.",
+      "description_en": "Model safety, alignment research, misuse, and security vulnerabilities."
+    },
+    {
+      "slug": "products",
+      "label_ko": "제품·서비스",
+      "label_en": "Products & Services",
+      "description_ko": "일반 사용자와 기업이 실제로 쓰는 AI 제품·기능 출시에 관한 소식.",
+      "description_en": "AI products and features shipping to consumers and enterprises."
+    },
+    {
+      "slug": "opensource",
+      "label_ko": "오픈소스",
+      "label_en": "Open Source",
+      "description_ko": "공개 가중치 모델, 오픈소스 라이브러리와 데이터셋에 관한 소식.",
+      "description_en": "Open-weight models, open-source libraries, and public datasets."
+    },
+    {
+      "slug": "robotics",
+      "label_ko": "로보틱스·피지컬 AI",
+      "label_en": "Robotics & Physical AI",
+      "description_ko": "로봇, 자율주행, 물리 세계에서 작동하는 AI에 관한 소식.",
+      "description_en": "Robots, autonomous vehicles, and AI acting in the physical world."
+    },
+    {
+      "slug": "data",
+      "label_ko": "데이터·학습",
+      "label_en": "Data & Training",
+      "description_ko": "학습 데이터 확보와 라이선싱, 데이터 품질과 합성 데이터에 관한 소식.",
+      "description_en": "Training data sourcing and licensing, data quality, and synthetic data."
+    },
+    {
+      "slug": "society",
+      "label_ko": "사회·노동",
+      "label_en": "Society & Work",
+      "description_ko": "AI가 일자리, 교육, 사회 전반에 미치는 영향에 관한 소식.",
+      "description_en": "AI's impact on jobs, education, and society at large."
+    },
+    {
+      "slug": "media",
+      "label_ko": "생성 미디어",
+      "label_en": "Generative Media",
+      "description_ko": "이미지·영상·음성·음악 생성 모델과 그 활용에 관한 소식.",
+      "description_en": "Image, video, speech, and music generation models and their use."
+    }
+  ]
+}

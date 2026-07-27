@@ -224,6 +224,175 @@ class TestDigestValidation(unittest.TestCase):
         }
         self.assertRejects(payload, "paragraphs_ko")
 
+    def test_topics_may_be_omitted(self):
+        # 과거 아카이브에는 topics가 없다 — 선택 필드로 남겨두지 않으면 재생성이 깨진다.
+        d = self.load({"date": "2026-07-26", "articles": [self.GOOD_ARTICLE]})
+        self.assertIsNone(d["articles"][0].get("topics"))
+
+    def test_known_topic_slug_passes(self):
+        from generate_site import load_topics
+
+        slug = load_topics()[0]["slug"]
+        good = dict(self.GOOD_ARTICLE, topics=[slug])
+        d = self.load({"date": "2026-07-26", "articles": [good]})
+        self.assertEqual(d["articles"][0]["topics"], [slug])
+
+    def test_unknown_topic_slug_is_rejected_with_valid_list(self):
+        # 오타를 통과시키면 그 기사만 어느 토픽 페이지에도 안 잡힌 채 조용히 사라진다.
+        bad = dict(self.GOOD_ARTICLE, topics=["not-a-real-topic"])
+        with self.assertRaises(SystemExit) as cm:
+            self.load({"date": "2026-07-26", "articles": [bad]})
+        message = str(cm.exception)
+        self.assertIn("not-a-real-topic", message)
+        self.assertIn("config/topics.json", message)  # 유효 목록을 함께 보여줘야 고칠 수 있다
+
+    def test_topics_must_be_a_list(self):
+        bad = dict(self.GOOD_ARTICLE, topics="models")
+        self.assertRejects({"date": "2026-07-26", "articles": [bad]}, "topics")
+
+    def test_cross_source_count_must_be_non_negative_int(self):
+        for value in (-1, "3", 1.5):
+            with self.subTest(value=value):
+                bad = dict(self.GOOD_ARTICLE, cross_source_count=value)
+                self.assertRejects({"date": "2026-07-26", "articles": [bad]}, "cross_source_count")
+
+
+class TestArchiveJsonRoundTrip(unittest.TestCase):
+    """docs/archive/*.json은 토픽 페이지·커버리지 배지가 과거 데이터를 읽는 유일한
+    경로다(data/*.json은 커밋되지 않는다) — 여기서 필드가 빠지면 조용히 사라진다."""
+
+    def _save_and_load(self, article):
+        import json
+        import tempfile
+        from generate_site import save_archive_json
+
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = Path(tmp)
+            save_archive_json(archive, {"date": "2026-07-26", "articles": [article]})
+            return json.loads((archive / "2026-07-26.json").read_text(encoding="utf-8"))["articles"][0]
+
+    def test_topics_and_count_survive(self):
+        saved = self._save_and_load(
+            {"title": "T", "link": "http://x", "source": "S", "topics": ["models", "safety"], "cross_source_count": 3}
+        )
+        self.assertEqual(saved["topics"], ["models", "safety"])
+        self.assertEqual(saved["cross_source_count"], 3)
+
+    def test_missing_fields_become_safe_defaults(self):
+        saved = self._save_and_load({"title": "T", "link": "http://x", "source": "S"})
+        self.assertEqual(saved["topics"], [])
+        self.assertEqual(saved["cross_source_count"], 0)
+
+
+class TestSiteStats(unittest.TestCase):
+    """랜딩의 신뢰 지표는 아카이브에서 자동 계산된다 — 손으로 고칠 값이 아니다."""
+
+    def _stats(self, days):
+        import json
+        import tempfile
+        from generate_site import collect_site_stats
+
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = Path(tmp)
+            for date, count in days:
+                payload = {"date": date, "articles": [{"title": f"a{i}"} for i in range(count)]}
+                (archive / f"{date}.json").write_text(json.dumps(payload), encoding="utf-8")
+            # 발송 마커는 브리핑이 아니므로 일수에 세면 안 된다
+            (archive / "2026-07-23.sent.json").write_text('{"recipient_count": 1}', encoding="utf-8")
+            return collect_site_stats(archive, glossary_count=7)
+
+    def test_counts_days_articles_and_start_date(self):
+        stats = self._stats([("2026-07-23", 10), ("2026-07-24", 9), ("2026-07-25", 10)])
+        self.assertEqual(stats["days"], 3)
+        self.assertEqual(stats["articles"], 29)
+        self.assertEqual(stats["since"], "2026-07-23")
+        self.assertEqual(stats["terms"], 7)
+
+    def test_empty_archive_reports_zero_without_crashing(self):
+        stats = self._stats([])
+        self.assertEqual(stats["days"], 0)
+        self.assertIsNone(stats["since"])
+
+
+class TestRssFeed(unittest.TestCase):
+    """피드는 아카이브 전량을 매번 다시 스캔해 재작성하는 멱등 산출물이다."""
+
+    def _build(self, lang="ko"):
+        import json
+        import tempfile
+        from xml.etree import ElementTree
+
+        from seo_utils import build_rss_feed
+
+        with tempfile.TemporaryDirectory() as tmp:
+            docs = Path(tmp)
+            archive = docs / "archive"
+            archive.mkdir()
+            for date in ("2026-07-25", "2026-07-26"):
+                (archive / f"{date}.json").write_text(
+                    json.dumps(
+                        {
+                            "date": date,
+                            "generated_at": f"{date}T08:00:00",
+                            "daily_insight": {"headline_ko": f"헤드라인 {date}", "headline_en": f"Headline {date}",
+                                              "paragraphs_ko": ["첫 문단"], "paragraphs_en": ["First para"]},
+                            "articles": [{"title": "T & <b>", "link": "http://x?a=1&b=2",
+                                          "summary_ko": "요약", "summary_en": "Summary"}],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+            # 발송 마커가 피드 항목으로 새어 들어가면 안 된다
+            (archive / "2026-07-26.sent.json").write_text('{"recipient_count": 1}', encoding="utf-8")
+            count = build_rss_feed(docs, "https://example.com", lang)
+            path = docs / "en" / "feed.xml" if lang == "en" else docs / "feed.xml"
+            return count, ElementTree.fromstring(path.read_text(encoding="utf-8"))
+
+    def test_feed_is_well_formed_with_one_item_per_day(self):
+        count, root = self._build()
+        self.assertEqual(count, 2)
+        items = root.findall("./channel/item")
+        self.assertEqual(len(items), 2)
+        # 최신 날짜가 먼저 와야 피드 리더가 올바른 순서로 보여준다
+        self.assertEqual(items[0].find("link").text, "https://example.com/archive/2026-07-26")
+
+    def test_item_title_uses_daily_insight_headline(self):
+        _, root = self._build()
+        self.assertEqual(root.find("./channel/item/title").text, "헤드라인 2026-07-26")
+
+    def test_english_feed_uses_english_fields(self):
+        _, root = self._build(lang="en")
+        self.assertEqual(root.find("./channel/item/title").text, "Headline 2026-07-26")
+        self.assertIn("First para", root.find("./channel/item/description").text)
+
+    def test_pubdate_is_rfc822_with_explicit_timezone(self):
+        # 타임존이 없으면 피드 리더마다 9시간씩 어긋나게 해석한다.
+        _, root = self._build()
+        self.assertTrue(root.find("./channel/item/pubDate").text.endswith("+0900"))
+
+    def test_content_markup_is_escaped_but_our_own_wrappers_are_not(self):
+        # description은 HTML 조각이라 두 층의 이스케이프가 겹친다. 기사 제목에 섞인
+        # <b>는 마크업이 아니라 글자로 남아야 하고(그래야 피드 리더에서 제목이 굵어지는
+        # 등 원문에 없던 서식이 생기지 않는다), 우리가 만든 <a>/<ul>은 살아 있어야 한다.
+        # XML 파싱이 통과한다는 것 자체가 & 처리가 올바르다는 뜻이기도 하다.
+        _, root = self._build()
+        description = root.find("./channel/item/description").text
+        self.assertIn("&lt;b&gt;", description)
+        self.assertIn("<ul><li><a href=", description)
+        self.assertIn("a=1&amp;b=2", description)
+
+    def test_empty_archive_still_produces_valid_channel(self):
+        import tempfile
+        from xml.etree import ElementTree
+
+        from seo_utils import build_rss_feed
+
+        with tempfile.TemporaryDirectory() as tmp:
+            docs = Path(tmp)
+            self.assertEqual(build_rss_feed(docs, "https://example.com"), 0)
+            root = ElementTree.fromstring((docs / "feed.xml").read_text(encoding="utf-8"))
+        self.assertEqual(len(root.findall("./channel/item")), 0)
+
 
 class TestSentMarker(unittest.TestCase):
     """부분 발송 마커에 구독자 이메일이 새어 들어가면 안 된다 — 공개 저장소에 커밋된다."""

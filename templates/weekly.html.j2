@@ -22,6 +22,7 @@
 <meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
 <meta name="twitter:image" content="{{ og_image_url }}">
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="alternate" type="application/rss+xml" title="AI 뉴스 브리핑" href="../feed.xml">
 {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
 {% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
 <script type="application/ld+json">{{ jsonld|tojson }}</script>
@@ -61,6 +62,10 @@
 </a>
 <header class="site-header">
   <div class="utility-bar">
+    <a class="glossary-nav-link" href="../topics/index.html">
+      <span class="lang-ko">주제별</span>
+      <span class="lang-en">Topics</span>
+    </a>
     <a class="glossary-nav-link" href="../glossary.html">
       <span class="lang-ko">용어사전</span>
       <span class="lang-en">Glossary</span>
@@ -173,6 +178,13 @@
   <p>
     <span class="lang-ko">매주 일요일 자동 생성 · 마지막 생성: {{ generated_at }}</span>
     <span class="lang-en">Auto-generated every Sunday · Last updated: {{ generated_at }}</span>
+  </p>
+  <p class="footer-links">
+    <a href="../feed.xml">RSS</a>
+    <span aria-hidden="true">·</span>
+    <a href="../topics/index.html"><span class="lang-ko">주제별 보기</span><span class="lang-en">Topics</span></a>
+    <span aria-hidden="true">·</span>
+    <a href="../glossary.html"><span class="lang-ko">용어사전</span><span class="lang-en">Glossary</span></a>
   </p>
 </footer>
 

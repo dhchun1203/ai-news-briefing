@@ -6,7 +6,8 @@
 
 
 
-<html lang="ko" data-lang="ko" data-title-ko="AI 뉴스 브리핑 — 2026-07-24 (지난 기록)" data-title-en="AI News Briefing — 2026-07-24 (Archive)">
+<html lang="ko" data-lang="ko" data-title-ko="AI 뉴스 브리핑 — 2026-07-24 (지난 기록)" data-title-en="AI News Briefing — 2026-07-24 (Archive)"
+      data-default-lang="ko" data-asset-prefix="../" data-archive-prefix="">
 <head>
 <meta charset="UTF-8">
 <title>AI 뉴스 브리핑 — 2026-07-24 (지난 기록)</title>
@@ -26,6 +27,7 @@
 <meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
 <meta name="twitter:image" content="https://www.dailyaithread.com/og/2026-07-24.png">
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="alternate" type="application/rss+xml" title="AI 뉴스 브리핑 — 2026-07-24 (지난 기록)" href="../feed.xml">
 
 
 <meta name="naver-site-verification" content="dc1f1b7afe7e5fd35492bb281219bfea4c5d8424">
@@ -69,6 +71,10 @@
 </a>
 <header class="site-header">
   <div class="utility-bar">
+    <a class="glossary-nav-link" href="../topics/index.html">
+      <span class="lang-ko">주제별</span>
+      <span class="lang-en">Topics</span>
+    </a>
     <a class="glossary-nav-link" href="../glossary.html">
       <span class="lang-ko">용어사전</span>
       <span class="lang-en">Glossary</span>
@@ -77,10 +83,10 @@
       <button id="share-button" class="share-button" type="button" aria-label="링크 복사 / Copy link">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
       </button>
-      <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite">
-        <span class="lang-ko">복사되었습니다</span>
-        <span class="lang-en">Copied!</span>
-      </span>
+      <!-- 비워둔 채 시작해야 한다: aria-live는 CSS 변화가 아니라 "내용이 바뀌는" 순간에만
+           읽어준다. 문구를 미리 넣어두면 복사해도 스크린리더가 아무 말도 하지 않는다.
+           복사 시점에 site.js가 현재 언어에 맞는 문구를 채운다. -->
+      <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite"></span>
     </div>
     <div class="lang-select" id="lang-select">
       <button type="button" class="lang-select-trigger" id="lang-select-trigger" aria-haspopup="listbox" aria-expanded="false">
@@ -93,7 +99,7 @@
         <li role="option" tabindex="-1" data-lang-value="en">English</li>
       </ul>
     </div>
-    <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환">
+    <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환" data-aria-ko="다크모드 전환" data-aria-en="Toggle dark mode">
       <span class="theme-toggle-thumb">
         <span class="icon-moon" aria-hidden="true">&#9789;</span>
         <span class="icon-sun" aria-hidden="true">&#9728;</span>
@@ -121,6 +127,13 @@
         <span class="mission-para mission-emphasis">The goal isn't just what happened, but why it matters, so scattered daily headlines add up to a coherent read on where AI is heading.</span>
       </span>
     </p>
+    
+    
+    <p class="site-stats">
+      <span class="lang-ko">브리핑 5일 · 기사 50건 · 용어 23개 · 2026-07-23부터 하루도 빠짐없이</span>
+      <span class="lang-en">5 editions · 50 stories · 23 terms explained · every day since 2026-07-23</span>
+    </p>
+    
   </div>
 </header>
 
@@ -150,7 +163,7 @@
   
 
   
-  <section class="insight" aria-label="오늘의 인사이트">
+  <section class="insight" aria-label="오늘의 인사이트" data-aria-ko="오늘의 인사이트" data-aria-en="Today's insight">
     <p class="insight-label">
       <span class="lang-ko">오늘의 인사이트</span>
       <span class="lang-en">Today's Insight</span>
@@ -180,7 +193,7 @@
   </section>
   
 
-  <section class="subscribe-box" aria-label="이메일 구독">
+  <section class="subscribe-box" aria-label="이메일 구독" data-aria-ko="이메일 구독" data-aria-en="Email subscription">
     <p class="subscribe-title">
       <span class="lang-ko">매일 아침 이메일로 받아보기</span>
       <span class="lang-en">Get it in your inbox every morning</span>
@@ -190,7 +203,7 @@
       <span class="lang-en">Daily headlines and summaries, plus a synthesis of the week every Sunday.</span>
     </p>
     <form class="subscribe-form" id="subscribe-form">
-      <input type="email" name="email" required class="subscribe-input" placeholder="you@example.com" aria-label="이메일 주소">
+      <input type="email" name="email" required class="subscribe-input" placeholder="you@example.com" aria-label="이메일 주소" data-aria-ko="이메일 주소" data-aria-en="Email address">
       <button type="submit" class="subscribe-submit">
         <span class="lang-ko">구독하기</span>
         <span class="lang-en">Subscribe</span>
@@ -200,7 +213,7 @@
   </section>
 
   
-  <nav class="toc" aria-label="목차">
+  <nav class="toc" aria-label="목차" data-aria-ko="목차" data-aria-en="Table of contents">
     <h2 class="toc-title">
       <span class="lang-ko">목차</span>
       <span class="lang-en">Contents</span>
@@ -242,8 +255,15 @@
           <span class="lang-en">Community</span>
         </span>
         
+        
         <span class="dot">·</span>
         <span class="published">2026-07-23</span>
+        
+        <a class="topic-chip" href="../topics/infra.html">
+          <span class="lang-ko">인프라·반도체</span>
+          <span class="lang-en">Infrastructure &amp; Chips</span>
+        </a>
+        
       </div>
       <h2 class="article-title">
         <a href="https://thedailycompute.beehiiv.com/p/google-reportedly-working-on-ultra-efficient-ai-chip-for-gemini" target="_blank" rel="noopener noreferrer">Google reportedly working on ultra-efficient AI chip for Gemini</a>
@@ -275,8 +295,20 @@
           <span class="lang-en">Press</span>
         </span>
         
+        
         <span class="dot">·</span>
         <span class="published">2026-07-23</span>
+        
+        <a class="topic-chip" href="../topics/products.html">
+          <span class="lang-ko">제품·서비스</span>
+          <span class="lang-en">Products &amp; Services</span>
+        </a>
+        
+        <a class="topic-chip" href="../topics/business.html">
+          <span class="lang-ko">기업·투자</span>
+          <span class="lang-en">Business &amp; Funding</span>
+        </a>
+        
       </div>
       <h2 class="article-title">
         <a href="https://techcrunch.com/2026/07/23/google-closes-in-on-another-billion-user-product-with-gemini/" target="_blank" rel="noopener noreferrer">Google’s Gemini nears billion-user milestone</a>
@@ -308,8 +340,15 @@
           <span class="lang-en">Press</span>
         </span>
         
+        
         <span class="dot">·</span>
         <span class="published">2026-07-21</span>
+        
+        <a class="topic-chip" href="../topics/models.html">
+          <span class="lang-ko">모델·연구</span>
+          <span class="lang-en">Models &amp; Research</span>
+        </a>
+        
       </div>
       <h2 class="article-title">
         <a href="https://arstechnica.com/google/2026/07/google-reveals-faster-and-cheaper-gemini-3-6-flash-says-3-5-pro-is-still-in-testing/" target="_blank" rel="noopener noreferrer">Google announces Gemini 3.6 Flash and cybersecurity AI, teases 3.5 Pro and Gemini 4</a>
@@ -341,8 +380,15 @@
           <span class="lang-en">Official</span>
         </span>
         
+        
         <span class="dot">·</span>
         <span class="published">2026-07-21</span>
+        
+        <a class="topic-chip" href="../topics/models.html">
+          <span class="lang-ko">모델·연구</span>
+          <span class="lang-en">Models &amp; Research</span>
+        </a>
+        
       </div>
       <h2 class="article-title">
         <a href="https://deepmind.google/blog/introducing-gemini-36-flash-35-flash-lite-and-35-flash-cyber/" target="_blank" rel="noopener noreferrer">Introducing Gemini 3.6 Flash, 3.5 Flash-Lite, and 3.5 Flash Cyber</a>
@@ -374,8 +420,20 @@
           <span class="lang-en">Official</span>
         </span>
         
+        
         <span class="dot">·</span>
         <span class="published">2026-07-17</span>
+        
+        <a class="topic-chip" href="../topics/models.html">
+          <span class="lang-ko">모델·연구</span>
+          <span class="lang-en">Models &amp; Research</span>
+        </a>
+        
+        <a class="topic-chip" href="../topics/safety.html">
+          <span class="lang-ko">안전·정렬</span>
+          <span class="lang-en">Safety &amp; Alignment</span>
+        </a>
+        
       </div>
       <h2 class="article-title">
         <a href="https://deepmind.google/blog/introducing-gemini-3-5-flash-cyber/" target="_blank" rel="noopener noreferrer">Introducing Gemini 3.5 Flash Cyber</a>
@@ -407,8 +465,20 @@
           <span class="lang-en">Press</span>
         </span>
         
+        
         <span class="dot">·</span>
         <span class="published">2026-07-23</span>
+        
+        <a class="topic-chip" href="../topics/business.html">
+          <span class="lang-ko">기업·투자</span>
+          <span class="lang-en">Business &amp; Funding</span>
+        </a>
+        
+        <a class="topic-chip" href="../topics/safety.html">
+          <span class="lang-ko">안전·정렬</span>
+          <span class="lang-en">Safety &amp; Alignment</span>
+        </a>
+        
       </div>
       <h2 class="article-title">
         <a href="https://techcrunch.com/2026/07/23/aegisai-founded-by-former-google-security-execs-lands-36m-to-stop-ai-driven-spear-phishing/" target="_blank" rel="noopener noreferrer">AegisAI, founded by former Google security execs, lands $36M to stop AI-driven spear phishing</a>
@@ -440,8 +510,20 @@
           <span class="lang-en">Press</span>
         </span>
         
+        
         <span class="dot">·</span>
         <span class="published">2026-07-23</span>
+        
+        <a class="topic-chip" href="../topics/business.html">
+          <span class="lang-ko">기업·투자</span>
+          <span class="lang-en">Business &amp; Funding</span>
+        </a>
+        
+        <a class="topic-chip" href="../topics/infra.html">
+          <span class="lang-ko">인프라·반도체</span>
+          <span class="lang-en">Infrastructure &amp; Chips</span>
+        </a>
+        
       </div>
       <h2 class="article-title">
         <a href="https://arstechnica.com/google/2026/07/google-just-had-its-first-negative-cash-flow-quarter-ever-due-to-massive-ai-spending/" target="_blank" rel="noopener noreferrer">Google just had its first negative cash flow quarter due to massive AI spending</a>
@@ -473,8 +555,15 @@
           <span class="lang-en">Official</span>
         </span>
         
+        
         <span class="dot">·</span>
         <span class="published">2026-07-22</span>
+        
+        <a class="topic-chip" href="../topics/products.html">
+          <span class="lang-ko">제품·서비스</span>
+          <span class="lang-en">Products &amp; Services</span>
+        </a>
+        
       </div>
       <h2 class="article-title">
         <a href="https://blog.google/products-and-platforms/platforms/android/galaxy-unpacked-2026/" target="_blank" rel="noopener noreferrer">3 Google updates from Galaxy Unpacked 2026</a>
@@ -506,8 +595,20 @@
           <span class="lang-en">Official</span>
         </span>
         
+        
         <span class="dot">·</span>
         <span class="published">2026-07-22</span>
+        
+        <a class="topic-chip" href="../topics/agents.html">
+          <span class="lang-ko">에이전트·개발도구</span>
+          <span class="lang-en">Agents &amp; Dev Tools</span>
+        </a>
+        
+        <a class="topic-chip" href="../topics/products.html">
+          <span class="lang-ko">제품·서비스</span>
+          <span class="lang-en">Products &amp; Services</span>
+        </a>
+        
       </div>
       <h2 class="article-title">
         <a href="https://openai.com/index/introducing-openai-presence" target="_blank" rel="noopener noreferrer">Introducing OpenAI Presence</a>
@@ -539,8 +640,20 @@
           <span class="lang-en">Press</span>
         </span>
         
+        
         <span class="dot">·</span>
         <span class="published">2026-07-17</span>
+        
+        <a class="topic-chip" href="../topics/policy.html">
+          <span class="lang-ko">정책·규제</span>
+          <span class="lang-en">Policy &amp; Regulation</span>
+        </a>
+        
+        <a class="topic-chip" href="../topics/media.html">
+          <span class="lang-ko">생성 미디어</span>
+          <span class="lang-en">Generative Media</span>
+        </a>
+        
       </div>
       <h2 class="article-title">
         <a href="https://arstechnica.com/tech-policy/2026/07/apple-google-must-stop-profiting-off-ai-nudify-apps-san-francisco-ag-says/" target="_blank" rel="noopener noreferrer">San Francisco orders Apple, Google to remove nudify apps from app stores</a>
@@ -579,7 +692,27 @@
     </div>
     <ul class="archive-list">
       
+      <li><a href="2026-07-27.html">2026-07-27</a></li>
+      
+      <li><a href="2026-07-26.html">2026-07-26</a></li>
+      
+      <li><a href="2026-07-25.html">2026-07-25</a></li>
+      
       <li><a href="2026-07-23.html">2026-07-23</a></li>
+      
+    </ul>
+  </section>
+  
+
+  
+  <section class="archive-section archive-section--weekly">
+    <h2 class="archive-title">
+      <span class="lang-ko">주간 회고</span>
+      <span class="lang-en">Weekly Recaps</span>
+    </h2>
+    <ul class="archive-list">
+      
+      <li><a href="../weekly/2026-W30.html">2026-W30</a></li>
       
     </ul>
   </section>
@@ -592,6 +725,13 @@
   <p>
     <span class="lang-ko">매일 08:00 KST 자동 생성 · 마지막 생성: 2026-07-23T23:14:59Z</span>
     <span class="lang-en">Auto-generated daily at 08:00 KST · Last updated: 2026-07-23T23:14:59Z</span>
+  </p>
+  <p class="footer-links">
+    <a href="../feed.xml">RSS</a>
+    <span aria-hidden="true">·</span>
+    <a href="../topics/index.html"><span class="lang-ko">주제별 보기</span><span class="lang-en">Topics</span></a>
+    <span aria-hidden="true">·</span>
+    <a href="../glossary.html"><span class="lang-ko">용어사전</span><span class="lang-en">Glossary</span></a>
   </p>
 </footer>
 
@@ -607,296 +747,6 @@
 </aside>
 <script type="application/json" id="glossary-data">{"AI agents": {"en": "AI software that goes beyond answering questions to independently carry out multi-step real-world tasks, like processing an email or approving a refund.", "ko": "\ub2e8\uc21c\ud788 \uc9c8\ubb38\uc5d0 \ub2f5\ud558\ub294 \uac78 \ub118\uc5b4, \uc5ec\ub7ec \ub2e8\uacc4\uc758 \uc2e4\uc81c \uc791\uc5c5(\uc774\uba54\uc77c \ucc98\ub9ac, \ud658\ubd88 \uc2b9\uc778 \ub4f1)\uc744 \uc2a4\uc2a4\ub85c \ud310\ub2e8\ud574 \ub300\uc2e0 \uc218\ud589\ud558\ub294 AI \ud504\ub85c\uadf8\ub7a8."}, "AI \uc5d0\uc774\uc804\ud2b8": {"en": "AI software that goes beyond answering questions to independently carry out multi-step real-world tasks, like processing an email or approving a refund.", "ko": "\ub2e8\uc21c\ud788 \uc9c8\ubb38\uc5d0 \ub2f5\ud558\ub294 \uac78 \ub118\uc5b4, \uc5ec\ub7ec \ub2e8\uacc4\uc758 \uc2e4\uc81c \uc791\uc5c5(\uc774\uba54\uc77c \ucc98\ub9ac, \ud658\ubd88 \uc2b9\uc778 \ub4f1)\uc744 \uc2a4\uc2a4\ub85c \ud310\ub2e8\ud574 \ub300\uc2e0 \uc218\ud589\ud558\ub294 AI \ud504\ub85c\uadf8\ub7a8."}, "capital expenditure": {"en": "Money spent on long-term equipment and assets, like data centers and servers \u2014 the kind of spending AI companies are pouring into infrastructure.", "ko": "\ub370\uc774\ud130\uc13c\ud130\ub098 \uc11c\ubc84\ucc98\ub7fc \uc624\ub798 \uc4f0\ub294 \uc124\ube44\u00b7\uc790\uc0b0\uc5d0 \ud22c\uc790\ud558\ub294 \uc9c0\ucd9c. AI \uae30\uc5c5\ub4e4\uc774 \ub370\uc774\ud130\uc13c\ud130 \uac74\uc124\uc5d0 \uc3df\ub294 \ub3c8\uc774 \ub300\ud45c\uc801\uc774\ub2e4."}, "deepfake": {"en": "A fake image or video created by AI to realistically swap or synthesize a person\u0027s face or body.", "ko": "AI\ub85c \uc0ac\ub78c\uc758 \uc5bc\uad74\uc774\ub098 \ubab8\uc744 \uc2e4\uc81c\ucc98\ub7fc \ud569\uc131\ud574 \ub9cc\ub4e0 \uac00\uc9dc \uc774\ubbf8\uc9c0\u00b7\uc601\uc0c1."}, "free cash flow": {"en": "The cash a company has left after paying for its investments and equipment, on top of its operating income. Negative means it\u0027s spending more than it\u0027s bringing in.", "ko": "\ud68c\uc0ac\uac00 \uc601\uc5c5\uc73c\ub85c \ubc8c\uc5b4\ub4e4\uc778 \ub3c8\uc5d0\uc11c \ud22c\uc790\u00b7\uc124\ube44 \uc9c0\ucd9c\uc744 \ube80 \ub4a4, \uc2e4\uc81c\ub85c \uc190\uc5d0 \ub0a8\ub294 \ud604\uae08. \ub9c8\uc774\ub108\uc2a4\uba74 \ubc84\ub294 \ub3c8\ubcf4\ub2e4 \uc4f0\ub294 \ub3c8\uc774 \ub9ce\ub2e4\ub294 \ub73b\uc774\ub2e4."}, "guardrails": {"en": "Safety rules built into an AI agent in advance so it can\u0027t take actions outside its approved scope.", "ko": "AI \uc5d0\uc774\uc804\ud2b8\uac00 \uc815\ud574\uc9c4 \uaddc\uce59\uacfc \uad8c\ud55c \ubc94\uc704\ub97c \ubc97\uc5b4\ub09c \ud589\ub3d9\uc744 \ud558\uc9c0 \ubabb\ud558\ub3c4\ub85d \ubbf8\ub9ac \uac78\uc5b4\ub450\ub294 \uc548\uc804\uc7a5\uce58."}, "remote code execution": {"en": "A serious security flaw that lets an attacker run arbitrary commands on someone else\u0027s computer over the internet, without physical access.", "ko": "\uacf5\uaca9\uc790\uac00 \uc9c1\uc811 \uc811\uadfc\ud558\uc9c0 \uc54a\uace0\ub3c4 \uc778\ud130\ub137\uc744 \ud1b5\ud574 \ub2e4\ub978 \ucef4\ud4e8\ud130\uc5d0\uc11c \ub9c8\uc74c\ub300\ub85c \uba85\ub839\uc744 \uc2e4\ud589\ud560 \uc218 \uc788\uac8c \ub418\ub294 \uc2ec\uac01\ud55c \ubcf4\uc548 \uacb0\ud568."}, "spear phishing": {"en": "A targeted scam email attack aimed at a specific person or organization, as opposed to mass phishing sent to random recipients.", "ko": "\ubd88\ud2b9\uc815 \ub2e4\uc218\uc5d0\uac8c \ubfcc\ub9ac\ub294 \ud53c\uc2f1\uacfc \ub2ec\ub9ac, \ud2b9\uc815 \uc778\ubb3c\uc774\ub098 \uc870\uc9c1\uc744 \ud45c\uc801\uc73c\ub85c \uc0bc\uc544 \ub9de\ucda4 \uc81c\uc791\ud55c \uc0ac\uae30 \uc774\uba54\uc77c \uacf5\uaca9."}, "tokens": {"en": "The small chunks of text an AI model reads and writes in. Pricing and speed are usually measured per token.", "ko": "AI \ubaa8\ub378\uc774 \uae00\uc744 \uc77d\uace0 \uc4f8 \ub54c \ucabc\uac1c\uc11c \ucc98\ub9ac\ud558\ub294 \ucd5c\uc18c \ub2e8\uc704. \uc694\uae08\uc774\ub098 \ucc98\ub9ac \uc18d\ub3c4\ub97c \u0027\ud1a0\ud070\ub2f9 \uc5bc\ub9c8\u0027\ub85c \uacc4\uc0b0\ud560 \ub54c \ub9ce\uc774 \uc4f0\uc778\ub2e4."}, "\uac00\ub4dc\ub808\uc77c": {"en": "Safety rules built into an AI agent in advance so it can\u0027t take actions outside its approved scope.", "ko": "AI \uc5d0\uc774\uc804\ud2b8\uac00 \uc815\ud574\uc9c4 \uaddc\uce59\uacfc \uad8c\ud55c \ubc94\uc704\ub97c \ubc97\uc5b4\ub09c \ud589\ub3d9\uc744 \ud558\uc9c0 \ubabb\ud558\ub3c4\ub85d \ubbf8\ub9ac \uac78\uc5b4\ub450\ub294 \uc548\uc804\uc7a5\uce58."}, "\ub525\ud398\uc774\ud06c": {"en": "A fake image or video created by AI to realistically swap or synthesize a person\u0027s face or body.", "ko": "AI\ub85c \uc0ac\ub78c\uc758 \uc5bc\uad74\uc774\ub098 \ubab8\uc744 \uc2e4\uc81c\ucc98\ub7fc \ud569\uc131\ud574 \ub9cc\ub4e0 \uac00\uc9dc \uc774\ubbf8\uc9c0\u00b7\uc601\uc0c1."}, "\uc2a4\ud53c\uc5b4 \ud53c\uc2f1": {"en": "A targeted scam email attack aimed at a specific person or organization, as opposed to mass phishing sent to random recipients.", "ko": "\ubd88\ud2b9\uc815 \ub2e4\uc218\uc5d0\uac8c \ubfcc\ub9ac\ub294 \ud53c\uc2f1\uacfc \ub2ec\ub9ac, \ud2b9\uc815 \uc778\ubb3c\uc774\ub098 \uc870\uc9c1\uc744 \ud45c\uc801\uc73c\ub85c \uc0bc\uc544 \ub9de\ucda4 \uc81c\uc791\ud55c \uc0ac\uae30 \uc774\uba54\uc77c \uacf5\uaca9."}, "\uc6d0\uaca9 \ucf54\ub4dc \uc2e4\ud589": {"en": "A serious security flaw that lets an attacker run arbitrary commands on someone else\u0027s computer over the internet, without physical access.", "ko": "\uacf5\uaca9\uc790\uac00 \uc9c1\uc811 \uc811\uadfc\ud558\uc9c0 \uc54a\uace0\ub3c4 \uc778\ud130\ub137\uc744 \ud1b5\ud574 \ub2e4\ub978 \ucef4\ud4e8\ud130\uc5d0\uc11c \ub9c8\uc74c\ub300\ub85c \uba85\ub839\uc744 \uc2e4\ud589\ud560 \uc218 \uc788\uac8c \ub418\ub294 \uc2ec\uac01\ud55c \ubcf4\uc548 \uacb0\ud568."}, "\uc789\uc5ec\ud604\uae08\ud750\ub984": {"en": "The cash a company has left after paying for its investments and equipment, on top of its operating income. Negative means it\u0027s spending more than it\u0027s bringing in.", "ko": "\ud68c\uc0ac\uac00 \uc601\uc5c5\uc73c\ub85c \ubc8c\uc5b4\ub4e4\uc778 \ub3c8\uc5d0\uc11c \ud22c\uc790\u00b7\uc124\ube44 \uc9c0\ucd9c\uc744 \ube80 \ub4a4, \uc2e4\uc81c\ub85c \uc190\uc5d0 \ub0a8\ub294 \ud604\uae08. \ub9c8\uc774\ub108\uc2a4\uba74 \ubc84\ub294 \ub3c8\ubcf4\ub2e4 \uc4f0\ub294 \ub3c8\uc774 \ub9ce\ub2e4\ub294 \ub73b\uc774\ub2e4."}, "\uc790\ubcf8\uc801 \uc9c0\ucd9c": {"en": "Money spent on long-term equipment and assets, like data centers and servers \u2014 the kind of spending AI companies are pouring into infrastructure.", "ko": "\ub370\uc774\ud130\uc13c\ud130\ub098 \uc11c\ubc84\ucc98\ub7fc \uc624\ub798 \uc4f0\ub294 \uc124\ube44\u00b7\uc790\uc0b0\uc5d0 \ud22c\uc790\ud558\ub294 \uc9c0\ucd9c. AI \uae30\uc5c5\ub4e4\uc774 \ub370\uc774\ud130\uc13c\ud130 \uac74\uc124\uc5d0 \uc3df\ub294 \ub3c8\uc774 \ub300\ud45c\uc801\uc774\ub2e4."}, "\ud1a0\ud070": {"en": "The small chunks of text an AI model reads and writes in. Pricing and speed are usually measured per token.", "ko": "AI \ubaa8\ub378\uc774 \uae00\uc744 \uc77d\uace0 \uc4f8 \ub54c \ucabc\uac1c\uc11c \ucc98\ub9ac\ud558\ub294 \ucd5c\uc18c \ub2e8\uc704. \uc694\uae08\uc774\ub098 \ucc98\ub9ac \uc18d\ub3c4\ub97c \u0027\ud1a0\ud070\ub2f9 \uc5bc\ub9c8\u0027\ub85c \uacc4\uc0b0\ud560 \ub54c \ub9ce\uc774 \uc4f0\uc778\ub2e4."}}</script>
 
-<script>
-(function () {
-  var updatePlaceholders = function () {
-    var lang = document.documentElement.getAttribute("data-lang") || "ko";
-    Array.prototype.forEach.call(document.querySelectorAll("[data-placeholder-ko]"), function (el) {
-      var attr = lang === "en" ? "data-placeholder-en" : "data-placeholder-ko";
-      el.setAttribute("placeholder", el.getAttribute(attr) || "");
-    });
-  };
-  updatePlaceholders();
-
-  var themeBtn = document.getElementById("theme-toggle");
-  if (themeBtn) {
-    // 시스템 다크모드 설정과 무관하게, 쿠키에 저장된 명시적 선택이 없으면 항상 라이트가 기본값.
-    var isDarkActive = function () {
-      return document.documentElement.getAttribute("data-theme") === "dark";
-    };
-    var setThemeCookie = function (value) {
-      var expires = new Date();
-      expires.setTime(expires.getTime() + 365 * 24 * 60 * 60 * 1000);
-      document.cookie = "theme=" + encodeURIComponent(value) + "; expires=" + expires.toUTCString() + "; path=/; SameSite=Lax";
-    };
-    themeBtn.setAttribute("aria-checked", String(isDarkActive()));
-    themeBtn.addEventListener("click", function () {
-      var next = isDarkActive() ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      setThemeCookie(next);
-      themeBtn.setAttribute("aria-checked", String(next === "dark"));
-    });
-  }
-
-  // 뒤로가기/앞으로가기로 브라우저가 페이지를 bfcache에서 그대로 복원하면
-  // (pageshow의 persisted===true) 이 스크립트 블록 자체가 다시 실행되지 않아
-  // 테마/언어가 "이 페이지를 떠날 때의 상태"로 얼어붙는다 — 예를 들어 용어사전에서
-  // 언어를 바꾼 뒤 뒤로가기하면 원래 기사 페이지가 예전 언어로 보이는 문제.
-  // persisted 복원 시에만 쿠키/localStorage 값으로 다시 동기화한다.
-  window.addEventListener("pageshow", function (e) {
-    if (!e.persisted) return;
-    function getCookie(name) {
-      var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
-      return match ? decodeURIComponent(match[1]) : null;
-    }
-    var t = getCookie("theme");
-    if (t === "dark" || t === "light") {
-      document.documentElement.setAttribute("data-theme", t);
-      if (themeBtn) themeBtn.setAttribute("aria-checked", String(t === "dark"));
-    }
-    
-    var l = localStorage.getItem("lang");
-    if (l === "ko" || l === "en") {
-      document.documentElement.setAttribute("data-lang", l);
-      document.documentElement.setAttribute("lang", l);
-      var titleAttr = l === "en" ? "data-title-en" : "data-title-ko";
-      var storedTitle = document.documentElement.getAttribute(titleAttr);
-      if (storedTitle) document.title = storedTitle;
-    }
-    
-    updatePlaceholders();
-  });
-
-  var langSelect = document.getElementById("lang-select");
-  var langTrigger = document.getElementById("lang-select-trigger");
-  var langList = document.getElementById("lang-select-list");
-  if (langSelect && langTrigger && langList) {
-    var langOptions = Array.prototype.slice.call(langList.querySelectorAll("li[data-lang-value]"));
-    var closeList = function (returnFocus) {
-      langList.hidden = true;
-      langTrigger.setAttribute("aria-expanded", "false");
-      if (returnFocus) langTrigger.focus();
-    };
-    var openList = function (focusIndex) {
-      langList.hidden = false;
-      langTrigger.setAttribute("aria-expanded", "true");
-      if (typeof focusIndex === "number" && langOptions[focusIndex]) langOptions[focusIndex].focus();
-    };
-    var selectLang = function (next) {
-      document.documentElement.setAttribute("data-lang", next);
-      document.documentElement.setAttribute("lang", next);
-      try { localStorage.setItem("lang", next); } catch (e) {}
-      var titleAttr = next === "en" ? "data-title-en" : "data-title-ko";
-      var newTitle = document.documentElement.getAttribute(titleAttr);
-      if (newTitle) document.title = newTitle;
-      updatePlaceholders();
-      closeList(true);
-    };
-    langTrigger.addEventListener("click", function (e) {
-      e.stopPropagation();
-      if (langList.hidden) openList(); else closeList();
-    });
-    langTrigger.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        e.preventDefault();
-        openList(e.key === "ArrowDown" ? 0 : langOptions.length - 1);
-      }
-    });
-    langOptions.forEach(function (li, i) {
-      li.addEventListener("click", function () {
-        selectLang(li.getAttribute("data-lang-value"));
-      });
-      // 옵션이 2개뿐이라 풀 콤보박스 패턴 대신 화살표(이동)+Enter/Space(선택)+Escape(닫기)만 지원.
-      li.addEventListener("keydown", function (e) {
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          langOptions[(i + 1) % langOptions.length].focus();
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          langOptions[(i - 1 + langOptions.length) % langOptions.length].focus();
-        } else if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          selectLang(li.getAttribute("data-lang-value"));
-        } else if (e.key === "Escape") {
-          closeList(true);
-        }
-      });
-    });
-    document.addEventListener("click", function (e) {
-      if (!langSelect.contains(e.target)) closeList();
-    });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeList();
-    });
-  }
-
-  var subscribeForm = document.getElementById("subscribe-form");
-  var subscribeStatus = document.getElementById("subscribe-status");
-  if (subscribeForm && subscribeStatus) {
-    var messages = {
-      sending: { ko: "전송 중...", en: "Sending..." },
-      confirm: { ko: "확인 메일을 보냈어요. 받은편지함에서 링크를 눌러 구독을 완료해주세요.", en: "Check your inbox — click the confirmation link to finish subscribing." },
-      error: { ko: "문제가 발생했어요. 잠시 후 다시 시도해주세요.", en: "Something went wrong. Please try again." },
-      network: { ko: "네트워크 오류가 발생했어요. 다시 시도해주세요.", en: "Network error. Please try again." }
-    };
-    var currentLang = function () {
-      return document.documentElement.getAttribute("data-lang") || "ko";
-    };
-    var setStatus = function (key) {
-      subscribeStatus.textContent = messages[key][currentLang()];
-    };
-    subscribeForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var input = subscribeForm.querySelector('input[name="email"]');
-      var submitBtn = subscribeForm.querySelector(".subscribe-submit");
-      var email = input.value.trim();
-      submitBtn.disabled = true;
-      setStatus("sending");
-      fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email })
-      })
-        .then(function (r) {
-          return r.json().then(function (data) { return { ok: r.ok, data: data }; });
-        })
-        .then(function (result) {
-          submitBtn.disabled = false;
-          if (result.ok) {
-            setStatus("confirm");
-            subscribeForm.reset();
-          } else {
-            setStatus("error");
-          }
-        })
-        .catch(function () {
-          submitBtn.disabled = false;
-          setStatus("network");
-        });
-    });
-  }
-
-  var shareBtn = document.getElementById("share-button");
-  var shareTooltip = document.getElementById("share-tooltip");
-  var shareTooltipTimer = null;
-  if (shareBtn) {
-    shareBtn.addEventListener("click", function () {
-      if (!navigator.clipboard || !navigator.clipboard.writeText) return;
-      navigator.clipboard.writeText(window.location.href).then(function () {
-        if (!shareTooltip) return;
-        shareTooltip.classList.add("visible");
-        if (shareTooltipTimer) clearTimeout(shareTooltipTimer);
-        shareTooltipTimer = setTimeout(function () {
-          shareTooltip.classList.remove("visible");
-        }, 1600);
-      }).catch(function () {});
-    });
-  }
-
-  var termPanel = document.getElementById("term-panel");
-  var termBackdrop = document.getElementById("term-panel-backdrop");
-  var termClose = document.getElementById("term-panel-close");
-  var termTitle = document.getElementById("term-panel-title");
-  var termBody = document.getElementById("term-panel-body");
-  var termTrigger = null;
-  var glossaryDataEl = document.getElementById("glossary-data");
-  var glossaryData = {};
-  if (glossaryDataEl) {
-    try { glossaryData = JSON.parse(glossaryDataEl.textContent || "{}"); } catch (e) {}
-  }
-  if (termPanel && termBackdrop && termTitle && termBody) {
-    var openTermPanel = function (term, entry, trigger) {
-      var lang = document.documentElement.getAttribute("data-lang") || "ko";
-      termTitle.textContent = term;
-      termBody.textContent = entry[lang] || entry.ko || entry.en || "";
-      termPanel.classList.add("open");
-      termPanel.setAttribute("aria-hidden", "false");
-      termBackdrop.hidden = false;
-      termTrigger = trigger || null;
-      if (termClose) termClose.focus();
-    };
-    var closeTermPanel = function () {
-      termPanel.classList.remove("open");
-      termPanel.setAttribute("aria-hidden", "true");
-      termBackdrop.hidden = true;
-      if (termTrigger) { termTrigger.focus(); termTrigger = null; }
-    };
-    document.addEventListener("click", function (e) {
-      var btn = e.target.closest && e.target.closest(".term-link");
-      if (btn) {
-        var term = btn.getAttribute("data-term");
-        var entry = glossaryData[term];
-        if (entry) openTermPanel(term, entry, btn);
-        return;
-      }
-      if (e.target === termBackdrop) closeTermPanel();
-    });
-    if (termClose) termClose.addEventListener("click", closeTermPanel);
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeTermPanel();
-      // 패널이 열려있을 때 Tab이 밖으로 나가지 않게 가둔다 — 포커스 가능한 요소가
-      // 닫기 버튼 하나뿐이라 항상 그 버튼으로 되돌린다(단순한 형태의 focus trap).
-      if (e.key === "Tab" && termPanel.classList.contains("open")) {
-        e.preventDefault();
-        if (termClose) termClose.focus();
-      }
-    });
-  }
-
-  var searchInput = document.getElementById("archive-search-input");
-  var searchResults = document.getElementById("archive-search-results");
-  if (searchInput && searchResults) {
-    var searchIndexPromise = null;
-    var indexLoaded = false;
-    var loadSearchIndex = function () {
-      if (!searchIndexPromise) {
-        searchIndexPromise = fetch("../search-index.json")
-          .then(function (r) { return r.json(); })
-          .then(function (data) { indexLoaded = true; return data; })
-          .catch(function () { indexLoaded = true; return []; });
-      }
-      return searchIndexPromise;
-    };
-    var escapeHtml = function (s) {
-      return String(s).replace(/[&<>"']/g, function (c) {
-        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c];
-      });
-    };
-    searchInput.addEventListener("focus", loadSearchIndex);
-    searchInput.addEventListener("input", function () {
-      var q = searchInput.value.trim().toLowerCase();
-      if (!q) {
-        searchResults.hidden = true;
-        searchResults.innerHTML = "";
-        return;
-      }
-      // 인덱스를 아직 못 불러온 상태에서 입력하면, fetch가 끝나기 전까지 잠깐이라도
-      // "결과 없음"으로 오인되지 않도록 로딩 상태를 먼저 보여준다.
-      if (!indexLoaded) {
-        searchResults.hidden = false;
-        searchResults.innerHTML = '<li class="archive-search-loading">' +
-          '<span class="lang-ko">불러오는 중...</span><span class="lang-en">Loading...</span></li>';
-      }
-      loadSearchIndex().then(function (data) {
-        var matches = data.filter(function (item) {
-          var haystack = ((item.title || "") + " " + (item.summary_ko || "") + " " + (item.summary_en || "")).toLowerCase();
-          return haystack.indexOf(q) !== -1;
-        }).slice(0, 20);
-        searchResults.innerHTML = matches.map(function (item) {
-          var href = "" + item.date + ".html";
-          return "<li><a href=\"" + href + "\">" + escapeHtml(item.title) + "</a>" +
-                 "<span class=\"archive-search-date\">" + escapeHtml(item.date) + " · " + escapeHtml(item.source) + "</span></li>";
-        }).join("");
-        searchResults.hidden = matches.length === 0;
-      });
-    });
-    document.addEventListener("click", function (e) {
-      if (e.target !== searchInput && !searchResults.contains(e.target)) {
-        searchResults.hidden = true;
-      }
-    });
-  }
-})();
-</script>
+<script defer src="../site.js"></script>
 </body>
 </html>

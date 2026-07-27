@@ -9,6 +9,8 @@ generate_site.py와 generate_weekly_site.py 양쪽에서 import해서 쓴다. �
 import json
 import shutil
 from datetime import date as date_cls
+from datetime import datetime, timedelta, timezone
+from email.utils import format_datetime
 from html import escape
 from pathlib import Path
 
@@ -98,6 +100,16 @@ def build_sitemap(docs_dir: Path, site_url: str, today: str) -> int:
     if weekly_dir.exists():
         for f in sorted(weekly_dir.glob("*.html")):
             urls.append((f"{site_url}/weekly/{f.stem}", _weekly_lastmod(f.stem, today)))
+    topics_dir = docs_dir / "topics"
+    if (topics_dir / "index.html").exists():
+        urls.append((f"{site_url}/topics/", today))
+    if topics_dir.exists():
+        # 토픽 페이지는 매일 그날 기사가 앞에 붙으므로 lastmod는 항상 오늘이다
+        # (용어사전과 같은 이유). index.html은 위에서 이미 넣었으므로 건너뛴다.
+        for f in sorted(topics_dir.glob("*.html")):
+            if f.stem == "index":
+                continue
+            urls.append((f"{site_url}/topics/{f.stem}", today))
     if (docs_dir / "glossary.html").exists():
         urls.append((f"{site_url}/glossary", today))  # 매일 새 용어가 쌓일 수 있어 lastmod는 오늘
     if (docs_dir / "en" / "index.html").exists():
@@ -112,6 +124,120 @@ def build_sitemap(docs_dir: Path, site_url: str, today: str) -> int:
     )
     (docs_dir / "sitemap.xml").write_text(xml, encoding="utf-8")
     return len(urls)
+
+
+# 피드에 담을 최근 일수. 피드 리더는 새 항목만 가져가므로 전체 아카이브를 실을 이유가
+# 없고(첫 구독 시 30일치가 한꺼번에 미읽음으로 쌓이면 오히려 방해다), sitemap과 달리
+# 색인 완전성 요구도 없다.
+RSS_MAX_ITEMS = 30
+KST_TZ = timezone(timedelta(hours=9))
+
+
+def _rss_pubdate(generated_at: str, date_str: str) -> str:
+    """digest의 generated_at(ISO8601)을 RSS가 요구하는 RFC 822 형식으로 바꾼다.
+
+    generated_at은 `datetime.now().isoformat()`이라 타임존이 없는 경우가 대부분이다.
+    피드 리더는 타임존 없는 날짜를 각자 다르게(대개 UTC로) 해석해서 발행 시각이
+    9시간씩 어긋나 보이므로, 타임존이 없으면 KST로 간주해 명시적으로 붙인다.
+    파싱 자체가 실패하면 그 날짜의 08:00 KST(정기 발행 시각)로 대체한다 — 피드
+    항목 하나의 시각 때문에 생성이 멈추면 안 된다."""
+    try:
+        dt = datetime.fromisoformat(generated_at)
+    except (TypeError, ValueError):
+        try:
+            dt = datetime.fromisoformat(f"{date_str}T08:00:00")
+        except (TypeError, ValueError):
+            dt = datetime.now(KST_TZ)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=KST_TZ)
+    return format_datetime(dt)
+
+
+def _feed_item_description(day: dict, lang: str) -> str:
+    """피드 항목 본문. 그날 인사이트 첫 문단 + 기사 10건의 제목·한 줄 요약.
+
+    HTML을 CDATA로 감싸지 않고 통째로 이스케이프해서 텍스트 노드로 넣는다 — CDATA는
+    본문에 `]]>`가 섞이면 조용히 깨지는데, 요약문은 사람이 아니라 매일 새로 생성되는
+    텍스트라 그런 문자열이 들어올지 미리 보장할 수 없다."""
+    insight = day.get("daily_insight") or {}
+    paragraphs = insight.get("paragraphs_en" if lang == "en" else "paragraphs_ko") or []
+    summary_key = "summary_en" if lang == "en" else "summary_ko"
+    parts = []
+    if paragraphs:
+        parts.append(f"<p>{escape(paragraphs[0])}</p>")
+    items = []
+    for a in day.get("articles", []):
+        title = escape(a.get("title") or "")
+        link = escape(a.get("link") or "")
+        summary = escape(a.get(summary_key) or "")
+        items.append(f'<li><a href="{link}">{title}</a> — {summary}</li>')
+    if items:
+        parts.append("<ul>" + "".join(items) + "</ul>")
+    return "".join(parts)
+
+
+def build_rss_feed(docs_dir: Path, site_url: str, lang: str = "ko") -> int:
+    """docs/archive/*.json을 다시 스캔해 RSS 2.0 피드를 통째로 재작성한다
+    (build_sitemap과 같은 멱등 패턴).
+
+    항목 단위는 기사가 아니라 **하루**다 — 이 사이트의 편집 단위가 '그날의 브리핑
+    10건 + 인사이트'라서, 기사마다 항목을 쪼개면 피드 리더에서 하루에 10줄이 쏟아지고
+    가장 중요한 크로스컷 인사이트가 어디에도 담기지 않는다.
+
+    lang='ko'는 docs/feed.xml, 'en'은 docs/en/feed.xml로 나간다."""
+    archive_dir = docs_dir / "archive"
+    is_en = lang == "en"
+    out_dir = docs_dir / "en" if is_en else docs_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    feed_path = f"{site_url}/en/feed.xml" if is_en else f"{site_url}/feed.xml"
+    home_url = f"{site_url}/en/" if is_en else f"{site_url}/"
+
+    if is_en:
+        channel_title = "AI News Briefing · Daily AI Thread"
+        channel_desc = "Ten AI stories a day, summarized with a take on why each one matters."
+    else:
+        channel_title = "AI 뉴스 브리핑 · Daily AI Thread"
+        channel_desc = "매일 아침 AI 기사 10건의 요약과 시사점, 그리고 그날을 관통하는 인사이트."
+
+    day_files = [f for f in sorted(archive_dir.glob("*.json"), reverse=True) if not f.name.endswith(".sent.json")] \
+        if archive_dir.exists() else []
+
+    items = []
+    for f in day_files[:RSS_MAX_ITEMS]:
+        try:
+            day = json.loads(f.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        date = day.get("date", f.stem)
+        insight = day.get("daily_insight") or {}
+        headline = insight.get("headline_en" if is_en else "headline_ko")
+        if not headline:
+            headline = f"AI News Briefing — {date}" if is_en else f"AI 뉴스 브리핑 — {date}"
+        url = f"{site_url}/archive/{date}"
+        items.append(
+            "    <item>\n"
+            f"      <title>{escape(headline)}</title>\n"
+            f"      <link>{escape(url)}</link>\n"
+            f'      <guid isPermaLink="true">{escape(url)}</guid>\n'
+            f"      <pubDate>{_rss_pubdate(day.get('generated_at'), date)}</pubDate>\n"
+            f"      <description>{escape(_feed_item_description(day, lang))}</description>\n"
+            "    </item>"
+        )
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n'
+        "  <channel>\n"
+        f"    <title>{escape(channel_title)}</title>\n"
+        f"    <link>{escape(home_url)}</link>\n"
+        f"    <description>{escape(channel_desc)}</description>\n"
+        f"    <language>{'en' if is_en else 'ko'}</language>\n"
+        f'    <atom:link href="{escape(feed_path)}" rel="self" type="application/rss+xml"/>\n'
+        + ("\n".join(items) + "\n" if items else "")
+        + "  </channel>\n</rss>\n"
+    )
+    (out_dir / "feed.xml").write_text(xml, encoding="utf-8")
+    return len(items)
 
 
 def build_og_image_url(site_url: str, docs_dir: Path, identifier: str, headline_ko: str) -> str:
@@ -169,7 +295,104 @@ def _website_org_nodes(site_url: str) -> list:
     ]
 
 
-def build_archive_page_jsonld(site_url, page_url, date, generated_at, articles, daily_insight) -> dict:
+def load_faq() -> list:
+    """config/faq.json을 읽는다. 파일이 없거나 깨져 있으면 빈 목록을 돌려줘서
+    FAQ 섹션과 FAQPage JSON-LD가 통째로 빠지게 한다 — 부가 섹션 하나 때문에 매일
+    도는 사이트 생성이 멈추면 안 된다(load_verification_tags와 같은 태도)."""
+    path = CONFIG_DIR / "faq.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    return [f for f in data.get("faq", []) if f.get("question_ko") and f.get("answer_ko")]
+
+
+def build_faq_jsonld_node(faq: list, lang: str = "ko") -> dict:
+    """FAQPage 노드. 답변엔진이 질문형 쿼리에 이 답변을 통째로 인용할 수 있게 하는
+    조치라, 화면에 실제로 렌더링되는 문장과 같은 텍스트여야 한다(스키마 가이드라인상
+    화면에 없는 내용을 FAQPage로 마크업하면 위반)."""
+    q_key = "question_en" if lang == "en" else "question_ko"
+    a_key = "answer_en" if lang == "en" else "answer_ko"
+    return {
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": f.get(q_key) or f.get("question_ko", ""),
+                "acceptedAnswer": {"@type": "Answer", "text": f.get(a_key) or f.get("answer_ko", "")},
+            }
+            for f in faq
+        ],
+    }
+
+
+def build_topic_page_jsonld(site_url: str, page_url: str, topic: dict, entries: list) -> dict:
+    """토픽별 아카이브 페이지용 JSON-LD. 일별 브리핑 페이지와 같은 이유로
+    CollectionPage + ItemList를 쓰고, 원문은 우리 저작물이 아니므로 citation으로
+    분리한다(build_archive_page_jsonld 주석 참고)."""
+    items = [
+        {
+            "@type": "ListItem",
+            "position": i + 1,
+            "item": {
+                "@type": "Article",
+                "headline": e.get("title", ""),
+                "url": f"{site_url}/archive/{e.get('date', '')}",
+                "datePublished": e.get("date", ""),
+                "author": {"@type": "Organization", "name": "Daily AI Thread"},
+                "articleSection": e.get("summary_ko", ""),
+                "citation": {
+                    "@type": "NewsArticle",
+                    "headline": e.get("title", ""),
+                    "url": e.get("link", ""),
+                    "publisher": {"@type": "Organization", "name": e.get("source", "")},
+                },
+            },
+        }
+        for i, e in enumerate(entries)
+    ]
+    node = {
+        "@type": "CollectionPage",
+        "@id": f"{page_url}#page",
+        "url": page_url,
+        "name": f"{topic.get('label_ko', '')} — AI 뉴스 브리핑",
+        "description": topic.get("description_ko", ""),
+        "inLanguage": ["ko", "en"],
+        "isPartOf": {"@id": f"{site_url}/#website"},
+        "publisher": {"@id": f"{site_url}/#organization"},
+        "mainEntity": {"@type": "ItemList", "itemListElement": items},
+    }
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}
+
+
+def build_topic_index_jsonld(site_url: str, page_url: str, topics: list) -> dict:
+    """토픽 목록 페이지용 JSON-LD. 각 토픽 페이지를 ItemList로 가리켜, 크롤러가
+    이 한 페이지만 읽어도 토픽 페이지 전체를 발견할 수 있게 한다."""
+    items = [
+        {
+            "@type": "ListItem",
+            "position": i + 1,
+            "name": t.get("label_ko", ""),
+            "url": f"{site_url}/topics/{t.get('slug', '')}",
+        }
+        for i, t in enumerate(topics)
+    ]
+    node = {
+        "@type": "CollectionPage",
+        "@id": f"{page_url}#page",
+        "url": page_url,
+        "name": "주제별 브리핑 — AI 뉴스 브리핑",
+        "inLanguage": ["ko", "en"],
+        "isPartOf": {"@id": f"{site_url}/#website"},
+        "publisher": {"@id": f"{site_url}/#organization"},
+        "mainEntity": {"@type": "ItemList", "itemListElement": items},
+    }
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}
+
+
+def build_archive_page_jsonld(site_url, page_url, date, generated_at, articles, daily_insight, faq=None) -> dict:
     """일별 브리핑(홈/아카이브 공용) 페이지용 JSON-LD. 이 사이트는 원문 기사의
     저작자가 아니라 큐레이션·분석 주체이므로, 우리 자체 요약/시사점만 Article로
     표시하고 원문은 citation으로 분리한다 — NewsArticle을 우리 것처럼 마크업하면
@@ -213,7 +436,12 @@ def build_archive_page_jsonld(site_url, page_url, date, generated_at, articles, 
             "headline": daily_insight["headline_ko"],
             "author": {"@type": "Organization", "name": "Daily AI Thread"},
         }
-    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}
+    # FAQ는 홈(/, /en/)에서만 렌더링되므로 그때만 노드를 합류시킨다 — 화면에 없는
+    # 내용을 FAQPage로 마크업하면 구조화 데이터 가이드라인 위반이다.
+    graph = _website_org_nodes(site_url) + [node]
+    if faq:
+        graph.append(build_faq_jsonld_node(faq))
+    return {"@context": "https://schema.org", "@graph": graph}
 
 
 def build_weekly_page_jsonld(site_url, page_url, headline_ko, end_date, generated_at, paragraphs_ko, daily_briefings) -> dict:

@@ -12,6 +12,13 @@ description: AI 관련 기사를 RSS로 매일 수집해 각 기사의 요약과
 그날 바로 사람이 알아야 수동 개입(재실행 등)이 가능하다. 특히 7단계(이메일 발송)
 실패는 가장 우선순위 높은 알림 대상이다.
 
+**단, `generate_site.py`가 `[ERROR] digest 형식 오류`로 멈춘 경우는 예외다.** 이건
+방금 3단계에서 내가 쓴 digest의 형식 문제라 사람이 아니라 내가 고쳐야 하는 것이고,
+오류 메시지가 어느 기사의 어떤 필드가 왜 잘못됐는지(등록되지 않은 topics 슬러그라면
+유효한 슬러그 목록까지) 직접 알려준다. 이때는 알림을 보내지 말고 **digest를 고쳐서
+같은 명령을 다시 실행한다** — 검증 실패 시 파일이 하나도 쓰이지 않으므로 재실행은
+안전하다. 두 번 고쳐도 같은 오류가 나면 그때 `PushNotification`으로 알린다.
+
 대상 소스: `config/feeds.json`에 등록된 RSS 피드들(TechCrunch AI, VentureBeat AI, The Verge AI,
 MarkTechPost, OpenAI News, Google DeepMind Blog, Google AI Blog, Ars Technica AI, Wired AI,
 MIT Technology Review AI, Hacker News AI 등). 특정 매체를 고정 편애하지 않고, 최근 게시된
@@ -125,7 +132,9 @@ python scripts/fetch_articles.py --lookback-days 1 --top-n 10
       "summary_ko": "한국어 2~3문장 요약. 기사 원문 기준으로 핵심 사실만 담는다.",
       "summary_en": "같은 내용의 자연스러운 영어 2~3문장 요약.",
       "implication_ko": "이 기사가 시사하는 점, 한국어 1~2문장. 왜 중요한지, 무엇을 예고하는지.",
-      "implication_en": "같은 내용의 자연스러운 영어 1~2문장 시사점."
+      "implication_en": "같은 내용의 자연스러운 영어 1~2문장 시사점.",
+      "topics": ["config/topics.json의 슬러그 1~3개"],
+      "cross_source_count": "data/articles_<날짜>.json의 같은 값을 그대로 옮긴 정수"
     }
   ]
 }
@@ -151,6 +160,22 @@ python scripts/fetch_articles.py --lookback-days 1 --top-n 10
   `daily_insight` 전체를 생략해도 되고(그러면 섹션이 렌더링되지 않음), 억지로 엮지 않는다.
 - `title`은 번역하지 않고 원문 그대로 둔다 (실제 기사의 이름이므로).
 - 기사 배열 순서는 `data/articles_<날짜>.json`의 선별 순서(최신순)를 유지한다.
+- `cross_source_count`는 `data/articles_<날짜>.json`에 이미 계산돼 있는 값을 **그대로
+  옮겨 적기만 한다**(직접 세지 않는다). 2 이상이면 기사 카드에 "N개 매체 동시 보도"
+  배지가 자동으로 붙는다. 이 값을 옮기지 않으면 배지가 사라질 뿐 아니라, `data/`는
+  커밋되지 않아 그 날짜의 화제성 정보가 영영 사라진다.
+
+**주제 분류 원칙 (topics)**: 기사마다 `config/topics.json`에 정의된 슬러그를 **1~3개**
+고른다. 이 값으로 `/topics/<슬러그>` 주제별 아카이브 페이지가 자동 생성된다.
+- **목록에 없는 슬러그를 새로 만들지 않는다.** 오타나 임의 슬러그가 들어오면
+  `generate_site.py`가 유효 목록을 보여주며 즉시 실패한다. 목록 자체를 늘려야 할 만큼
+  안 맞는 기사가 반복되면 그건 사람이 `config/topics.json`을 고칠 일이다.
+- **딱 맞는 것 위주로 1~2개만** 고른다. 걸치는 주제까지 전부 붙이면 모든 기사가 모든
+  토픽에 나타나서 주제별 페이지가 아무것도 걸러주지 못한다 — `glossary`가 "잡아서
+  손해볼 것 없다"는 쪽인 것과 정반대 방향의 판단이다.
+- 기준은 "이 주제만 따라 읽는 독자가 이 기사를 보고 싶어 할까"이다. 예: OpenAI가
+  새 모델을 공개하면 `models`(+ 소비자 제품이면 `products`), 엔비디아 실적 발표는
+  `business`+`infra`, EU AI법 개정은 `policy`.
 
 **GEO(생성형 AI 검색 최적화) 관점 작문 원칙**: ChatGPT/Perplexity/Google AI
 Overviews 같은 AI 답변엔진이 이 페이지를 인용하게 만드는 요소는 키워드 반복이 아니라
@@ -204,6 +229,15 @@ python scripts/generate_site.py --input data/digest_<날짜>.json
   설명으로 자동 갱신된다. 사이트 상단 유틸리티 바에 "용어사전" 링크가 항상 노출된다.
 - `config/feeds.json`의 `type`(primary/press/community)을 기준으로 기사 카드에 "공식
   발표"/"보도"/"커뮤니티" 배지가 자동으로 붙는다 — Claude가 따로 지정할 필요 없다.
+- 3단계에서 넣은 `topics`를 모아 `docs/topics/<슬러그>.html`과 `docs/topics/index.html`
+  (주제별 아카이브)을 매번 다시 만든다 — 용어사전과 같은 전량 재집계라 Claude가 따로
+  할 일은 없다. 기사가 하나도 없는 주제는 페이지를 만들지 않는다.
+- `docs/feed.xml`(한국어)과 `docs/en/feed.xml`(영어) RSS 피드를 최근 30일치로 다시
+  만든다. 항목 단위는 기사가 아니라 **하루**이고, 제목은 그날 `daily_insight`의
+  헤드라인이다 — 인사이트를 생략한 날은 "AI 뉴스 브리핑 — <날짜>"로 대체된다.
+- 헤더의 누적 지표(브리핑 일수·기사 수·용어 수)와 홈 하단 FAQ가 자동으로 붙는다.
+  FAQ 문구는 `config/faq.json`에 고정돼 있고 매일 바뀌지 않는다 — 수집 방식이나 발송
+  정책이 바뀌면 그때 사람이 이 파일을 함께 고쳐야 한다.
 - `docs/index.html` 하단에는 지난 아카이브 링크 목록과 검색창, 주간 회고 목록이 자동으로
   추가된다. 오늘이 일요일이나 월요일이면(신규 독자 유입을 노린 홍보) 최신 주간 회고로
   연결되는 배너가 본문 상단에도 추가로 노출된다 — 날짜만 보고 자동 계산하므로 Claude가

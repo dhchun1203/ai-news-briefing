@@ -26,6 +26,7 @@ body {
 .site-header h1 { font-size: 1.7rem; }
 .tagline { margin: 8px 0 0; font-size: 0.66rem; }
 .mission { margin: 8px auto 0; font-size: 0.84rem; line-height: 1.55; }
+.site-stats { margin: 12px auto 0; padding-top: 12px; font-size: 0.62rem; line-height: 1.5; }
 
 .subscribe-box { padding: 16px 16px 20px; }
 .subscribe-title { font-size: 1.02rem; }
@@ -60,8 +61,10 @@ body {
 .article-card { padding: 24px 0; }
 .article-card:first-child { padding-top: 16px; }
 
-.article-meta { font-size: 0.72rem; margin-bottom: 8px; }
+.article-meta { font-size: 0.72rem; margin-bottom: 8px; row-gap: 6px; }
 .source-badge { font-size: 0.6rem; padding: 2px 8px; }
+.coverage-badge { font-size: 0.6rem; padding: 2px 8px; }
+.topic-chip { font-size: 0.6rem; padding: 3px 8px; }
 
 .article-title {
   font-size: 1.18rem;
@@ -88,7 +91,20 @@ body {
 .archive-list { gap: 8px 16px; }
 .archive-list a { font-size: 0.86rem; display: inline-block; padding-bottom: 1px; }
 
+.faq-section { margin-top: 32px; padding-top: 16px; }
+.faq-item { padding: 4px 0; }
+.faq-question { font-size: 0.92rem; padding: 12px 0; }  /* 세로 44px 근처 터치 타깃 */
+.faq-answer { font-size: 0.92rem; line-height: 1.65; padding: 0 0 12px; }
+
+.topic-nav { margin: 16px 0 20px; padding: 16px 0; }
+.topic-nav-item { font-size: 0.74rem; padding: 6px 12px; }
+.topic-entry { padding: 16px 0; }
+.topic-entry-date { font-size: 0.72rem; }
+.topic-entry-title { font-size: 1.1rem; line-height: 1.42; margin: 8px 0; }
+.topic-entry-summary { font-size: 0.92rem; line-height: 1.6; }
+
 .site-footer { font-size: 0.72rem; padding: 16px; }
+.footer-links { margin: 8px 0 0; line-height: 2; }
 
 .term-panel { width: 86vw; max-width: 340px; padding: 56px 20px 24px; }
 .term-panel-close { width: 28px; height: 28px; font-size: 1rem; top: 14px; right: 14px; }
