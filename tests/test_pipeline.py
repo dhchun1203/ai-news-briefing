@@ -20,9 +20,11 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import send_broadcast  # noqa: E402
 from fetch_articles import (  # noqa: E402
+    RESERVE_COUNT,
     STALE_FEED_THRESHOLD_DAYS,
     build_same_story_clusters,
     extract_keywords,
+    is_self_promo_post,
     parse_args,
 )
 from kst_date import kst_date_facts  # noqa: E402
@@ -125,6 +127,46 @@ class TestSameStoryClustering(unittest.TestCase):
         # "Meet"/"Your" 같은 헤드라인 관용구는 대문자로 시작할 뿐 사건을 특정하지 않는다.
         for word in ("Meet", "Your", "You", "Watch", "Inside"):
             self.assertNotIn(word, extract_keywords(f"{word} The New Thing"))
+
+
+class TestSelfPromoFilter(unittest.TestCase):
+    """HN의 Show/Ask/Tell/Launch HN 글은 뉴스가 아니라 자기홍보·토론이다.
+    실제로 하루 후보 20건 중 4건이 이런 글이었고, Show HN은 원문이 제품
+    랜딩페이지라 요약할 기사 본문 자체가 없어 부실 항목의 원인이 됐다."""
+
+    def test_hn_self_promo_prefixes_are_filtered(self):
+        for title in (
+            "Show HN: Rainslice – AI Employees for Home Services Businesses",
+            "Ask HN: 1950's Chip industry undermined unions how is AI not doing the same",
+            "Tell HN: something about AI",
+            "Launch HN: Acme (YC W26) – AI for lawyers",
+        ):
+            with self.subTest(title=title):
+                self.assertTrue(is_self_promo_post(title))
+
+    def test_case_and_surrounding_whitespace_do_not_matter(self):
+        self.assertTrue(is_self_promo_post("  show hn: lowercase variant"))
+        self.assertTrue(is_self_promo_post("SHOW HN: shouting variant"))
+
+    def test_real_news_is_not_filtered(self):
+        for title in (
+            "Terence Tao: Mathematics in the Age of AI [pdf]",
+            "AI bet goes awry: Oracle fires 21,000 employees",
+            "Anthropic launches Opus 5",
+            # 제목 중간에 들어간 경우까지 지우면 정상 기사를 잃는다 — 접두사만 본다.
+            "How to show HN readers your work",
+        ):
+            with self.subTest(title=title):
+                self.assertFalse(is_self_promo_post(title))
+
+
+class TestReserveDefaults(unittest.TestCase):
+    """예비 후보는 원문을 못 읽거나 실을 가치가 없는 기사를 교체하기 위한 것이라,
+    기본값이 0이면 장치 자체가 동작하지 않는다."""
+
+    def test_reserve_count_default_is_positive(self):
+        self.assertEqual(parse_args([]).reserve_count, RESERVE_COUNT)
+        self.assertGreater(RESERVE_COUNT, 0)
 
 
 class TestWeeklyLastmodGuard(unittest.TestCase):

@@ -12,6 +12,6 @@
     { "name": "Ars Technica AI", "url": "https://arstechnica.com/ai/feed/", "type": "press" },
     { "name": "Wired AI", "url": "https://www.wired.com/feed/tag/ai/latest/rss", "type": "press" },
     { "name": "MIT Technology Review AI", "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed", "type": "press" },
-    { "name": "Hacker News (AI)", "url": "https://hnrss.org/newest?q=AI", "type": "community" }
+    { "name": "Hacker News (AI)", "url": "https://hnrss.org/newest?q=AI&points=20", "type": "community" }
   ]
 }
