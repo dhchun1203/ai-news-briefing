@@ -224,6 +224,32 @@ function finishPage(label, doc, window, opts) {
 
   const feedLink = doc.querySelector('link[type="application/rss+xml"]');
   check(label, "RSS 피드 link 태그 존재", !!feedLink, feedLink ? feedLink.getAttribute("href") : "없음");
+
+  // --- 모바일 내비 서랍 (site.js가 런타임에 만든다) ---
+  const toggle = doc.getElementById("nav-toggle");
+  const drawer = doc.getElementById("nav-drawer");
+  check(label, "햄버거 버튼이 생성됨", !!toggle);
+  check(label, "내비 서랍이 생성됨", !!drawer);
+  if (toggle && drawer) {
+    check(label, "서랍은 닫힌 채 시작하고 inert", !drawer.classList.contains("open") && drawer.hasAttribute("inert"));
+    check(label, "aria-controls가 서랍을 가리킴", toggle.getAttribute("aria-controls") === "nav-drawer");
+    // 유틸리티 바의 링크가 복제돼 들어갔는지 — 서랍이 비어 있으면 모바일에서 메뉴가 사라진다.
+    const drawerLinks = drawer.querySelectorAll("a[href]");
+    check(label, "서랍에 링크가 복제됨", drawerLinks.length >= 2, `count=${drawerLinks.length}`);
+    let dupId = false;
+    drawerLinks.forEach((a) => { if (a.id) dupId = true; });
+    check(label, "복제본에 id가 남아 중복되지 않음", !dupId);
+
+    toggle.click();
+    check(label, "햄버거 클릭 시 열림", drawer.classList.contains("open") && !drawer.hasAttribute("inert"));
+    check(label, "열림 상태가 aria-expanded에 반영", toggle.getAttribute("aria-expanded") === "true");
+
+    const esc = new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true });
+    doc.dispatchEvent(esc);
+    check(label, "Escape로 닫힘", !drawer.classList.contains("open"));
+    check(label, "닫으면 다시 inert + aria-expanded=false",
+      drawer.hasAttribute("inert") && toggle.getAttribute("aria-expanded") === "false");
+  }
 }
 
 (async () => {

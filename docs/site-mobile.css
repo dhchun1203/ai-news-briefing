@@ -118,6 +118,17 @@ body {
    먼저 눈에 들어오게 한다. 글자는 0.76 → 0.88rem. */
 .site-nav-link { height: 36px; padding: 0 13px; font-size: 0.88rem; }
 .site-nav-link-count { font-size: 0.78rem; }
+
+/* 유틸리티 바에 다 넣으면 412px가 필요해 대부분의 폰에서 두 줄로 감긴다.
+   모바일에서는 링크를 서랍으로 보내고 햄버거만 남긴다(→ 약 250px). 서랍 안의
+   복제본은 .nav-drawer 하위라 이 규칙에 걸리지 않는다. */
+.utility-bar > .site-nav-link { display: none; }
+.nav-toggle { display: inline-flex; width: 40px; height: 36px; margin-right: auto; }
+
+.nav-drawer { width: 78vw; max-width: 300px; padding: 56px 0 24px; }
+.nav-drawer-title { font-size: 0.66rem; padding: 0 20px; margin-bottom: 12px; }
+.nav-drawer-close { top: 14px; right: 14px; width: 32px; height: 32px; font-size: 1rem; }
+.nav-drawer .site-nav-link { padding: 14px 20px; font-size: 0.95rem; }  /* 세로 44px 이상 터치 타깃 */
 .glossary-intro { font-size: 0.95rem; line-height: 1.6; margin: 16px 0; }
 .glossary-search { margin-bottom: 20px; }
 .glossary-search-input { padding: 8px 16px; font-size: 0.88rem; }

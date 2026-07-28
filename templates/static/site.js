@@ -186,6 +186,131 @@
     });
   }
 
+  /* ---------- 모바일 내비 서랍 (햄버거) ----------
+     유틸리티 바에 내비 링크 2개 + 공유 + 언어 + 다크모드를 모두 넣으면 최소 412px가
+     필요해 대부분의 폰(SE 320 / 13 mini 360 / 14 390)에서 두 줄로 감겼다. 모바일에서는
+     링크를 서랍으로 옮기고 햄버거만 남긴다.
+
+     서랍 내용은 유틸리티 바에 이미 있는 링크를 복제해 만든다. 템플릿 4곳(site·glossary·
+     weekly·topic)에 같은 마크업을 또 넣지 않으려는 것이고, 덕분에 각 페이지가 자기
+     상대경로를 그대로 들고 온다(경로를 다시 계산하지 않으므로 /topics 404 같은 사고가
+     재발할 여지가 없다). 이 블록이 통째로 실패해도 링크는 바에 남아 있어 기존 동작이 된다. */
+  var utilityBar = document.querySelector(".utility-bar");
+  var barNavLinks = utilityBar ? utilityBar.querySelectorAll(".site-nav-link") : [];
+  if (utilityBar && barNavLinks.length) {
+    var drawer = document.createElement("aside");
+    drawer.className = "nav-drawer";
+    drawer.id = "nav-drawer";
+    drawer.setAttribute("aria-hidden", "true");
+    drawer.setAttribute("inert", "");
+
+    var drawerClose = document.createElement("button");
+    drawerClose.type = "button";
+    drawerClose.className = "nav-drawer-close";
+    drawerClose.innerHTML = "&times;";
+    drawerClose.setAttribute("aria-label", "메뉴 닫기");
+    drawerClose.setAttribute("data-aria-ko", "메뉴 닫기");
+    drawerClose.setAttribute("data-aria-en", "Close menu");
+    drawer.appendChild(drawerClose);
+
+    var drawerTitle = document.createElement("p");
+    drawerTitle.className = "nav-drawer-title";
+    drawerTitle.innerHTML =
+      '<span class="lang-ko">메뉴</span><span class="lang-en">Menu</span>';
+    drawer.appendChild(drawerTitle);
+
+    // 홈·RSS는 페이지마다 경로가 달라서, 이미 문서에 있는 요소에서 주소를 그대로 빌린다.
+    var homeAnchor = document.querySelector(".site-header h1 a");
+    var feedLink = document.querySelector('link[type="application/rss+xml"]');
+    var addDrawerLink = function (href, ko, en) {
+      if (!href) return;
+      var a = document.createElement("a");
+      a.className = "site-nav-link";
+      a.href = href;
+      a.innerHTML =
+        '<span class="lang-ko">' + ko + '</span><span class="lang-en">' + en + "</span>";
+      drawer.appendChild(a);
+    };
+    if (homeAnchor) addDrawerLink(homeAnchor.getAttribute("href"), "오늘자 브리핑", "Today's briefing");
+    Array.prototype.forEach.call(barNavLinks, function (link) {
+      var clone = link.cloneNode(true);
+      clone.removeAttribute("id");  // 복제로 id가 중복되면 문서가 깨진다
+      drawer.appendChild(clone);
+    });
+    if (feedLink) addDrawerLink(feedLink.getAttribute("href"), "RSS 구독", "RSS feed");
+
+    var drawerBackdrop = document.createElement("div");
+    drawerBackdrop.className = "nav-drawer-backdrop";
+    drawerBackdrop.hidden = true;
+
+    var navToggle = document.createElement("button");
+    navToggle.type = "button";
+    navToggle.className = "nav-toggle";
+    navToggle.id = "nav-toggle";
+    navToggle.setAttribute("aria-expanded", "false");
+    navToggle.setAttribute("aria-controls", "nav-drawer");
+    navToggle.setAttribute("aria-label", "메뉴 열기");
+    navToggle.setAttribute("data-aria-ko", "메뉴 열기");
+    navToggle.setAttribute("data-aria-en", "Open menu");
+    navToggle.innerHTML =
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
+      '<line x1="3" y1="6" x2="21" y2="6"></line>' +
+      '<line x1="3" y1="12" x2="21" y2="12"></line>' +
+      '<line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+
+    utilityBar.insertBefore(navToggle, utilityBar.firstChild);
+    document.body.appendChild(drawerBackdrop);
+    document.body.appendChild(drawer);
+    // 이 요소들은 최초 updateLocalizedAttrs() 호출보다 늦게 만들어지므로, 영어 모드로
+    // 들어온 방문자에게 aria-label이 한국어로 남지 않도록 여기서 한 번 더 맞춘다.
+    updateLocalizedAttrs();
+
+    var openDrawer = function () {
+      drawer.classList.add("open");
+      drawer.setAttribute("aria-hidden", "false");
+      drawer.removeAttribute("inert");
+      drawerBackdrop.hidden = false;
+      navToggle.setAttribute("aria-expanded", "true");
+      drawerClose.focus();
+    };
+    var closeDrawer = function (returnFocus) {
+      if (!drawer.classList.contains("open")) return;
+      drawer.classList.remove("open");
+      drawer.setAttribute("aria-hidden", "true");
+      // 닫힌 서랍은 화면 밖으로 밀려나 있을 뿐 여전히 포커스를 받을 수 있다.
+      // inert가 없으면 보이지 않는 링크에 탭 포커스가 갇힌다(용어 패널과 같은 이유).
+      drawer.setAttribute("inert", "");
+      drawerBackdrop.hidden = true;
+      navToggle.setAttribute("aria-expanded", "false");
+      if (returnFocus) navToggle.focus();
+    };
+
+    navToggle.addEventListener("click", openDrawer);
+    drawerClose.addEventListener("click", function () { closeDrawer(true); });
+    drawerBackdrop.addEventListener("click", function () { closeDrawer(true); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeDrawer(true);
+      // 열려 있는 동안 Tab이 서랍 밖으로 새지 않게 가둔다.
+      if (e.key === "Tab" && drawer.classList.contains("open")) {
+        var focusables = drawer.querySelectorAll("a[href], button");
+        if (!focusables.length) return;
+        var first = focusables[0];
+        var last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+    // 링크를 눌러 페이지를 떠날 때 열린 상태가 bfcache에 남아 되돌아왔을 때
+    // 서랍이 열린 채로 보이는 걸 막는다.
+    window.addEventListener("pagehide", function () { closeDrawer(false); });
+  }
+
   /* ---------- 이메일 구독 폼 ---------- */
   var subscribeForm = document.getElementById("subscribe-form");
   var subscribeStatus = document.getElementById("subscribe-status");
