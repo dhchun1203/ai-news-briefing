@@ -490,6 +490,69 @@ class TestRssFeed(unittest.TestCase):
         self.assertEqual(len(root.findall("./channel/item")), 0)
 
 
+class TestSearchIndexSync(unittest.TestCase):
+    """검색 테이블로 올릴 행을 아카이브에서 뽑는 단계. 이게 틀리면 그날 기사가
+    사이트 검색에 안 잡히는데, 사이트 자체는 멀쩡해 보여서 알아채기 어렵다."""
+
+    def _collect(self, days, extra_files=None):
+        import json
+        import tempfile
+        from sync_search_index import collect_rows
+
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = Path(tmp)
+            for date, articles in days:
+                (archive / f"{date}.json").write_text(
+                    json.dumps({"date": date, "articles": articles}), encoding="utf-8"
+                )
+            for name, body in (extra_files or {}).items():
+                (archive / name).write_text(body, encoding="utf-8")
+            return collect_rows(archive)
+
+    def _article(self, link, title="T"):
+        return {
+            "link": link, "title": title, "source": "S",
+            "summary_ko": "요약", "summary_en": "summary",
+        }
+
+    def test_collects_searchable_fields(self):
+        rows = self._collect([("2026-07-27", [self._article("https://a")])])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            set(rows[0]), {"link", "date", "title", "source", "summary_ko", "summary_en"}
+        )
+        self.assertEqual(rows[0]["date"], "2026-07-27")
+
+    def test_same_link_on_two_days_is_deduped_to_latest(self):
+        # link가 기본키라 중복이 남아 있으면 upsert가 같은 배치 안에서 충돌한다.
+        rows = self._collect([
+            ("2026-07-26", [self._article("https://a", "옛 제목")]),
+            ("2026-07-27", [self._article("https://a", "새 제목")]),
+        ])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["title"], "새 제목")
+
+    def test_sent_markers_are_ignored(self):
+        rows = self._collect(
+            [("2026-07-27", [self._article("https://a")])],
+            extra_files={"2026-07-27.sent.json": '{"recipient_count": 5}'},
+        )
+        self.assertEqual(len(rows), 1)
+
+    def test_articles_without_link_or_title_are_skipped(self):
+        rows = self._collect([("2026-07-27", [
+            self._article("https://a"),
+            {"link": "", "title": "링크없음"},
+            {"link": "https://b", "title": "   "},
+        ])])
+        self.assertEqual([r["link"] for r in rows], ["https://a"])
+
+    def test_missing_archive_dir_returns_empty(self):
+        from sync_search_index import collect_rows
+
+        self.assertEqual(collect_rows(Path("does-not-exist-xyz")), [])
+
+
 class TestSentMarker(unittest.TestCase):
     """부분 발송 마커에 구독자 이메일이 새어 들어가면 안 된다 — 공개 저장소에 커밋된다."""
 

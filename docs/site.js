@@ -363,20 +363,16 @@
   var searchInput = document.getElementById("archive-search-input");
   var searchResults = document.getElementById("archive-search-results");
   if (searchInput && searchResults) {
+    // 정적 인덱스는 이제 /api/search가 실패했을 때만 받는다. 예전에는 검색창에
+    // 포커스가 가는 순간 무조건 내려받아서, 아카이브가 쌓일수록 그 자체가 부담이었다.
     var searchIndexPromise = null;
-    var indexLoaded = false;
     var loadSearchIndex = function () {
       if (!searchIndexPromise) {
         searchIndexPromise = fetch(config.assetPrefix + "search-index.json")
           .then(function (r) {
             return r.json();
           })
-          .then(function (data) {
-            indexLoaded = true;
-            return data;
-          })
           .catch(function () {
-            indexLoaded = true;
             return [];
           });
       }
@@ -387,48 +383,76 @@
         return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
       });
     };
+    var render = function (matches) {
+      searchResults.innerHTML = matches
+        .map(function (item) {
+          var href = config.archivePrefix + item.date + ".html";
+          return (
+            '<li><a href="' + escapeHtml(href) + '">' + escapeHtml(item.title) + "</a>" +
+            '<span class="archive-search-date">' + escapeHtml(item.date) + " · " + escapeHtml(item.source) + "</span></li>"
+          );
+        })
+        .join("");
+      searchResults.hidden = matches.length === 0;
+    };
+
+    // 정적 인덱스 폴백. /api/search가 죽어도 검색이 통째로 멈추지는 않게 한다 —
+    // 다만 이 인덱스는 이제 폴백 전용이라 최근 며칠치만 담고 있어서, 결과 범위가
+    // 서버 검색보다 좁다(정상 경로에서는 아예 내려받지 않는다).
+    var searchStatic = function (q) {
+      return loadSearchIndex().then(function (data) {
+        var needle = q.toLowerCase();
+        return data
+          .filter(function (item) {
+            var haystack = (
+              (item.title || "") + " " + (item.summary_ko || "") + " " + (item.summary_en || "")
+            ).toLowerCase();
+            return haystack.indexOf(needle) !== -1;
+          })
+          .slice(0, 20);
+      });
+    };
+
+    // 입력이 빠르면 이전 요청의 응답이 나중에 도착해 최신 결과를 덮어쓸 수 있다.
+    // 매 검색에 번호를 매겨 가장 마지막 것만 그리게 한다.
+    var searchSeq = 0;
     var runSearch = function () {
-      var q = searchInput.value.trim().toLowerCase();
+      var q = searchInput.value.trim();
       if (!q) {
         searchResults.hidden = true;
         searchResults.innerHTML = "";
         return;
       }
-      // 인덱스를 아직 못 불러온 상태에서 입력하면, fetch가 끝나기 전까지 잠깐이라도
-      // "결과 없음"으로 오인되지 않도록 로딩 상태를 먼저 보여준다.
-      if (!indexLoaded) {
-        searchResults.hidden = false;
-        searchResults.innerHTML =
-          '<li class="archive-search-loading">' +
-          '<span class="lang-ko">불러오는 중...</span><span class="lang-en">Loading...</span></li>';
-      }
-      loadSearchIndex().then(function (data) {
-        var matches = data
-          .filter(function (item) {
-            var haystack = (
-              (item.title || "") + " " + (item.summary_ko || "") + " " + (item.summary_en || "")
-            ).toLowerCase();
-            return haystack.indexOf(q) !== -1;
-          })
-          .slice(0, 20);
-        searchResults.innerHTML = matches
-          .map(function (item) {
-            var href = config.archivePrefix + item.date + ".html";
-            return (
-              '<li><a href="' + escapeHtml(href) + '">' + escapeHtml(item.title) + "</a>" +
-              '<span class="archive-search-date">' + escapeHtml(item.date) + " · " + escapeHtml(item.source) + "</span></li>"
-            );
-          })
-          .join("");
-        searchResults.hidden = matches.length === 0;
-      });
+      var seq = ++searchSeq;
+      searchResults.hidden = false;
+      searchResults.innerHTML =
+        '<li class="archive-search-loading">' +
+        '<span class="lang-ko">불러오는 중...</span><span class="lang-en">Loading...</span></li>';
+
+      // 절대경로로 고정한다. 서버리스 함수는 항상 /api/search 한 곳에만 있는데,
+      // 상대경로로 쓰면 페이지 깊이(cleanUrls가 만드는 /topics 같은 형태 포함)에
+      // 따라 /archive/api/search처럼 엉뚱한 곳을 가리킬 수 있다.
+      fetch("/api/search?q=" + encodeURIComponent(q))
+        .then(function (r) {
+          if (!r.ok) throw new Error("search failed");
+          return r.json();
+        })
+        .then(function (data) {
+          return (data && data.results) || [];
+        })
+        .catch(function () {
+          return searchStatic(q);
+        })
+        .then(function (matches) {
+          if (seq !== searchSeq) return; // 더 최신 검색이 이미 시작됐다
+          render(matches);
+        });
     };
-    // 인덱스는 날마다 커지고 매 키 입력마다 전체를 훑으므로 디바운스를 둔다.
+    // 키 입력마다 요청을 보내지 않도록 디바운스를 둔다.
     var searchTimer = null;
-    searchInput.addEventListener("focus", loadSearchIndex);
     searchInput.addEventListener("input", function () {
       if (searchTimer) clearTimeout(searchTimer);
-      searchTimer = setTimeout(runSearch, 120);
+      searchTimer = setTimeout(runSearch, 200);
     });
     document.addEventListener("click", function (e) {
       if (e.target !== searchInput && !searchResults.contains(e.target)) {

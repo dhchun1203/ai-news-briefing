@@ -74,10 +74,27 @@ function markUnsubscribed(email) {
   return patchSubscriber(email, { unsubscribed_at: new Date().toISOString() }, "unsubscribe");
 }
 
+// 아카이브 전문 검색. PostgREST 필터(?col=ilike.*값*)가 아니라 RPC로 호출한다 —
+// 질의어가 URL 필터 문법이 아니라 JSON 본문의 함수 인자로 전달되므로, 사용자 입력이
+// 필터 문법(*, 쉼표, 괄호)으로 해석될 여지가 없다. LIKE 와일드카드 무력화는
+// search_archive 함수 안에서 처리한다(supabase/schema.sql 참고).
+async function searchArchive(q, limit) {
+  const { url } = config();
+  const res = await fetch(`${url}/rest/v1/rpc/search_archive`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ q, max_results: limit }),
+  });
+  await assertOk(res, "search");
+  const rows = await res.json();
+  return Array.isArray(rows) ? rows : [];
+}
+
 module.exports = {
   upsertPendingSubscriber,
   getSubscriber,
   touchConfirmSent,
   markConfirmed,
   markUnsubscribed,
+  searchArchive,
 };

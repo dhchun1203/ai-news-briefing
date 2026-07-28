@@ -10,13 +10,25 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = "svc_test";
 const path = require("path");
 const ROOT = path.join(__dirname, "..");
 
-let state = { row: null, resendCalls: 0, patches: [] };
+let state = { row: null, resendCalls: 0, patches: [], rpcCalls: [], rpcFails: false };
 
 global.fetch = async (url, opts = {}) => {
   const u = String(url);
   if (u.startsWith("https://api.resend.com")) {
     state.resendCalls++;
     return { ok: true, status: 200, text: async () => "", json: async () => ({ id: "x" }) };
+  }
+  if (u.includes("/rest/v1/rpc/search_archive")) {
+    state.rpcCalls.push(JSON.parse(opts.body));
+    if (state.rpcFails) {
+      return { ok: false, status: 500, text: async () => "boom at proj.supabase.co table=search_articles" };
+    }
+    return {
+      ok: true,
+      status: 200,
+      text: async () => "",
+      json: async () => [{ date: "2026-07-27", title: "T", link: "https://x", source: "S" }],
+    };
   }
   if (u.includes("/rest/v1/subscribers")) {
     const method = opts.method || "GET";
@@ -48,6 +60,7 @@ function mockRes() {
 
 const subscribe = require(ROOT + "/api/subscribe.js");
 const unsubscribe = require(ROOT + "/api/unsubscribe.js");
+const search = require(ROOT + "/api/search.js");
 const tokens = require(ROOT + "/api/_lib/tokens.js");
 
 const results = [];
@@ -118,6 +131,49 @@ function check(name, cond, extra = "") {
   check("expired-but-signed -> 'expired'", tokens.verifyConfirmToken("u@x.com", expired.expiry, expired.token).reason === "expired");
   check("forged+expired -> 'invalid' (no expiry oracle)",
     tokens.verifyConfirmToken("u@x.com", expired.expiry, "forged").reason === "invalid");
+
+  // --- search: 정상 조회 ---
+  state.rpcCalls = [];
+  res = mockRes();
+  await search({ method: "GET", query: { q: "오퍼스" } }, res);
+  check("search returns results", res._status === 200 && JSON.parse(res._body).results.length === 1);
+  check("search passes query as RPC arg (not a URL filter)",
+    state.rpcCalls.length === 1 && state.rpcCalls[0].q === "오퍼스", JSON.stringify(state.rpcCalls));
+
+  // --- search: 빈 질의는 에러가 아니라 빈 결과 ---
+  state.rpcCalls = [];
+  res = mockRes();
+  await search({ method: "GET", query: { q: "   " } }, res);
+  check("empty query -> 200 empty, no DB hit",
+    res._status === 200 && JSON.parse(res._body).results.length === 0 && state.rpcCalls.length === 0);
+
+  // --- search: 길이 상한 (인증 없는 공개 엔드포인트라 입구에서 막아야 한다) ---
+  state.rpcCalls = [];
+  res = mockRes();
+  await search({ method: "GET", query: { q: "가".repeat(101) } }, res);
+  check("over-long query rejected without hitting DB",
+    res._status === 400 && state.rpcCalls.length === 0);
+
+  // --- search: limit 상한 (임의로 큰 값을 넣어도 DB에 그대로 안 넘어간다) ---
+  state.rpcCalls = [];
+  res = mockRes();
+  await search({ method: "GET", query: { q: "ai", limit: "9999" } }, res);
+  check("limit is capped", state.rpcCalls[0].max_results === 50, JSON.stringify(state.rpcCalls[0]));
+
+  // --- search: GET 외 거부 ---
+  res = mockRes();
+  await search({ method: "POST", query: {} }, res);
+  check("non-GET rejected", res._status === 405);
+
+  // --- search: DB 오류 시 내부 정보가 새지 않아야 한다 ---
+  state.rpcFails = true;
+  res = mockRes();
+  await search({ method: "GET", query: { q: "ai" } }, res);
+  const errBody = res._body;
+  check("db failure -> 502 with generic code", res._status === 502 && JSON.parse(errBody).error === "search_unavailable");
+  check("db failure leaks no host/table name",
+    !errBody.includes("supabase.co") && !errBody.includes("search_articles"), errBody);
+  state.rpcFails = false;
 
   let pass = 0;
   for (const r of results) {

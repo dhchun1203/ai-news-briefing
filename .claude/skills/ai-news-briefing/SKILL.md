@@ -397,6 +397,19 @@ Vercel Git Integration이 `main` 브랜치 push를 감지해 `vercel.json`의
 단계는 커밋/푸시까지만 수행되고 배포는 되지 않으니, 사용자에게 vercel.com에서 저장소를
 Import해야 한다고 안내한다.
 
+### 6-1. 검색 인덱스 동기화
+```
+python scripts/sync_search_index.py
+```
+- `docs/archive/*.json`의 기사를 Supabase `search_articles` 테이블로 올린다.
+  사이트 검색(`/api/search`)이 읽는 곳이라, 이걸 건너뛰면 그날 기사가 검색에 안 잡힌다.
+- 매번 아카이브 전체를 다시 올린다(link가 기본키라 멱등). 하루 실패해도 다음 실행이
+  빈 구멍을 알아서 메운다 — 오늘자만 올리면 실패한 날의 기사가 영영 누락된다.
+- **사이트 배포(6단계) 뒤에 실행한다.** 검색은 부가 기능이라 여기서 실패해도 이미
+  배포된 사이트는 멀쩡하고, `/api/search`가 죽어도 브라우저가 정적 인덱스로 폴백한다.
+  그래도 실패하면 완료 보고에 적는다(며칠 쌓이면 검색 결과가 낡는다).
+- `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`가 필요하다. 없으면 에러로 끝난다.
+
 ## 7. 이메일 구독자에게 발송
 
 ### 7-1. 밀린 발송(catch-up) 먼저 확인
