@@ -57,7 +57,8 @@
         "agents",
         "products"
       ],
-      "cross_source_count": 1
+      "cross_source_count": 1,
+      "related": []
     },
     {
       "title": "Scientific computing in the age of agentic AI",
@@ -72,7 +73,8 @@
         "agents",
         "society"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "MCP startup Runlayer accuses Rippling of stealing its product idea",
@@ -87,7 +89,8 @@
         "business",
         "agents"
       ],
-      "cross_source_count": 1
+      "cross_source_count": 1,
+      "related": []
     },
     {
       "title": "We now have a better understanding how OpenAI hacked into Hugging Face",
@@ -101,7 +104,8 @@
       "topics": [
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Bot-detection startup Spur nabs $200M from Insight",
@@ -116,7 +120,8 @@
         "business",
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Sam Altman is ready to decelerate",
@@ -131,7 +136,8 @@
         "safety",
         "policy"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Data centers may face temporary power cuts to prevent blackouts on largest US grid",
@@ -145,7 +151,8 @@
       "topics": [
         "infra"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Visa used Mythos to hunt for bugs in its own payment network, then open-sourced the harness that made it possible",
@@ -160,7 +167,8 @@
         "safety",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Instacart's CTO says AI made the company stop worrying about tech debt",
@@ -175,7 +183,8 @@
         "agents",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "GM redesigned its engineering workflows around AI agents — and tripled its merged pull requests",
@@ -190,7 +199,8 @@
         "agents",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     }
   ]
 }
