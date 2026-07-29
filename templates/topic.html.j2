@@ -19,13 +19,11 @@
    `../`가 없는 형제 링크(예: href="agents.html")만 루트 기준으로 잘못 풀려 404가 났다
    (`../`가 붙은 나머지는 루트에서 클램핑돼 우연히 맞았을 뿐이다). p/tp로 깊이별
    접두사를 분리해 이 클래스의 버그를 다시 만들지 않는다. #}
-{% set p = '' if is_index else '../' %}
-{% set tp = 'topics/' if is_index else '' %}
-<html lang="ko" data-lang="ko" data-title-ko="{{ title_ko }}" data-title-en="{{ title_en }}"
-      data-default-lang="ko" data-asset-prefix="{{ p }}" data-archive-prefix="{{ p }}archive/">
+<html lang="{{ lang }}" data-lang="{{ lang }}"
+      data-default-lang="{{ lang }}" data-asset-prefix="{{ up }}" data-archive-prefix="{{ up }}archive/">
 <head>
 <meta charset="UTF-8">
-<title>{{ title_ko }}</title>
+<title>{{ title_ko if lang == 'ko' else title_en }}</title>
 <meta name="description" content="{{ desc_ko }}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="{{ title_ko }}">
@@ -35,34 +33,35 @@
 <meta name="twitter:description" content="{{ desc_ko }}">
 <link rel="canonical" href="{{ canonical_url }}">
 <meta name="robots" content="index, follow">
+{% if hreflang_ko_url and hreflang_en_url %}
+<link rel="alternate" hreflang="ko" href="{{ hreflang_ko_url }}">
+<link rel="alternate" hreflang="en" href="{{ hreflang_en_url }}">
+<link rel="alternate" hreflang="x-default" href="{{ hreflang_ko_url }}">
+{% endif %}
 <meta property="og:url" content="{{ canonical_url }}">
 <meta property="og:image" content="{{ og_image_url }}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
 <meta name="twitter:image" content="{{ og_image_url }}">
-<link rel="icon" type="image/svg+xml" href="{{ p }}favicon.svg">
-<link rel="alternate" type="application/rss+xml" title="AI 뉴스 브리핑" href="{{ p }}feed.xml">
+<link rel="icon" type="image/svg+xml" href="{{ up }}favicon.svg">
+<link rel="alternate" type="application/rss+xml" title="AI 뉴스 브리핑" href="{{ up }}feed.xml">
 {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
 {% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
 <script type="application/ld+json">{{ jsonld|tojson }}</script>
 <script>
 (function () {
+  // 테마만 처리한다. 언어는 URL이 결정하므로(한 페이지 = 한 언어) 클라이언트에서
+  // 바꾸지 않는다 — 예전에는 localStorage 값으로 본문을 갈아끼웠는데, 그러면 크롤러가
+  // 보는 언어와 사람이 보는 언어가 달라질 수 있다.
   function getCookie(name) {
     var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
     return match ? decodeURIComponent(match[1]) : null;
   }
   try {
+    // 처음 방문(쿠키 없음)이면 시스템 설정과 무관하게 항상 라이트 모드로 뜬다.
     var t = getCookie("theme");
     if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
-    var l = localStorage.getItem("lang");
-    if (l === "ko" || l === "en") {
-      document.documentElement.setAttribute("data-lang", l);
-      document.documentElement.setAttribute("lang", l);
-      var titleAttr = l === "en" ? "data-title-en" : "data-title-ko";
-      var storedTitle = document.documentElement.getAttribute(titleAttr);
-      if (storedTitle) document.title = storedTitle;
-    }
   } catch (e) {}
 })();
 </script>
@@ -70,28 +69,25 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="{{ p }}site-base.css">
-<link rel="stylesheet" href="{{ p }}site-mobile.css" media="(max-width: 767px)">
-<link rel="stylesheet" href="{{ p }}site-desktop.css" media="(min-width: 768px)">
+<link rel="stylesheet" href="{{ up }}site-base.css">
+<link rel="stylesheet" href="{{ up }}site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="{{ up }}site-desktop.css" media="(min-width: 768px)">
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">
-  <span class="lang-ko">본문으로 건너뛰기</span>
-  <span class="lang-en">Skip to content</span>
+  {% if lang == 'ko' %}본문으로 건너뛰기{% else %}Skip to content{% endif %}
 </a>
 <header class="site-header">
   <div class="utility-bar">
     {# 목록·개별 페이지 둘 다 "주제별" 섹션 안이므로 여기선 항상 현재로 표시한다 —
        어느 특정 주제를 보고 있는지는 아래 topic-nav 열에서 따로 표시된다. #}
     <a class="site-nav-link site-nav-link-current" href="{{ tp }}index.html" aria-current="page">
-      <span class="lang-ko">주제별</span>
-      <span class="lang-en">Topics</span>
+      {% if lang == 'ko' %}주제별{% else %}Topics{% endif %}
       {% if nav_counts and nav_counts.topics %}<span class="site-nav-link-count">{{ nav_counts.topics }}</span>{% endif %}
     </a>
-    <a class="site-nav-link" href="{{ p }}glossary.html">
-      <span class="lang-ko">용어사전</span>
-      <span class="lang-en">Glossary</span>
+    <a class="site-nav-link" href="{{ up }}glossary.html">
+      {% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}
       {% if nav_counts and nav_counts.terms %}<span class="site-nav-link-count">{{ nav_counts.terms }}</span>{% endif %}
     </a>
     <div class="share-wrap" id="share-wrap">
@@ -100,17 +96,12 @@
       </button>
       <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite"></span>
     </div>
-    <div class="lang-select" id="lang-select">
-      <button type="button" class="lang-select-trigger" id="lang-select-trigger" aria-haspopup="listbox" aria-expanded="false">
-        <span class="lang-select-current lang-ko">한국어</span>
-        <span class="lang-select-current lang-en">English</span>
-        <span class="lang-select-caret" aria-hidden="true">▾</span>
-      </button>
-      <ul class="lang-select-list" id="lang-select-list" role="listbox" hidden>
-        <li role="option" tabindex="-1" data-lang-value="ko">한국어</li>
-        <li role="option" tabindex="-1" data-lang-value="en">English</li>
-      </ul>
-    </div>
+    {# 언어 전환은 이제 상대 URL로 이동한다(한 페이지 = 한 언어). CSS로 숨기던
+       방식은 크롤러가 보는 언어와 사람이 보는 언어를 어긋나게 만들 수 있었다. #}
+    <a class="lang-switch" href="{{ lang_alt_url }}" hreflang="{{ 'en' if lang == 'ko' else 'ko' }}"
+       rel="alternate" aria-label="{{ 'Switch to English' if lang == 'ko' else '한국어로 보기' }}">
+      {% if lang == 'ko' %}EN{% else %}한국어{% endif %}
+    </a>
     <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환" data-aria-ko="다크모드 전환" data-aria-en="Toggle dark mode">
       <span class="theme-toggle-thumb">
         <span class="icon-moon" aria-hidden="true">&#9789;</span>
@@ -120,18 +111,15 @@
   </div>
   <div class="header-inner">
     <h1>
-      <a href="{{ p }}index.html">
-        <span class="lang-ko">AI 뉴스 브리핑</span>
-        <span class="lang-en">AI News Briefing</span>
+      <a href="{{ up }}index.html">
+        {% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}
       </a>
     </h1>
     <p class="tagline">
       {% if is_index %}
-      <span class="lang-ko">주제별 브리핑 · 12개 주제로 모아 보기</span>
-      <span class="lang-en">Browse by topic · 12 topics</span>
+      {% if lang == 'ko' %}주제별 브리핑 · 12개 주제로 모아 보기{% else %}Browse by topic · 12 topics{% endif %}
       {% else %}
-      <span class="lang-ko">{{ topic.label_ko }} · 기사 {{ entries|length }}건</span>
-      <span class="lang-en">{{ topic.label_en }} · {{ entries|length }} stories</span>
+      {% if lang == 'ko' %}{{ topic.label_ko }} · 기사 {{ entries|length }}건{% else %}{{ topic.label_en }} · {{ entries|length }} stories{% endif %}
       {% endif %}
     </p>
   </div>
@@ -139,25 +127,21 @@
 
 <main class="content" id="main-content">
   <div class="date-bar">
-    <a class="back-link" href="{{ p }}index.html">
-      <span class="lang-ko">← 오늘자 브리핑</span>
-      <span class="lang-en">← Today's briefing</span>
+    <a class="back-link" href="{{ up }}index.html">
+      {% if lang == 'ko' %}← 오늘자 브리핑{% else %}← Today's briefing{% endif %}
     </a>
     {% if not is_index %}
     <a class="back-link" href="{{ tp }}index.html">
-      <span class="lang-ko">모든 주제 보기</span>
-      <span class="lang-en">All topics</span>
+      {% if lang == 'ko' %}모든 주제 보기{% else %}All topics{% endif %}
     </a>
     {% endif %}
   </div>
 
   <p class="glossary-intro">
     {% if is_index %}
-    <span class="lang-ko">지금까지 브리핑에 실린 기사를 주제별로 나눠 모았습니다. 하나의 흐름을 처음부터 따라 읽고 싶을 때 쓰세요.</span>
-    <span class="lang-en">Every story published so far, grouped by subject — useful when you want to follow one thread from the beginning.</span>
+    {% if lang == 'ko' %}지금까지 브리핑에 실린 기사를 주제별로 나눠 모았습니다. 하나의 흐름을 처음부터 따라 읽고 싶을 때 쓰세요.{% else %}Every story published so far, grouped by subject — useful when you want to follow one thread from the beginning.{% endif %}
     {% else %}
-    <span class="lang-ko">{{ topic.description_ko }}</span>
-    <span class="lang-en">{{ topic.description_en }}</span>
+    {% if lang == 'ko' %}{{ topic.description_ko }}{% else %}{{ topic.description_en }}{% endif %}
     {% endif %}
   </p>
 
@@ -168,14 +152,12 @@
     {% if t.count %}
     <a class="topic-nav-item{% if not is_index and t.slug == topic.slug %} topic-nav-item-current{% endif %}"
        href="{{ tp }}{{ t.slug }}.html"{% if not is_index and t.slug == topic.slug %} aria-current="page"{% endif %}>
-      <span class="lang-ko">{{ t.label_ko }}</span>
-      <span class="lang-en">{{ t.label_en }}</span>
+      {% if lang == 'ko' %}{{ t.label_ko }}{% else %}{{ t.label_en }}{% endif %}
       <span class="topic-nav-count">{{ t.count }}</span>
     </a>
     {% else %}
     <span class="topic-nav-item topic-nav-item-empty">
-      <span class="lang-ko">{{ t.label_ko }}</span>
-      <span class="lang-en">{{ t.label_en }}</span>
+      {% if lang == 'ko' %}{{ t.label_ko }}{% else %}{{ t.label_en }}{% endif %}
       <span class="topic-nav-count">0</span>
     </span>
     {% endif %}
@@ -187,13 +169,12 @@
     {% for e in entries %}
     <li class="topic-entry">
       <div class="article-meta">
-        <a class="topic-entry-date" href="{{ p }}archive/{{ e.date }}.html">{{ e.date }}</a>
+        <a class="topic-entry-date" href="{{ up }}archive/{{ e.date }}.html">{{ e.date }}</a>
         <span class="source">{{ e.source }}</span>
       </div>
       <h2 class="topic-entry-title"><a href="{{ e.link }}" target="_blank" rel="noopener noreferrer">{{ e.title }}</a></h2>
       <p class="topic-entry-summary">
-        <span class="lang-ko">{{ e.summary_ko }}</span>
-        <span class="lang-en">{{ e.summary_en }}</span>
+        {% if lang == 'ko' %}{{ e.summary_ko }}{% else %}{{ e.summary_en }}{% endif %}
       </p>
     </li>
     {% endfor %}
@@ -203,18 +184,17 @@
 
 <footer class="site-footer">
   <p>
-    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: {{ generated_at }}</span>
-    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}</span>
+    {% if lang == 'ko' %}매일 08:00 KST 자동 갱신 · 마지막 생성: {{ generated_at }}{% else %}Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}{% endif %}
   </p>
   <p class="footer-links">
-    <a href="{{ p }}feed.xml">RSS</a>
+    <a href="{{ up }}feed.xml">RSS</a>
     <span aria-hidden="true">·</span>
-    <a href="{{ p }}glossary.html"><span class="lang-ko">용어사전</span><span class="lang-en">Glossary</span></a>
+    <a href="{{ up }}glossary.html">{% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}</a>
     <span aria-hidden="true">·</span>
-    <a href="{{ tp }}index.html"><span class="lang-ko">주제별 보기</span><span class="lang-en">Topics</span></a>
+    <a href="{{ tp }}index.html">{% if lang == 'ko' %}주제별 보기{% else %}Topics{% endif %}</a>
   </p>
 </footer>
 
-<script defer src="{{ p }}site.js"></script>
+<script defer src="{{ up }}site.js"></script>
 </body>
 </html>

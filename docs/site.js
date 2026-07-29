@@ -75,21 +75,10 @@
     });
   }
 
-  /* ---------- 언어 적용 (선택 시 / bfcache 복원 시 공용) ---------- */
-  function applyLang(lang) {
-    root.setAttribute("data-lang", lang);
-    root.setAttribute("lang", lang);
-    var titleAttr = lang === "en" ? "data-title-en" : "data-title-ko";
-    var stored = root.getAttribute(titleAttr);
-    if (stored) document.title = stored;
-    updateLocalizedAttrs();
-  }
-
-  /* ---------- bfcache 복원 시 테마/언어 재동기화 ----------
-   * 뒤로가기/앞으로가기로 브라우저가 페이지를 bfcache에서 그대로 복원하면
-   * (pageshow의 persisted===true) 스크립트가 다시 실행되지 않아 테마/언어가 "이 페이지를
-   * 떠날 때의 상태"로 얼어붙는다 — 용어사전에서 언어를 바꾼 뒤 뒤로가기하면 기사 페이지가
-   * 예전 언어로 보이던 문제. persisted 복원 시에만 저장된 값으로 다시 맞춘다. */
+  /* ---------- bfcache 복원 시 테마 재동기화 ----------
+   * 뒤로가기/앞으로가기로 브라우저가 페이지를 bfcache에서 복원하면(pageshow의
+   * persisted===true) 스크립트가 다시 실행되지 않아 테마가 "떠날 때의 상태"로 얼어붙는다.
+   * 언어는 URL이 결정하므로 여기서 되돌릴 것이 없다. */
   window.addEventListener("pageshow", function (e) {
     if (!e.persisted) return;
     var t = getCookie("theme");
@@ -97,94 +86,7 @@
       root.setAttribute("data-theme", t);
       if (themeBtn) themeBtn.setAttribute("aria-checked", String(t === "dark"));
     }
-    try {
-      if (config.defaultLang === "en") {
-        // 영어권 착지 페이지는 저장된 선호와 무관하게 항상 영어로 유지한다.
-        localStorage.setItem("lang", "en");
-      } else {
-        var l = localStorage.getItem("lang");
-        if (l === "ko" || l === "en") applyLang(l);
-      }
-    } catch (err) {
-      /* localStorage 차단 환경 — 테마만 복원하고 넘어간다 */
-    }
-    updateLocalizedAttrs();
   });
-
-  /* ---------- 한국어/영어 선택 드롭다운 ---------- */
-  var langSelect = document.getElementById("lang-select");
-  var langTrigger = document.getElementById("lang-select-trigger");
-  var langList = document.getElementById("lang-select-list");
-  if (langSelect && langTrigger && langList) {
-    var langOptions = Array.prototype.slice.call(langList.querySelectorAll("li[data-lang-value]"));
-    var closeList = function (returnFocus) {
-      langList.hidden = true;
-      langTrigger.setAttribute("aria-expanded", "false");
-      if (returnFocus) langTrigger.focus();
-    };
-    var openList = function (focusIndex) {
-      langList.hidden = false;
-      langTrigger.setAttribute("aria-expanded", "true");
-      if (typeof focusIndex === "number" && langOptions[focusIndex]) langOptions[focusIndex].focus();
-    };
-    var markSelected = function (lang) {
-      langOptions.forEach(function (li) {
-        li.setAttribute("aria-selected", String(li.getAttribute("data-lang-value") === lang));
-      });
-    };
-    var selectLang = function (next) {
-      applyLang(next);
-      try {
-        localStorage.setItem("lang", next);
-      } catch (e) {
-        /* 저장 실패해도 이번 페이지에는 이미 적용됐다 */
-      }
-      markSelected(next);
-      closeList(true);
-    };
-    markSelected(currentLang());
-    langTrigger.addEventListener("click", function (e) {
-      e.stopPropagation();
-      if (langList.hidden) openList();
-      else closeList();
-    });
-    langTrigger.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        e.preventDefault();
-        openList(e.key === "ArrowDown" ? 0 : langOptions.length - 1);
-      }
-    });
-    // 옵션이 2개뿐이라 풀 콤보박스 패턴 대신 화살표(이동)+Enter/Space(선택)+Escape(닫기)만 지원.
-    langOptions.forEach(function (li, i) {
-      li.addEventListener("click", function () {
-        selectLang(li.getAttribute("data-lang-value"));
-      });
-      li.addEventListener("keydown", function (e) {
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          langOptions[(i + 1) % langOptions.length].focus();
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          langOptions[(i - 1 + langOptions.length) % langOptions.length].focus();
-        } else if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          selectLang(li.getAttribute("data-lang-value"));
-        } else if (e.key === "Escape") {
-          closeList(true);
-        }
-      });
-    });
-    document.addEventListener("click", function (e) {
-      if (!langSelect.contains(e.target)) closeList();
-    });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeList();
-    });
-    // 포커스가 드롭다운 밖으로 나가면 닫는다(Tab으로 빠져나가는 경우).
-    langSelect.addEventListener("focusout", function (e) {
-      if (!langSelect.contains(e.relatedTarget)) closeList();
-    });
-  }
 
   /* ---------- 모바일 내비 서랍 (햄버거) ----------
      유틸리티 바에 내비 링크 2개 + 공유 + 언어 + 다크모드를 모두 넣으면 최소 412px가
@@ -208,15 +110,12 @@
     drawerClose.type = "button";
     drawerClose.className = "nav-drawer-close";
     drawerClose.innerHTML = "&times;";
-    drawerClose.setAttribute("aria-label", "메뉴 닫기");
-    drawerClose.setAttribute("data-aria-ko", "메뉴 닫기");
-    drawerClose.setAttribute("data-aria-en", "Close menu");
+    drawerClose.setAttribute("aria-label", currentLang() === "en" ? "Close menu" : "메뉴 닫기");
     drawer.appendChild(drawerClose);
 
     var drawerTitle = document.createElement("p");
     drawerTitle.className = "nav-drawer-title";
-    drawerTitle.innerHTML =
-      '<span class="lang-ko">메뉴</span><span class="lang-en">Menu</span>';
+    drawerTitle.textContent = currentLang() === "en" ? "Menu" : "메뉴";
     drawer.appendChild(drawerTitle);
 
     // 홈·RSS는 페이지마다 경로가 달라서, 이미 문서에 있는 요소에서 주소를 그대로 빌린다.
@@ -227,8 +126,7 @@
       var a = document.createElement("a");
       a.className = "site-nav-link";
       a.href = href;
-      a.innerHTML =
-        '<span class="lang-ko">' + ko + '</span><span class="lang-en">' + en + "</span>";
+      a.textContent = currentLang() === "en" ? en : ko;
       drawer.appendChild(a);
     };
     if (homeAnchor) addDrawerLink(homeAnchor.getAttribute("href"), "오늘자 브리핑", "Today's briefing");
@@ -249,9 +147,7 @@
     navToggle.id = "nav-toggle";
     navToggle.setAttribute("aria-expanded", "false");
     navToggle.setAttribute("aria-controls", "nav-drawer");
-    navToggle.setAttribute("aria-label", "메뉴 열기");
-    navToggle.setAttribute("data-aria-ko", "메뉴 열기");
-    navToggle.setAttribute("data-aria-en", "Open menu");
+    navToggle.setAttribute("aria-label", currentLang() === "en" ? "Open menu" : "메뉴 열기");
     navToggle.innerHTML =
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
@@ -579,6 +475,17 @@
       if (searchTimer) clearTimeout(searchTimer);
       searchTimer = setTimeout(runSearch, 200);
     });
+
+    // ?q=... 로 들어오면 바로 검색한다. WebSite JSON-LD의 SearchAction이 이 주소
+    // 형식을 가리키므로 실제로 동작해야 한다 — 없는 기능을 구조화 데이터로
+    // 선언하면 안 된다. 덕분에 검색 결과를 링크로 공유할 수도 있다.
+    try {
+      var initialQuery = new URLSearchParams(window.location.search).get("q");
+      if (initialQuery) {
+        searchInput.value = initialQuery;
+        runSearch();
+      }
+    } catch (e) {}
     document.addEventListener("click", function (e) {
       if (e.target !== searchInput && !searchResults.contains(e.target)) {
         searchResults.hidden = true;

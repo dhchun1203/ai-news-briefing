@@ -86,44 +86,56 @@ def _weekly_lastmod(label: str, fallback: str) -> str:
         return fallback
 
 
+def _lang_urls(docs_dir: Path, site_url: str, today: str) -> list:
+    """한 언어 트리(docs/ 또는 docs/en/)가 내보내는 URL 목록.
+
+    build_sitemap이 한국어와 영어 트리에 각각 이 함수를 적용한다 — 언어별로 URL이
+    분리돼 있으므로 sitemap에도 둘 다 들어가야 색인된다. 트레일링 슬래시는 붙이지
+    않는다(cleanUrls가 실제로 서빙하는 정규 형태가 슬래시 없는 쪽이다)."""
+    urls = [(f"{site_url}/", today)]
+    archive_dir = docs_dir / "archive"
+    if (archive_dir / "index.html").exists():
+        urls.append((f"{site_url}/archive", today))
+    if archive_dir.exists():
+        for f in sorted(archive_dir.glob("*.html")):
+            if f.stem == "index":
+                continue
+            urls.append((f"{site_url}/archive/{f.stem}", f.stem))
+    weekly_dir = docs_dir / "weekly"
+    if weekly_dir.exists():
+        for f in sorted(weekly_dir.glob("*.html")):
+            urls.append((f"{site_url}/weekly/{f.stem}", _weekly_lastmod(f.stem, today)))
+    topics_dir = docs_dir / "topics"
+    if (topics_dir / "index.html").exists():
+        urls.append((f"{site_url}/topics", today))
+    if topics_dir.exists():
+        for f in sorted(topics_dir.glob("*.html")):
+            if f.stem == "index":
+                continue
+            urls.append((f"{site_url}/topics/{f.stem}", today))
+    if (docs_dir / "about.html").exists():
+        urls.append((f"{site_url}/about", today))
+    if (docs_dir / "glossary.html").exists():
+        urls.append((f"{site_url}/glossary", today))
+    glossary_dir = docs_dir / "glossary"
+    if glossary_dir.exists():
+        for f in sorted(glossary_dir.glob("*.html")):
+            urls.append((f"{site_url}/glossary/{f.stem}", today))
+    return urls
+
+
 def build_sitemap(docs_dir: Path, site_url: str, today: str) -> int:
     """docs/archive/*.html과 docs/weekly/*.html 전체를 매번 다시 스캔해 sitemap.xml을
     재작성한다(전체 재빌드, 멱등적). collect_archive_dates()/collect_weekly_labels()는
     화면 노출용으로 최근 60개까지만 잘라내므로 여기서는 재사용하지 않고 직접 glob한다
     — sitemap은 색인 대상 전체를 담아야 한다."""
-    archive_dir = docs_dir / "archive"
-    weekly_dir = docs_dir / "weekly"
-    urls = [(f"{site_url}/", today)]
-    if (archive_dir / "index.html").exists():
-        # 날짜가 하나 늘 때마다 목록이 바뀌므로 lastmod는 오늘(토픽 목록과 같은 이유).
-        # 슬래시를 붙이지 않는 이유는 위 /topics와 같다.
-        urls.append((f"{site_url}/archive", today))
-    if archive_dir.exists():
-        for f in sorted(archive_dir.glob("*.html")):
-            if f.stem == "index":
-                continue  # 위에서 이미 넣었다
-            urls.append((f"{site_url}/archive/{f.stem}", f.stem))
-    if weekly_dir.exists():
-        for f in sorted(weekly_dir.glob("*.html")):
-            urls.append((f"{site_url}/weekly/{f.stem}", _weekly_lastmod(f.stem, today)))
-    topics_dir = docs_dir / "topics"
-    # 트레일링 슬래시를 붙이지 않는다. cleanUrls가 `/topics/index.html`을
-    # `/topics`(슬래시 없음)로 308 리다이렉트하므로 실제로 서빙되는 정규 형태가
-    # 그쪽이고, 페이지 안의 상대경로도 그 기준으로만 올바르게 풀린다
-    # (`/topics/`로 들어가면 형제 링크가 `/topics/topics/...`가 된다).
-    if (topics_dir / "index.html").exists():
-        urls.append((f"{site_url}/topics", today))
-    if topics_dir.exists():
-        # 토픽 페이지는 매일 그날 기사가 앞에 붙으므로 lastmod는 항상 오늘이다
-        # (용어사전과 같은 이유). index.html은 위에서 이미 넣었으므로 건너뛴다.
-        for f in sorted(topics_dir.glob("*.html")):
-            if f.stem == "index":
-                continue
-            urls.append((f"{site_url}/topics/{f.stem}", today))
-    if (docs_dir / "glossary.html").exists():
-        urls.append((f"{site_url}/glossary", today))  # 매일 새 용어가 쌓일 수 있어 lastmod는 오늘
-    if (docs_dir / "en" / "index.html").exists():
-        urls.append((f"{site_url}/en/", today))  # 영어권 착지 페이지, 오늘자 digest와 함께 매일 갱신
+    # 한국어(루트)와 영어(/en/) 트리를 각각 훑는다. 언어별 URL이 분리돼 있어
+    # 둘 다 sitemap에 있어야 각 언어판이 색인된다.
+    urls = _lang_urls(docs_dir, site_url, today)
+    en_dir = docs_dir / "en"
+    if en_dir.exists():
+        urls += _lang_urls(en_dir, f"{site_url}/en", today)
+
     body = "\n".join(
         f"  <url><loc>{escape(loc)}</loc><lastmod>{lastmod}</lastmod></url>" for loc, lastmod in urls
     )
@@ -282,6 +294,76 @@ def load_verification_tags() -> dict:
     }
 
 
+def build_breadcrumb(site_url: str, trail: list) -> dict:
+    """BreadcrumbList 노드. trail은 [(이름, URL), ...] 순서 그대로 계층을 만든다.
+    마지막 항목(현재 페이지)에도 URL을 넣어야 검색엔진이 위치를 확정할 수 있다."""
+    return {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": i + 1, "name": name, "item": url}
+            for i, (name, url) in enumerate(trail)
+        ],
+    }
+
+
+def load_about() -> dict:
+    """config/about.json을 읽는다. 없거나 깨져 있으면 빈 dict를 돌려줘 About 페이지
+    생성을 건너뛴다 — 부가 페이지 하나 때문에 매일 도는 사이트 생성이 멈추면 안 된다."""
+    path = CONFIG_DIR / "about.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def build_about_page_jsonld(site_url: str, page_url: str, about: dict) -> dict:
+    """소개 페이지용 JSON-LD. AboutPage로 표시하고, 이 페이지가 설명하는 대상이
+    우리 Organization임을 mainEntity로 명시한다 — "이 사이트가 무엇인가"를 묻는
+    질의에 이 페이지가 답으로 잡히게 하는 연결이다."""
+    node = {
+        "@type": "AboutPage",
+        "@id": f"{page_url}#page",
+        "url": page_url,
+        "name": "소개 — Daily AI Thread",
+        "description": about.get("tagline_ko", ""),
+        "inLanguage": ["ko", "en"],
+        "isPartOf": {"@id": f"{site_url}/#website"},
+        "mainEntity": {"@id": f"{site_url}/#organization"},
+    }
+    crumb = build_breadcrumb(site_url, [("홈", f"{site_url}/"), ("소개", page_url)])
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node, crumb]}
+
+
+def build_glossary_term_jsonld(site_url: str, page_url: str, term: dict) -> dict:
+    """용어 개별 페이지용 JSON-LD. DefinedTerm은 "[용어]는 [정의]다" 구조를 그대로
+    표현하는 타입이라, 질문형 쿼리("MCP란?")에 이 페이지가 답으로 잡히게 하는 데
+    가장 직접적인 마크업이다. 용어사전 전체(DefinedTermSet)에 속함을 함께 밝힌다."""
+    node = {
+        "@type": "DefinedTerm",
+        "@id": f"{page_url}#term",
+        "url": page_url,
+        "name": term.get("term_ko", ""),
+        "alternateName": [n for n in ([term.get("term_en")] + list(term.get("aliases_ko") or [])) if n],
+        "description": term.get("explanation_ko", ""),
+        "inDefinedTermSet": {
+            "@type": "DefinedTermSet",
+            "@id": f"{site_url}/glossary#glossary",
+            "url": f"{site_url}/glossary",
+            "name": "AI 용어사전",
+        },
+        "inLanguage": ["ko", "en"],
+        "publisher": {"@id": f"{site_url}/#organization"},
+    }
+    crumb = build_breadcrumb(site_url, [
+        ("홈", f"{site_url}/"),
+        ("용어사전", f"{site_url}/glossary"),
+        (term.get("term_ko", ""), page_url),
+    ])
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node, crumb]}
+
+
 def _website_org_nodes(site_url: str) -> list:
     """모든 페이지가 공유하는 WebSite/Organization 그래프 노드. 페이지마다 이걸
     JSON-LD @graph에 포함시켜, 크롤러가 페이지 하나만 읽어도 사이트 정체성을
@@ -294,13 +376,29 @@ def _website_org_nodes(site_url: str) -> list:
             "name": "AI 뉴스 브리핑 · Daily AI Thread",
             "inLanguage": ["ko", "en"],
             "publisher": {"@id": f"{site_url}/#organization"},
+            # 사이트 내 검색을 실제로 제공하므로(/api/search) SearchAction을 선언한다.
+            # 없는 기능을 선언하면 안 되는 마크업이라, 검색 API가 생긴 뒤에야 넣었다.
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": {
+                    "@type": "EntryPoint",
+                    "urlTemplate": f"{site_url}/?q={{search_term_string}}",
+                },
+                "query-input": "required name=search_term_string",
+            },
         },
         {
             "@type": "Organization",
             "@id": f"{site_url}/#organization",
             "name": "Daily AI Thread",
+            # 한국어 표기는 공식 이름이 아니라 별칭으로 둔다 — 브랜드명이 채널마다
+            # 다르면 검색엔진과 답변엔진이 같은 대상인지 확신하지 못한다.
+            "alternateName": ["AI 뉴스 브리핑", "데일리 AI 스레드"],
             "url": f"{site_url}/",
             "logo": f"{site_url}/og-image.png",
+            # 사이트 정체성 한 문장. About 페이지·홈 description·RSS 설명과 같은
+            # 내용을 유지한다(config/about.json이 유일한 출처).
+            "description": load_about().get("tagline_ko", ""),
         },
     ]
 

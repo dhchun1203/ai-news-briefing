@@ -38,6 +38,35 @@ MONTH_NAMES_EN = (
     "July", "August", "September", "October", "November", "December",
 )
 
+# 사이트가 내보내는 언어. 한국어는 루트에, 영어는 /en/ 아래에 같은 구조로 미러링한다.
+# 한 페이지에 두 언어를 함께 담던 방식은 검색엔진이 그 페이지의 주언어를 판단하기
+# 어렵고 같은 정보가 반복돼 본문 밀도가 떨어진다.
+LANGS = ("ko", "en")
+
+
+def lang_root(docs_dir: Path, lang: str) -> Path:
+    """해당 언어의 출력 루트. 영어는 docs/en/ 아래에 한국어와 같은 트리를 만든다."""
+    return docs_dir if lang == "ko" else docs_dir / "en"
+
+
+def lang_site_url(site_url: str, lang: str) -> str:
+    """해당 언어의 URL 루트."""
+    return site_url if lang == "ko" else f"{site_url}/en"
+
+
+def up_prefix(lang: str, dir_depth: int) -> str:
+    """서빙되는 URL의 "기준 디렉터리"에서 사이트 루트까지 거슬러 올라가는 접두사.
+
+    dir_depth는 그 페이지가 서빙될 때의 기준 디렉터리 깊이다(한국어 기준):
+      /            -> 0      /glossary        -> 0   (cleanUrls: 세그먼트 1개)
+      /topics      -> 0      /topics/models   -> 1
+      /archive     -> 0      /archive/2026-.. -> 1
+    영어는 /en/이 한 단계 더 얹히므로 +1.
+
+    `/topics` 404 사고가 정확히 이 계산을 페이지마다 손으로 하다 어긋나서 났다.
+    깊이 계산은 반드시 이 함수 하나만 쓴다."""
+    return "../" * (dir_depth + (1 if lang == "en" else 0))
+
 KO_CHARS_PER_MINUTE = 500  # 한국어는 음절 수 기준(띄어쓰기 단위 "단어"가 불명확해서)
 EN_WORDS_PER_MINUTE = 200  # 영어는 공백 기준 단어 수
 
@@ -221,6 +250,20 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
     )
 
 
+def glossary_slug(term_en: str, term_ko: str = "") -> str:
+    """용어 개별 페이지(`/glossary/<slug>`)의 URL 조각을 만든다.
+
+    영어 표기를 쓴다 — 한국어를 그대로 넣으면 URL이 퍼센트 인코딩으로 뭉개져
+    사람도 검색엔진도 읽기 어렵다. 괄호 안 약어("Digital Markets Act (DMA)")는
+    본명과 함께 남겨 `digital-markets-act-dma`가 되게 한다.
+
+    한 번 정한 슬러그는 URL이므로 바꾸지 않는다 — 용어 설명이 나중에 다듬어져도
+    `term_en` 표기만 그대로면 주소가 유지된다."""
+    base = (term_en or term_ko or "").strip().lower()
+    base = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+    return base
+
+
 def collect_glossary_terms(archive_dir: Path) -> list:
     """docs/archive/*.json 전체에서 glossary 배열을 모아 term_ko 기준으로 중복
     제거한다. 같은 용어가 여러 날 다시 등장하면 가장 최근(파일명 날짜 기준) 설명으로
@@ -251,6 +294,85 @@ def collect_glossary_terms(archive_dir: Path) -> list:
     return sorted(terms.values(), key=lambda t: t["term_ko"])
 
 
+def group_glossary_by_slug(terms: list) -> list:
+    """용어를 개별 페이지 단위(슬러그)로 묶는다.
+
+    영어 표기가 같으면 같은 개념이다. 실제로 "정렬"과 "정렬(얼라인먼트)"가 한국어
+    표기만 다르게 따로 등록돼 있었는데, 둘 다 `alignment`라 URL이 충돌했다. 이럴 때
+    임의로 하나를 버리거나 `-2`를 붙이는 대신 **하나로 합치고 나머지 표기를 별칭으로
+    남긴다** — 개념이 같으니 그게 사실에 맞고, 독자가 어느 표기로 찾아와도 같은
+    페이지에 닿는다.
+
+    대표 설명은 가장 최근에 등장한 것을 쓴다(collect_glossary_terms와 같은 방침 —
+    설명은 시간이 지나며 다듬어질 수 있다)."""
+    by_slug = {}
+    for t in terms:
+        slug = glossary_slug(t.get("term_en", ""), t.get("term_ko", ""))
+        if not slug:
+            continue
+        entry = by_slug.get(slug)
+        if entry is None:
+            by_slug[slug] = {**t, "slug": slug, "aliases_ko": []}
+            continue
+        # 더 최근에 등장한 쪽을 대표로 삼고, 밀려난 표기는 별칭으로 보존한다.
+        if (t.get("last_seen") or "") > (entry.get("last_seen") or ""):
+            entry["aliases_ko"].append(entry["term_ko"])
+            entry.update({k: v for k, v in t.items() if k != "aliases_ko"})
+        elif t.get("term_ko") and t["term_ko"] != entry["term_ko"]:
+            entry["aliases_ko"].append(t["term_ko"])
+    return sorted(by_slug.values(), key=lambda t: t["term_ko"])
+
+
+def build_glossary_term_pages(docs_dir: Path, entries: list, site_url: str, verification: dict,
+                              og_image_url: str, nav_counts: dict = None) -> int:
+    """용어마다 `docs/glossary/<slug>.html`을 만든다.
+
+    지금까지 용어 30개가 단일 페이지 안에만 있어서 개별 주소가 없었다. "MCP란?",
+    "RAG와 파인튜닝 차이" 같은 질문형 검색은 반복적으로 발생하는데, 페이지가 없으면
+    검색·인용 대상이 되지 못한다. 설명 텍스트는 이미 매일 작성되는 glossary를 그대로
+    쓰므로 새로 쓰는 콘텐츠는 없다(토픽 페이지와 같은 재집계 패턴)."""
+    if not entries:
+        return 0
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html", "j2"]),
+    )
+    template = env.get_template("glossary-term.html.j2")
+    generated_at = datetime.now().isoformat()
+
+    for lang in LANGS:
+        out_dir = lang_root(docs_dir, lang) / "glossary"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        up = up_prefix(lang, 1)
+        for i, term in enumerate(entries):
+            ko_url = f"{site_url}/glossary/{term['slug']}"
+            en_url = f"{site_url}/en/glossary/{term['slug']}"
+            page_url = en_url if lang == "en" else ko_url
+            # 앞뒤 용어로 이동할 수 있게 해 페이지들이 서로 고립되지 않게 한다.
+            neighbors = [e for e in (entries[i - 1] if i else None,
+                                     entries[i + 1] if i + 1 < len(entries) else None) if e]
+            (out_dir / f"{term['slug']}.html").write_text(
+                template.render(
+                    lang=lang,
+                    lang_alt_url=(ko_url if lang == "en" else en_url),
+                    up=up,
+                    term=term,
+                    neighbors=neighbors,
+                    nav_counts=nav_counts,
+                    generated_at=generated_at,
+                    canonical_url=page_url,
+                    og_image_url=og_image_url,
+                    hreflang_ko_url=ko_url,
+                    hreflang_en_url=en_url,
+                    google_site_verification=verification["google_site_verification"],
+                    naver_site_verification=verification["naver_site_verification"],
+                    jsonld=seo_utils.build_glossary_term_jsonld(site_url, page_url, term),
+                ),
+                encoding="utf-8",
+            )
+    return len(entries)
+
+
 def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification: dict, og_image_url: str, nav_counts: dict = None):
     """지금까지 브리핑에 등장한 모든 용어를 모아 docs/glossary.html로 렌더링한다.
     새로 작성하는 콘텐츠가 없다(Claude가 매일 이미 쓰는 glossary를 재활용) —
@@ -261,20 +383,32 @@ def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification
         autoescape=select_autoescape(["html", "j2"]),
     )
     template = env.get_template("glossary.html.j2")
-    page_url = f"{site_url}/glossary"
     term_lookup = {t["term_ko"]: {"ko": t.get("explanation_ko", ""), "en": t.get("explanation_en", "")} for t in terms}
-    html_out = template.render(
-        terms=terms,
-        term_lookup=term_lookup,
-        nav_counts=nav_counts,
-        generated_at=datetime.now().isoformat(),
-        canonical_url=page_url,
-        og_image_url=og_image_url,
-        google_site_verification=verification["google_site_verification"],
-        naver_site_verification=verification["naver_site_verification"],
-        jsonld=seo_utils.build_glossary_page_jsonld(site_url, page_url, terms),
-    )
-    (docs_dir / "glossary.html").write_text(html_out, encoding="utf-8")
+    ko_url = f"{site_url}/glossary"
+    en_url = f"{site_url}/en/glossary"
+    for lang in LANGS:
+        root = lang_root(docs_dir, lang)
+        root.mkdir(parents=True, exist_ok=True)
+        page_url = en_url if lang == "en" else ko_url
+        root.joinpath("glossary.html").write_text(
+            template.render(
+                lang=lang,
+                lang_alt_url=(ko_url if lang == "en" else en_url),
+                up=up_prefix(lang, 0),
+                terms=terms,
+                term_lookup=term_lookup,
+                nav_counts=nav_counts,
+                generated_at=datetime.now().isoformat(),
+                canonical_url=page_url,
+                og_image_url=og_image_url,
+                hreflang_ko_url=ko_url,
+                hreflang_en_url=en_url,
+                google_site_verification=verification["google_site_verification"],
+                naver_site_verification=verification["naver_site_verification"],
+                jsonld=seo_utils.build_glossary_page_jsonld(site_url, page_url, terms),
+            ),
+            encoding="utf-8",
+        )
     return len(terms)
 
 
@@ -333,53 +467,57 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
         autoescape=select_autoescape(["html", "j2"]),
     )
     template = env.get_template("topic.html.j2")
-    topics_dir = docs_dir / "topics"
-    topics_dir.mkdir(parents=True, exist_ok=True)
-
     generated_at = datetime.now().isoformat()
     summary = [dict(t, count=len(by_topic.get(t["slug"], []))) for t in topics]
     page_count = 0
 
-    for topic in topics:
-        entries = by_topic.get(topic["slug"], [])[:TOPIC_PAGE_MAX_ENTRIES]
-        if not entries:
-            continue
-        page_url = f"{site_url}/topics/{topic['slug']}"
-        (topics_dir / f"{topic['slug']}.html").write_text(
+    for lang in LANGS:
+        topics_dir = lang_root(docs_dir, lang) / "topics"
+        topics_dir.mkdir(parents=True, exist_ok=True)
+        # 목록(/topics)은 cleanUrls로 세그먼트 1개가 되어 기준 디렉터리가 언어 루트,
+        # 개별(/topics/<slug>)은 한 단계 아래다.
+        up_index, up_item = up_prefix(lang, 0), up_prefix(lang, 1)
+
+        for topic in topics:
+            entries = by_topic.get(topic["slug"], [])[:TOPIC_PAGE_MAX_ENTRIES]
+            if not entries:
+                continue
+            ko_url = f"{site_url}/topics/{topic['slug']}"
+            en_url = f"{site_url}/en/topics/{topic['slug']}"
+            page_url = en_url if lang == "en" else ko_url
+            (topics_dir / f"{topic['slug']}.html").write_text(
+                template.render(
+                    lang=lang, lang_alt_url=(ko_url if lang == "en" else en_url),
+                    up=up_item, tp="",
+                    topic=topic, entries=entries, topic_summary=summary, is_index=False,
+                    nav_counts=nav_counts, generated_at=generated_at,
+                    canonical_url=page_url, og_image_url=og_image_url,
+                    hreflang_ko_url=ko_url, hreflang_en_url=en_url,
+                    google_site_verification=verification["google_site_verification"],
+                    naver_site_verification=verification["naver_site_verification"],
+                    jsonld=seo_utils.build_topic_page_jsonld(site_url, page_url, topic, entries),
+                ),
+                encoding="utf-8",
+            )
+            if lang == "ko":
+                page_count += 1
+
+        ko_index, en_index = f"{site_url}/topics", f"{site_url}/en/topics"
+        index_url = en_index if lang == "en" else ko_index
+        (topics_dir / "index.html").write_text(
             template.render(
-                topic=topic,
-                entries=entries,
-                topic_summary=summary,
-                nav_counts=nav_counts,
-                is_index=False,
-                generated_at=generated_at,
-                canonical_url=page_url,
-                og_image_url=og_image_url,
+                lang=lang, lang_alt_url=(ko_index if lang == "en" else en_index),
+                up=up_index, tp="topics/",
+                topic=None, entries=[], topic_summary=summary, is_index=True,
+                nav_counts=nav_counts, generated_at=generated_at,
+                canonical_url=index_url, og_image_url=og_image_url,
+                hreflang_ko_url=ko_index, hreflang_en_url=en_index,
                 google_site_verification=verification["google_site_verification"],
                 naver_site_verification=verification["naver_site_verification"],
-                jsonld=seo_utils.build_topic_page_jsonld(site_url, page_url, topic, entries),
+                jsonld=seo_utils.build_topic_index_jsonld(site_url, index_url, [t for t in summary if t["count"]]),
             ),
             encoding="utf-8",
         )
-        page_count += 1
-
-    index_url = f"{site_url}/topics"  # 슬래시 없음 = cleanUrls가 실제로 서빙하는 정규 형태
-    (topics_dir / "index.html").write_text(
-        template.render(
-            topic=None,
-            entries=[],
-            topic_summary=summary,
-            nav_counts=nav_counts,
-            is_index=True,
-            generated_at=generated_at,
-            canonical_url=index_url,
-            og_image_url=og_image_url,
-            google_site_verification=verification["google_site_verification"],
-            naver_site_verification=verification["naver_site_verification"],
-            jsonld=seo_utils.build_topic_index_jsonld(site_url, index_url, [t for t in summary if t["count"]]),
-        ),
-        encoding="utf-8",
-    )
     return page_count, sum(t["count"] for t in summary)
 
 
@@ -422,20 +560,71 @@ def build_archive_index(docs_dir: Path, archive_dir: Path, site_url: str, verifi
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
         autoescape=select_autoescape(["html", "j2"]),
     )
-    page_url = f"{site_url}/archive"  # 슬래시 없음 (seo_utils.build_sitemap 주석 참고)
-    html_out = env.get_template("archive-index.html.j2").render(
-        months=ordered,
-        total_days=total_days,
-        nav_counts=nav_counts,
-        generated_at=datetime.now().isoformat(),
-        canonical_url=page_url,
-        og_image_url=og_image_url,
-        google_site_verification=verification["google_site_verification"],
-        naver_site_verification=verification["naver_site_verification"],
-        jsonld=seo_utils.build_archive_index_jsonld(site_url, page_url, ordered),
-    )
-    (archive_dir / "index.html").write_text(html_out, encoding="utf-8")
+    ko_url, en_url = f"{site_url}/archive", f"{site_url}/en/archive"
+    for lang in LANGS:
+        out_dir = lang_root(docs_dir, lang) / "archive"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        page_url = en_url if lang == "en" else ko_url
+        (out_dir / "index.html").write_text(
+            env.get_template("archive-index.html.j2").render(
+                lang=lang,
+                lang_alt_url=(ko_url if lang == "en" else en_url),
+                up=up_prefix(lang, 0),
+                months=ordered,
+                total_days=total_days,
+                nav_counts=nav_counts,
+                generated_at=datetime.now().isoformat(),
+                canonical_url=page_url,
+                og_image_url=og_image_url,
+                hreflang_ko_url=ko_url,
+                hreflang_en_url=en_url,
+                google_site_verification=verification["google_site_verification"],
+                naver_site_verification=verification["naver_site_verification"],
+                jsonld=seo_utils.build_archive_index_jsonld(site_url, page_url, ordered),
+            ),
+            encoding="utf-8",
+        )
     return total_days
+
+
+def build_about_page(docs_dir: Path, site_url: str, verification: dict, og_image_url: str,
+                     site_stats: dict = None, nav_counts: dict = None) -> bool:
+    """`docs/about.html`을 만든다. 내용은 config/about.json 하나에서만 온다 —
+    사이트 정체성 문장이 여러 곳에 흩어져 서로 달라지면, 검색엔진과 답변엔진이
+    "이 사이트가 무엇인지" 확정하지 못한다."""
+    about = seo_utils.load_about()
+    if not about:
+        return False
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html", "j2"]),
+    )
+    ko_url = f"{site_url}/about"
+    en_url = f"{site_url}/en/about"
+    for lang in LANGS:
+        root = lang_root(docs_dir, lang)
+        root.mkdir(parents=True, exist_ok=True)
+        page_url = en_url if lang == "en" else ko_url
+        (root / "about.html").write_text(
+            env.get_template("about.html.j2").render(
+                lang=lang,
+                lang_alt_url=(ko_url if lang == "en" else en_url),
+                up=up_prefix(lang, 0),
+                about=about,
+                site_stats=site_stats,
+                nav_counts=nav_counts,
+                generated_at=datetime.now().isoformat(),
+                canonical_url=page_url,
+                og_image_url=og_image_url,
+                hreflang_ko_url=ko_url,
+                hreflang_en_url=en_url,
+                google_site_verification=verification["google_site_verification"],
+                naver_site_verification=verification["naver_site_verification"],
+                jsonld=seo_utils.build_about_page_jsonld(site_url, page_url, about),
+            ),
+            encoding="utf-8",
+        )
+    return True
 
 
 def collect_nav_counts(archive_dir: Path) -> dict:
@@ -447,7 +636,9 @@ def collect_nav_counts(archive_dir: Path) -> dict:
     by_topic = collect_topic_entries(archive_dir)
     return {
         "topics": sum(1 for t in load_topics() if by_topic.get(t["slug"])),
-        "terms": len(collect_glossary_terms(archive_dir)),
+        # 슬러그로 합친 뒤의 개수를 센다 — 한국어 표기만 다른 같은 개념은 한 페이지로
+        # 묶이므로, 병합 전 숫자를 쓰면 내비의 개수와 실제 페이지 수가 어긋난다.
+        "terms": len(group_glossary_by_slug(collect_glossary_terms(archive_dir))),
     }
 
 
@@ -645,10 +836,13 @@ def main():
     generic_og_image_url = f"{site_url}/og-image.png"  # 용어사전·토픽은 날짜성 콘텐츠가 아니라 범용 카드 재사용
     # 내비 개수는 어떤 페이지를 그리든 같아야 하므로 렌더링보다 먼저 한 번만 구한다.
     nav_counts = collect_nav_counts(archive_dir)
-    glossary_count = build_glossary_page(docs_dir, glossary_terms, site_url, verification, generic_og_image_url, nav_counts)
+    glossary_entries = group_glossary_by_slug(glossary_terms)
+    glossary_count = build_glossary_page(docs_dir, glossary_entries, site_url, verification, generic_og_image_url, nav_counts)
+    term_page_count = build_glossary_term_pages(docs_dir, glossary_entries, site_url, verification, generic_og_image_url, nav_counts)
     topic_page_count, tagged_count = build_topic_pages(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
     archive_index_days = build_archive_index(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
     site_stats = collect_site_stats(archive_dir, glossary_count)
+    build_about_page(docs_dir, site_url, verification, generic_og_image_url, site_stats, nav_counts)
     faq = seo_utils.load_faq()
 
     env = Environment(
@@ -665,114 +859,101 @@ def main():
     weekday = datetime.strptime(date, "%Y-%m-%d").weekday()  # 0=월요일 ... 6=일요일
     show_weekly_banner = weekday in (0, 6)
 
-    index_url = f"{site_url}/"
-    archive_url = f"{site_url}/archive/{date}"
-    en_url = f"{site_url}/en/"
+    # 한국어는 루트에, 영어는 /en/ 아래 같은 구조로 각각 **한 언어만 담아** 내보낸다.
+    # 예전에는 한 HTML에 두 언어를 다 넣고 CSS로 숨겼는데, 그러면 검색엔진이 그 페이지의
+    # 주언어를 판단하기 어렵고 같은 정보가 두 벌 들어가 본문 밀도가 떨어진다.
+    # 경로 접두사는 반드시 up_prefix()로만 계산한다(`/topics` 404 사고의 원인).
+    ko_index_url = f"{site_url}/"
+    en_index_url = f"{site_url}/en/"
 
-    # docs/index.html (오늘자, 항상 최신)
-    index_html = template.render(
-        date=date,
-        generated_at=generated_at,
-        articles=articles,
-        daily_insight=daily_insight,
-        reading_minutes_ko=reading_minutes_ko,
-        reading_minutes_en=reading_minutes_en,
-        glossary=glossary_lookup,
-        archives=past_archives,
-        weekly_labels=weekly_labels,
-        show_weekly_banner=show_weekly_banner,
-        archive_link_prefix="archive/",
-        weekly_link_prefix="weekly/",
-        topic_link_prefix="topics/",
-        feed_href="feed.xml",
-        css_prefix="",
-        home_link=None,
-        is_archive=False,
-        site_stats=site_stats,
-        nav_counts=nav_counts,
-        faq=faq,
-        canonical_url=index_url,
-        og_image_url=og_image_url,
-        google_site_verification=verification["google_site_verification"],
-        naver_site_verification=verification["naver_site_verification"],
-        hreflang_ko_url=index_url,
-        hreflang_en_url=en_url,
-        jsonld=seo_utils.build_archive_page_jsonld(site_url, index_url, date, generated_at, articles, daily_insight, faq),
-    )
-    (docs_dir / "index.html").write_text(index_html, encoding="utf-8")
+    for lang in LANGS:
+        root = lang_root(docs_dir, lang)
+        root.mkdir(parents=True, exist_ok=True)
+        up = up_prefix(lang, 0)          # 홈: 기준 디렉터리가 곧 언어 루트
+        up_archive = up_prefix(lang, 1)  # /archive/<날짜>: 한 단계 아래
+        this_index_url = en_index_url if lang == "en" else ko_index_url
+        alt_index_url = ko_index_url if lang == "en" else en_index_url
 
-    # docs/en/index.html — 영어권 착지 페이지. 별도 콘텐츠를 새로 쓰지 않고 같은
-    # digest를 default_lang="en"으로만 다시 렌더링한다(원문은 이미 한/영 둘 다
-    # 작성돼 있으므로). 이 URL에 착지하면 언어 선택이 localStorage에 저장돼(위
-    # FOUC 스크립트 참고) 이후 다른 페이지(아카이브·주간 회고·용어사전)로 이동해도
-    # 영어가 유지된다 — 그 페이지들까지 전부 영어 전용 URL로 미러링하지 않아도 되는
-    # 이유다.
-    en_dir = docs_dir / "en"
-    en_dir.mkdir(parents=True, exist_ok=True)
-    en_index_html = template.render(
-        date=date,
-        generated_at=generated_at,
-        articles=articles,
-        daily_insight=daily_insight,
-        reading_minutes_ko=reading_minutes_ko,
-        reading_minutes_en=reading_minutes_en,
-        glossary=glossary_lookup,
-        archives=past_archives,
-        weekly_labels=weekly_labels,
-        show_weekly_banner=show_weekly_banner,
-        archive_link_prefix="../archive/",
-        weekly_link_prefix="../weekly/",
-        topic_link_prefix="../topics/",
-        feed_href="feed.xml",  # /en/feed.xml — 영어 항목으로 채워진 별도 피드
-        css_prefix="../",
-        home_link=None,
-        is_archive=False,
-        default_lang="en",
-        site_stats=site_stats,
-        nav_counts=nav_counts,
-        faq=faq,
-        canonical_url=en_url,
-        og_image_url=og_image_url,
-        google_site_verification=verification["google_site_verification"],
-        naver_site_verification=verification["naver_site_verification"],
-        hreflang_ko_url=index_url,
-        hreflang_en_url=en_url,
-        jsonld=seo_utils.build_archive_page_jsonld(site_url, en_url, date, generated_at, articles, daily_insight, faq),
-    )
-    (en_dir / "index.html").write_text(en_index_html, encoding="utf-8")
+        # 오늘자 홈
+        (root / "index.html").write_text(
+            template.render(
+                lang=lang,
+                lang_alt_url=alt_index_url,
+                date=date,
+                generated_at=generated_at,
+                articles=articles,
+                daily_insight=daily_insight,
+                reading_minutes_ko=reading_minutes_ko,
+                reading_minutes_en=reading_minutes_en,
+                glossary=glossary_lookup,
+                archives=past_archives,
+                weekly_labels=weekly_labels,
+                show_weekly_banner=show_weekly_banner,
+                archive_link_prefix=up + "archive/",
+                weekly_link_prefix=up + "weekly/",
+                topic_link_prefix=up + "topics/",
+                feed_href=up + "feed.xml",
+                css_prefix=up,
+                home_link=None,
+                is_archive=False,
+                site_stats=site_stats,
+                nav_counts=nav_counts,
+                faq=faq,
+                canonical_url=this_index_url,
+                og_image_url=og_image_url,
+                google_site_verification=verification["google_site_verification"],
+                naver_site_verification=verification["naver_site_verification"],
+                hreflang_ko_url=ko_index_url,
+                hreflang_en_url=en_index_url,
+                jsonld=seo_utils.build_archive_page_jsonld(
+                    site_url, this_index_url, date, generated_at, articles, daily_insight, faq),
+            ),
+            encoding="utf-8",
+        )
 
-    # docs/archive/<날짜>.html (누적 보관) — 배너는 "오늘자" 사이트에만 노출하고
-    # 과거 기록 페이지에는 넣지 않는다(그 날짜 시점 기준 배너라 의미가 없음).
-    archive_html = template.render(
-        date=date,
-        generated_at=generated_at,
-        articles=articles,
-        daily_insight=daily_insight,
-        reading_minutes_ko=reading_minutes_ko,
-        reading_minutes_en=reading_minutes_en,
-        glossary=glossary_lookup,
-        archives=past_archives,
-        weekly_labels=weekly_labels,
-        show_weekly_banner=False,
-        archive_link_prefix="",
-        weekly_link_prefix="../weekly/",
-        topic_link_prefix="../topics/",
-        feed_href="../feed.xml",
-        css_prefix="../",
-        home_link="../index.html",
-        is_archive=True,
-        site_stats=site_stats,
-        nav_counts=nav_counts,
-        # FAQ는 홈에만 — 아카이브 페이지마다 같은 문답이 반복되면 중복 콘텐츠이고,
-        # 매일 늘어나는 페이지 전부에 FAQPage 마크업이 붙는 것도 바람직하지 않다.
-        faq=None,
-        canonical_url=archive_url,
-        og_image_url=og_image_url,
-        google_site_verification=verification["google_site_verification"],
-        naver_site_verification=verification["naver_site_verification"],
-        jsonld=seo_utils.build_archive_page_jsonld(site_url, archive_url, date, generated_at, articles, daily_insight),
-    )
-    (archive_dir / f"{date}.html").write_text(archive_html, encoding="utf-8")
+        # 그날의 아카이브 페이지 (배너는 "오늘자" 홈에만 — 과거 기록엔 의미가 없다)
+        lang_archive_dir = root / "archive"
+        lang_archive_dir.mkdir(parents=True, exist_ok=True)
+        ko_archive_url = f"{site_url}/archive/{date}"
+        en_archive_url = f"{site_url}/en/archive/{date}"
+        (lang_archive_dir / f"{date}.html").write_text(
+            template.render(
+                lang=lang,
+                lang_alt_url=(ko_archive_url if lang == "en" else en_archive_url),
+                date=date,
+                generated_at=generated_at,
+                articles=articles,
+                daily_insight=daily_insight,
+                reading_minutes_ko=reading_minutes_ko,
+                reading_minutes_en=reading_minutes_en,
+                glossary=glossary_lookup,
+                archives=past_archives,
+                weekly_labels=weekly_labels,
+                show_weekly_banner=False,
+                archive_link_prefix="",
+                weekly_link_prefix=up_archive + "weekly/",
+                topic_link_prefix=up_archive + "topics/",
+                feed_href=up_archive + "feed.xml",
+                css_prefix=up_archive,
+                home_link=up_archive + "index.html",
+                is_archive=True,
+                site_stats=site_stats,
+                nav_counts=nav_counts,
+                # FAQ는 홈에만 — 아카이브 페이지마다 같은 문답이 반복되면 중복 콘텐츠이고,
+                # 매일 늘어나는 페이지 전부에 FAQPage 마크업이 붙는 것도 바람직하지 않다.
+                faq=None,
+                canonical_url=(en_archive_url if lang == "en" else ko_archive_url),
+                og_image_url=og_image_url,
+                google_site_verification=verification["google_site_verification"],
+                naver_site_verification=verification["naver_site_verification"],
+                hreflang_ko_url=ko_archive_url,
+                hreflang_en_url=en_archive_url,
+                jsonld=seo_utils.build_archive_page_jsonld(
+                    site_url, (en_archive_url if lang == "en" else ko_archive_url),
+                    date, generated_at, articles, daily_insight),
+            ),
+            encoding="utf-8",
+        )
 
     # sitemap보다 먼저 부를 이유는 없지만, 피드도 아카이브 전량 재스캔이라 이 날짜의
     # archive JSON이 이미 저장된 뒤여야 오늘자가 첫 항목으로 들어간다.

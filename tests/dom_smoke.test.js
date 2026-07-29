@@ -222,6 +222,26 @@ function finishPage(label, doc, window, opts) {
     check(label, "FAQ가 없어야 하는 페이지에 없음", doc.querySelectorAll(".faq-item").length === 0);
   }
 
+  // --- 언어 전환 링크 (드롭다운을 대체) ---
+  // 언어가 URL로 분리되면서 CSS 토글이 사라졌다. 상대 언어판으로 가는 링크와
+  // hreflang이 없으면 다른 언어판이 발견되지 않는다.
+  const langSwitch = doc.querySelector(".lang-switch");
+  check(label, "언어 전환 링크 존재", !!langSwitch, langSwitch ? langSwitch.getAttribute("href") : "없음");
+  if (langSwitch) {
+    const href = langSwitch.getAttribute("href") || "";
+    check(label, "언어 전환 링크가 절대 URL", /^https?:\/\//.test(href), href);
+    const pageLang = doc.documentElement.getAttribute("lang");
+    check(label, "전환 링크가 반대 언어를 가리킴",
+      langSwitch.getAttribute("hreflang") !== pageLang,
+      `page=${pageLang} link=${langSwitch.getAttribute("hreflang")}`);
+  }
+  // 한 페이지에 한 언어만 담겨야 한다 — 남은 lang-ko/lang-en 클래스는 분리 누락 신호다.
+  check(label, "페이지에 한 언어만 담김",
+    doc.querySelectorAll(".lang-ko, .lang-en").length === 0,
+    `잔여 ${doc.querySelectorAll(".lang-ko, .lang-en").length}개`);
+  const alt = doc.querySelector('link[rel="alternate"][hreflang]');
+  check(label, "hreflang 대체 링크 존재", !!alt);
+
   const feedLink = doc.querySelector('link[type="application/rss+xml"]');
   check(label, "RSS 피드 link 태그 존재", !!feedLink, feedLink ? feedLink.getAttribute("href") : "없음");
 
@@ -277,6 +297,18 @@ function finishPage(label, doc, window, opts) {
   // 터졌던 사고를 다시 잡아낸다. 같은 위험을 안고 있는 다른 depth-0 페이지(/glossary)와
   // depth-2 페이지(/archive/<날짜>)도 함께 실제 clean URL로 검사한다.
   checkCleanUrlLinks("glossary.html", "https://www.dailyaithread.com/glossary", "glossary (clean URL)");
+  if (fs.existsSync(path.join(DOCS, "en", "glossary.html"))) {
+    checkCleanUrlLinks("en/glossary.html", "https://www.dailyaithread.com/en/glossary", "en/glossary (clean URL)");
+  }
+  if (fs.existsSync(path.join(DOCS, "en", "topics", "index.html"))) {
+    checkCleanUrlLinks("en/topics/index.html", "https://www.dailyaithread.com/en/topics", "en/topics (clean URL)");
+  }
+  if (fs.existsSync(path.join(DOCS, "about.html"))) {
+    checkCleanUrlLinks("about.html", "https://www.dailyaithread.com/about", "about (clean URL)");
+  }
+  if (fs.existsSync(path.join(DOCS, "glossary", "mcp.html"))) {
+    checkCleanUrlLinks("glossary/mcp.html", "https://www.dailyaithread.com/glossary/mcp", "glossary/mcp (clean URL)");
+  }
   checkCleanUrlLinks("archive/2026-07-25.html", "https://www.dailyaithread.com/archive/2026-07-25", "archive (clean URL)");
   // 아카이브 목록은 /topics와 같은 깊이(세그먼트 1개)라 같은 함정이 있는 자리다.
   if (fs.existsSync(path.join(DOCS, "archive", "index.html"))) {

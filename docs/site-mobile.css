@@ -96,6 +96,19 @@ body {
 .archive-list { gap: 8px 16px; }
 .archive-list a { font-size: 0.86rem; display: inline-block; padding-bottom: 1px; }
 
+.about-lede { font-size: 1.02rem; line-height: 1.65; margin: 16px 0 24px; }
+.about-section { margin-top: 24px; }
+.about-heading { font-size: 0.78rem; margin: 0 0 8px; }
+.about-body { font-size: 0.95rem; line-height: 1.7; margin: 0; }
+.about-stats { margin-top: 24px; }
+
+.breadcrumb { padding: 0 0 12px; margin-bottom: 16px; font-size: 0.72rem; }
+.term-page-title { font-size: 1.5rem; margin: 0 0 4px; }
+.term-page-alt { font-size: 0.8rem; }
+.term-page-body { font-size: 1rem; line-height: 1.7; margin: 16px 0; }
+.term-page-meta { padding-top: 16px; font-size: 0.7rem; }
+.term-page-nav { margin-top: 24px; padding-top: 16px; }
+
 .archive-all-link { margin: 12px 0 0; font-size: 0.72rem; }
 .archive-month { margin-top: 20px; padding-top: 16px; }
 .archive-month-label { font-size: 0.72rem; margin: 0 0 8px; }

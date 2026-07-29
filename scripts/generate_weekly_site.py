@@ -15,7 +15,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 import seo_utils
 # 주간 회고 페이지도 일별 페이지와 같은 상단 내비를 그리므로, 개수 계산을 한 곳에서
 # 가져온다(두 스크립트가 다른 숫자를 보여주면 페이지를 옮길 때마다 값이 달라진다).
-from generate_site import collect_nav_counts
+from generate_site import LANGS, collect_nav_counts, lang_root, up_prefix
 
 KST = ZoneInfo("Asia/Seoul")
 
@@ -95,28 +95,42 @@ def main():
     )
     template = env.get_template("weekly.html.j2")
 
-    html_out = template.render(
-        week_label=week_label,
-        start_date=weekly["start_date"],
-        end_date=weekly["end_date"],
-        headline_ko=weekly.get("headline_ko", ""),
-        headline_en=weekly.get("headline_en", ""),
-        paragraphs_ko=weekly.get("paragraphs_ko", []),
-        paragraphs_en=weekly.get("paragraphs_en", []),
-        daily_briefings=daily_briefings,
-        past_weeklies=past_weeklies,
-        nav_counts=collect_nav_counts(archive_dir),
-        generated_at=generated_at,
-        canonical_url=page_url,
-        og_image_url=og_image_url,
-        google_site_verification=verification["google_site_verification"],
-        naver_site_verification=verification["naver_site_verification"],
-        jsonld=seo_utils.build_weekly_page_jsonld(
-            site_url, page_url, weekly.get("headline_ko", ""), weekly["end_date"],
-            generated_at, weekly.get("paragraphs_ko", []), daily_briefings,
-        ),
-    )
-    (weekly_dir / f"{week_label}.html").write_text(html_out, encoding="utf-8")
+    ko_url = f"{site_url}/weekly/{week_label}"
+    en_url = f"{site_url}/en/weekly/{week_label}"
+    nav_counts = collect_nav_counts(archive_dir)
+    for lang in LANGS:
+        out_dir = lang_root(docs_dir, lang) / "weekly"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        page_url = en_url if lang == "en" else ko_url
+        (out_dir / f"{week_label}.html").write_text(
+            template.render(
+                lang=lang,
+                lang_alt_url=(ko_url if lang == "en" else en_url),
+                up=up_prefix(lang, 1),
+                week_label=week_label,
+                start_date=weekly["start_date"],
+                end_date=weekly["end_date"],
+                headline_ko=weekly.get("headline_ko", ""),
+                headline_en=weekly.get("headline_en", ""),
+                paragraphs_ko=weekly.get("paragraphs_ko", []),
+                paragraphs_en=weekly.get("paragraphs_en", []),
+                daily_briefings=daily_briefings,
+                past_weeklies=past_weeklies,
+                nav_counts=nav_counts,
+                generated_at=generated_at,
+                canonical_url=page_url,
+                og_image_url=og_image_url,
+                hreflang_ko_url=ko_url,
+                hreflang_en_url=en_url,
+                google_site_verification=verification["google_site_verification"],
+                naver_site_verification=verification["naver_site_verification"],
+                jsonld=seo_utils.build_weekly_page_jsonld(
+                    site_url, page_url, weekly.get("headline_ko", ""), weekly["end_date"],
+                    generated_at, weekly.get("paragraphs_ko", []), daily_briefings,
+                ),
+            ),
+            encoding="utf-8",
+        )
 
     # 일요일 당일 새로 생긴 주간 회고 페이지가 그날 배포되는 sitemap.xml에 바로
     # 반영되도록, generate_site.py(항상 먼저 실행됨)와 별개로 여기서도 재빌드한다.

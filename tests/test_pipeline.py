@@ -323,23 +323,30 @@ class TestArchiveIndex(unittest.TestCase):
                 {"google_site_verification": None, "naver_site_verification": None},
                 "https://x.test/og.png", {"topics": 1, "terms": 2},
             )
-            return total, (archive / "index.html").read_text(encoding="utf-8")
+            # 언어별로 한 언어만 담긴 페이지가 각각 나온다.
+            return (total,
+                    (archive / "index.html").read_text(encoding="utf-8"),
+                    (docs / "en" / "archive" / "index.html").read_text(encoding="utf-8"))
 
     def test_groups_by_month_and_counts_all_days(self):
-        total, html = self._build(["2026-06-28", "2026-07-01", "2026-07-15"])
+        total, ko, en = self._build(["2026-06-28", "2026-07-01", "2026-07-15"])
         self.assertEqual(total, 3)
-        self.assertIn("2026년 7월", html)
-        self.assertIn("2026년 6월", html)
-        self.assertIn("July 2026", html)  # 영어 월 이름은 locale에 의존하지 않아야 한다
+        self.assertIn("2026년 7월", ko)
+        self.assertIn("2026년 6월", ko)
+        # 영어 월 이름은 locale에 의존하지 않아야 하고, 영어판에만 나와야 한다.
+        self.assertIn("July 2026", en)
+        self.assertNotIn("2026년 7월", en, "영어판에 한국어가 섞였다")
 
     def test_links_are_prefixed_for_the_clean_url_depth(self):
         # /archive(세그먼트 1개)에서 서빙되므로 날짜 링크에 archive/가 붙어야 한다.
-        _, html = self._build(["2026-07-15"])
-        self.assertIn('href="archive/2026-07-15.html"', html)
-        self.assertIn('href="site-base.css"', html)  # 자산은 접두사 없이
+        _, ko, en = self._build(["2026-07-15"])
+        self.assertIn('href="archive/2026-07-15.html"', ko)
+        self.assertIn('href="site-base.css"', ko)  # 한국어판은 루트라 접두사 없이
+        # 영어판은 /en/ 아래라 한 단계 더 거슬러 올라가야 한다.
+        self.assertIn('href="../site-base.css"', en)
 
     def test_sent_markers_are_not_listed_as_days(self):
-        total, _ = self._build(["2026-07-15"])
+        total, _, _ = self._build(["2026-07-15"])
         self.assertEqual(total, 1)
 
 
