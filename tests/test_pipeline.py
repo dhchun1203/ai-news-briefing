@@ -131,6 +131,45 @@ class TestSameStoryClustering(unittest.TestCase):
         for word in ("Meet", "Your", "You", "Watch", "Inside"):
             self.assertNotIn(word, extract_keywords(f"{word} The New Thing"))
 
+    def test_company_name_alone_does_not_merge_unrelated_stories(self):
+        """2026-07-29 실측 회귀. 후보 44건에서 "Google"만 공유하는 무관한 5건이
+        한 묶음이 되어, 선별 루프가 그중 4건을 중복으로 폐기하고 있었다.
+        흔한 키워드 임계값(6)은 절대값이라 회사명이 늘 그 밑에 깔린다."""
+        titles = [
+            "5 ways to host the ultimate dinner party with Google Search",
+            "Despite AI hype, Google's data shows workers aren't automating jobs",
+            '"Google and Reddit do not own the Internet," web scraper says',
+            "Verizon touts $1B dark fiber deal for Google data centers",
+            "Google's AI search is rapidly becoming the default, new data shows",
+        ]
+        ids = self.cluster(titles)
+        self.assertEqual(
+            len(set(ids)), len(titles),
+            "회사명 하나만 겹치는 무관한 기사들이 같은 사건으로 묶였다 — 나머지가 폐기된다",
+        )
+
+    def test_two_shared_keywords_still_merge(self):
+        # 위 수정이 진짜 클러스터링까지 죽이면 안 된다. 제품명+버전이 함께 겹치면
+        # 여러 매체가 같은 발표를 다룬 것이므로 계속 묶여야 한다.
+        ids = self.cluster([
+            "Moonshot releases Kimi K3 with 2.8T parameters",
+            "Kimi K3 marks a big shift in open models",
+            "Hands on with Kimi K3: what changed",
+        ])
+        self.assertEqual(len(set(ids)), 1, "같은 발표를 다룬 기사들이 갈라졌다")
+
+    def test_single_rare_keyword_still_merges(self):
+        # 후보 전체에서 딱 두 제목에만 등장하는 희귀 고유명사는 우연히 겹칠 일이
+        # 거의 없으므로 하나만 겹쳐도 같은 사건으로 본다.
+        ids = self.cluster([
+            "Team uses AlphaFold to redesign gene-editing proteins",
+            "AlphaFold helps scientists make CRISPR safer",
+            "Nvidia announces new datacenter GPUs",
+            "Apple ships on-device translation",
+        ])
+        self.assertEqual(ids[0], ids[1], "희귀 키워드를 공유하는 같은 사건이 갈라졌다")
+        self.assertEqual(len({ids[0], ids[2], ids[3]}), 3)
+
 
 class TestRankScore(unittest.TestCase):
     """랭킹 점수. 예전엔 cross_source_count가 단독 최상위 정렬 키여서, 아무도 안 쓴
@@ -212,6 +251,96 @@ class TestSelfPromoFilter(unittest.TestCase):
         ):
             with self.subTest(title=title):
                 self.assertFalse(is_self_promo_post(title))
+
+
+class TestFeedTimezone(unittest.TestCase):
+    """AI타임스 피드는 '2026-07-29 17:26:28'처럼 타임존 없이 KST를 싣는다.
+    feedparser가 그걸 UTC로 가정하므로 보정하지 않으면 발행 시각이 9시간 미래가 되고,
+    그 매체가 신선도 점수를 늘 최대치로 받아 순위를 영구 독식한다."""
+
+    def _entry(self, raw, struct):
+        return {"published": raw, "published_parsed": struct}
+
+    def test_naive_timestamp_is_read_as_declared_local_time(self):
+        from fetch_articles import entry_published_at
+
+        # 2026-07-29 17:26:28 KST == 08:26:28 UTC
+        entry = self._entry("2026-07-29 17:26:28", (2026, 7, 29, 17, 26, 28, 0, 0, 0))
+        got = entry_published_at(entry, "Asia/Seoul")
+        self.assertEqual(got, datetime(2026, 7, 29, 8, 26, 28, tzinfo=timezone.utc))
+
+    def test_naive_timestamp_does_not_land_in_the_future(self):
+        # 이 회귀가 방치되면 조용히 랭킹만 망가진다 — 명시적으로 잡는다.
+        from fetch_articles import entry_published_at
+
+        entry = self._entry("2026-07-29 17:26:28", (2026, 7, 29, 17, 26, 28, 0, 0, 0))
+        naive_utc = entry_published_at(entry)
+        corrected = entry_published_at(entry, "Asia/Seoul")
+        self.assertLess(corrected, naive_utc, "KST 보정 후에는 UTC 해석보다 이른 시각이어야 한다")
+
+    def test_explicit_timezone_is_left_alone(self):
+        from fetch_articles import entry_published_at
+
+        entry = self._entry("Wed, 29 Jul 2026 00:09:05 +0000", (2026, 7, 29, 0, 9, 5, 2, 210, 0))
+        self.assertEqual(
+            entry_published_at(entry, "Asia/Seoul"),
+            entry_published_at(entry),
+            "타임존을 명시한 피드에 tz 보정이 잘못 적용됐다",
+        )
+
+    def test_unknown_timezone_name_does_not_crash(self):
+        from fetch_articles import entry_published_at
+
+        entry = self._entry("2026-07-29 17:26:28", (2026, 7, 29, 17, 26, 28, 0, 0, 0))
+        self.assertIsNotNone(entry_published_at(entry, "Not/AZone"))
+
+
+class TestArchiveIndex(unittest.TestCase):
+    """홈은 최근 60일만 링크하므로, 이 목록이 없으면 오래된 날짜가 사람
+    내비게이션에서 사라진다(sitemap에만 남으면 크롤러가 링크를 못 따라간다)."""
+
+    def _build(self, dates):
+        import json
+        import tempfile
+        from generate_site import build_archive_index
+
+        with tempfile.TemporaryDirectory() as tmp:
+            docs = Path(tmp)
+            archive = docs / "archive"
+            archive.mkdir()
+            for d in dates:
+                (archive / f"{d}.json").write_text(
+                    json.dumps({
+                        "date": d,
+                        "daily_insight": {"headline_ko": f"{d} 헤드라인", "headline_en": f"{d} headline"},
+                        "articles": [],
+                    }),
+                    encoding="utf-8",
+                )
+            (archive / "2026-07-01.sent.json").write_text('{"recipient_count": 1}', encoding="utf-8")
+            total = build_archive_index(
+                docs, archive, "https://x.test",
+                {"google_site_verification": None, "naver_site_verification": None},
+                "https://x.test/og.png", {"topics": 1, "terms": 2},
+            )
+            return total, (archive / "index.html").read_text(encoding="utf-8")
+
+    def test_groups_by_month_and_counts_all_days(self):
+        total, html = self._build(["2026-06-28", "2026-07-01", "2026-07-15"])
+        self.assertEqual(total, 3)
+        self.assertIn("2026년 7월", html)
+        self.assertIn("2026년 6월", html)
+        self.assertIn("July 2026", html)  # 영어 월 이름은 locale에 의존하지 않아야 한다
+
+    def test_links_are_prefixed_for_the_clean_url_depth(self):
+        # /archive(세그먼트 1개)에서 서빙되므로 날짜 링크에 archive/가 붙어야 한다.
+        _, html = self._build(["2026-07-15"])
+        self.assertIn('href="archive/2026-07-15.html"', html)
+        self.assertIn('href="site-base.css"', html)  # 자산은 접두사 없이
+
+    def test_sent_markers_are_not_listed_as_days(self):
+        total, _ = self._build(["2026-07-15"])
+        self.assertEqual(total, 1)
 
 
 class TestReserveDefaults(unittest.TestCase):

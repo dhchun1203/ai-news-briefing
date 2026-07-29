@@ -94,15 +94,25 @@ def build_sitemap(docs_dir: Path, site_url: str, today: str) -> int:
     archive_dir = docs_dir / "archive"
     weekly_dir = docs_dir / "weekly"
     urls = [(f"{site_url}/", today)]
+    if (archive_dir / "index.html").exists():
+        # 날짜가 하나 늘 때마다 목록이 바뀌므로 lastmod는 오늘(토픽 목록과 같은 이유).
+        # 슬래시를 붙이지 않는 이유는 위 /topics와 같다.
+        urls.append((f"{site_url}/archive", today))
     if archive_dir.exists():
         for f in sorted(archive_dir.glob("*.html")):
+            if f.stem == "index":
+                continue  # 위에서 이미 넣었다
             urls.append((f"{site_url}/archive/{f.stem}", f.stem))
     if weekly_dir.exists():
         for f in sorted(weekly_dir.glob("*.html")):
             urls.append((f"{site_url}/weekly/{f.stem}", _weekly_lastmod(f.stem, today)))
     topics_dir = docs_dir / "topics"
+    # 트레일링 슬래시를 붙이지 않는다. cleanUrls가 `/topics/index.html`을
+    # `/topics`(슬래시 없음)로 308 리다이렉트하므로 실제로 서빙되는 정규 형태가
+    # 그쪽이고, 페이지 안의 상대경로도 그 기준으로만 올바르게 풀린다
+    # (`/topics/`로 들어가면 형제 링크가 `/topics/topics/...`가 된다).
     if (topics_dir / "index.html").exists():
-        urls.append((f"{site_url}/topics/", today))
+        urls.append((f"{site_url}/topics", today))
     if topics_dir.exists():
         # 토픽 페이지는 매일 그날 기사가 앞에 붙으므로 lastmod는 항상 오늘이다
         # (용어사전과 같은 이유). index.html은 위에서 이미 넣었으므로 건너뛴다.
@@ -359,6 +369,34 @@ def build_topic_page_jsonld(site_url: str, page_url: str, topic: dict, entries: 
         "url": page_url,
         "name": f"{topic.get('label_ko', '')} — AI 뉴스 브리핑",
         "description": topic.get("description_ko", ""),
+        "inLanguage": ["ko", "en"],
+        "isPartOf": {"@id": f"{site_url}/#website"},
+        "publisher": {"@id": f"{site_url}/#organization"},
+        "mainEntity": {"@type": "ItemList", "itemListElement": items},
+    }
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}
+
+
+def build_archive_index_jsonld(site_url: str, page_url: str, months: list) -> dict:
+    """지난 브리핑 전체 목록 페이지용 JSON-LD. 크롤러가 이 한 페이지만 읽어도
+    모든 날짜 페이지를 발견할 수 있게 ItemList로 전부 나열한다 — 홈이 최근 60일만
+    링크해서 생기던 고립을 메우는 게 이 페이지의 존재 이유다."""
+    items = []
+    for month in months:
+        for d in month.get("days", []):
+            items.append(
+                {
+                    "@type": "ListItem",
+                    "position": len(items) + 1,
+                    "name": d.get("headline_ko") or d.get("date", ""),
+                    "url": f"{site_url}/archive/{d.get('date', '')}",
+                }
+            )
+    node = {
+        "@type": "CollectionPage",
+        "@id": f"{page_url}#page",
+        "url": page_url,
+        "name": "지난 브리핑 전체 — AI 뉴스 브리핑",
         "inLanguage": ["ko", "en"],
         "isPartOf": {"@id": f"{site_url}/#website"},
         "publisher": {"@id": f"{site_url}/#organization"},

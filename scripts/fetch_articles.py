@@ -25,6 +25,10 @@ MAX_PER_SOURCE = 3
 # 갈아끼울 예비 후보 개수. 하루 10건 중 3건까지 교체가 필요했던 날이 있어 여유를 둔다.
 RESERVE_COUNT = 5
 
+# 기사 하나에 붙일 "같은 사건을 다룬 다른 매체" 링크 수 상한. 카드 하단 한 줄에
+# 들어가야 읽는 흐름을 끊지 않는다.
+RELATED_MAX = 4
+
 # ---- 랭킹 점수 구성 ----
 # 예전에는 cross_source_count(몇 개 매체가 같은 사건을 다뤘나)가 단독 최상위 정렬
 # 키였다. 그러면 "여러 곳이 받아쓴 흔한 속보"가 항상 이기고, 아무도 안 쓴 단독
@@ -78,6 +82,13 @@ TITLE_STOPWORDS = {
     "The", "This", "That", "With", "From", "After", "Says", "New", "How",
     "Why", "What", "Its", "For", "And", "But", "Are", "Is", "Was", "Will",
     "AI", "Show", "Ask", "Meet", "You", "Your", "Watch", "Inside", "Explore",
+    # 발표 기사 제목에 관용적으로 붙는 동사·틀. 사건을 특정하지 못하는데 대문자로
+    # 시작해 키워드로 잡힌다 — "Introducing OpenAI Presence"와 "Introducing Gemini
+    # 3.6 Flash"가 "Introducing" 하나로 같은 사건이 되는 실제 오병합이 있었다.
+    "Introducing", "Launches", "Launch", "Announces", "Announcing", "Releases",
+    "Release", "Unveils", "Debuts", "Brings", "Adds", "Reveals", "Rolls",
+    "Expands", "Makes", "Gets", "Update", "Updates", "Here", "Now", "Report",
+    "Reports", "Says", "Introduces",
 }
 
 
@@ -168,18 +179,67 @@ def compute_cross_source_counts(candidates: list) -> None:
 
 SAME_STORY_MAX_DOC_FREQ = 6  # 이보다 많은 서로 다른 제목에 등장하면 "흔한 키워드"로 본다
 
+# 클러스터링에서 "이것만 겹치는 건 같은 사건이라는 근거가 못 된다"고 보는 이름들 —
+# 회사·기관명과, 그 아래 수많은 무관한 소식이 달리는 **우산 브랜드**다.
+#
+# 회사는 하루에도 서로 무관한 일을 여러 건 만든다("구글이 데이터센터 계약을 했다"와
+# "구글 검색 점유율 데이터가 나왔다"는 같은 사건이 아니다). 우산 브랜드도 똑같이
+# 행동한다 — "ChatGPT 음성 모드"와 "ChatGPT 헬스"와 "ChatGPT 취약점"은 전부 다른
+# 사건인데 실제로 한 묶음이 됐다. 반면 제품 세부명·모델·버전("GPT-6", "Opus",
+# "Flash", "AlphaFold")은 그 자체가 특정 사건을 가리킨다.
+#
+# 문서빈도 임계값으로는 이 둘을 못 가른다 — 후보 44건에서 "Google"이 5개 제목,
+# 5개 매체가 다룬 진짜 대형 발표의 제품명도 5개 제목이라 수치가 같다. 그래서
+# 명시적 목록으로 구분한다.
+CLUSTER_STOP_ENTITIES = {
+    # 회사·기관
+    "Google", "Alphabet", "DeepMind", "OpenAI", "Anthropic", "Meta", "Microsoft",
+    "Nvidia", "Apple", "Amazon", "Tesla", "IBM", "Intel", "AMD", "Samsung",
+    "Qualcomm", "Oracle", "Salesforce", "Adobe", "Reddit", "TikTok", "ByteDance",
+    "Baidu", "Alibaba", "Tencent", "Moonshot", "Mistral", "Cohere", "Perplexity",
+    "Stability", "Hugging", "HuggingFace", "Databricks", "Snowflake", "Figma",
+    # 우산 브랜드 (하위 제품·사건이 계속 갈라져 나오는 이름)
+    "ChatGPT", "Gemini", "Claude", "Copilot", "Llama", "Alexa", "Siri", "Bard",
+}
+
 
 def build_same_story_clusters(candidates: list) -> list:
-    """제목 키워드가 겹치는 후보들을 "같은 사건"으로 묶는다(union-find). 단순히
-    키워드 하나만 겹쳐도 묶으면 "OpenAI"처럼 그날 여러 무관한 기사에 두루 등장하는
-    흔한 회사명 하나 때문에 완전히 다른 두 사건이 잘못 합쳐진다(예: "OpenAI가 새
-    음성 모드 출시"와 "OpenAI 소송 피소"). 그래서 후보 전체에서 각 키워드가 몇 개의
-    서로 다른 제목에 등장하는지(document frequency) 먼저 세고, 그날 기준 흔한
-    키워드(`SAME_STORY_MAX_DOC_FREQ`개 초과 제목에 등장)는 "사건을 특정하지 못하는
-    일반 명사"로 보고 매칭에서 제외한다. 남은 소수의 제목에만 등장하는 키워드
-    (제품명·버전·구체적 수치 등, 예: "GPT-6", "AlphaFold")가 하나라도 겹치면 같은
-    사건으로 판단한다. `compute_cross_source_counts`(순위 매기기용, 느슨한 기준)와는
-    다른 용도라 별도 함수로 둔다 — 이건 "최종 선택에서 하나만 남길지" 판단에 쓰인다."""
+    """제목 키워드가 겹치는 후보들을 "같은 사건"으로 묶는다(union-find).
+
+    후보 전체에서 각 키워드가 몇 개의 서로 다른 제목에 등장하는지(document frequency)를
+    센 뒤, 흔한 키워드(`SAME_STORY_MAX_DOC_FREQ`개 초과 제목에 등장)는 "사건을 특정하지
+    못하는 일반 명사"로 보고 매칭에서 제외한다.
+
+    남은 키워드가 겹칠 때 **무엇이 겹쳤는지**가 이 함수의 핵심이다. 예전에는 무엇이든
+    하나만 겹쳐도 묶었는데, 그러면 회사명 하나로 완전히 무관한 기사들이 통째로
+    합쳐진다. 2026-07-29에 실측한 실제 사례(후보 44건):
+
+        Google AI Blog    5 ways to host the ultimate dinner party with Google Search
+        Ars Technica AI   Despite AI hype, Google's data shows workers aren't automating…
+        Ars Technica AI   "Google and Reddit do not own the Internet," web scraper says
+        Ars Technica AI   Verizon touts $1B dark fiber deal for Google data centers
+        TechCrunch AI     Google's AI search is rapidly becoming the default, new data…
+
+    다섯 건이 공유하는 키워드는 "Google" 하나뿐인데 같은 사건으로 묶였고, 선별 루프가
+    클러스터당 하나만 채택하므로 **나머지 네 건이 중복으로 폐기됐다.**
+
+    흔한 키워드 임계값(6)을 조정하는 방식으로는 못 고친다 — 다섯 매체가 다룬 진짜
+    대형 발표도 제품명이 다섯 제목에 등장하므로 수치가 같다. "몇 개가 겹쳤나"로도
+    못 가른다 — 제품명이 하나만 겹치는 정상 클러스터가 흔하다("GPT-6"만 공유하는
+    세 건은 같은 사건이 맞다).
+
+    그래서 **회사명은 병합 근거에서 뺀다**(`CLUSTER_STOP_ENTITIES`). 회사는 하루에도
+    무관한 일을 여러 건 만들지만, 제품·모델·버전명은 그 자체로 사건을 특정한다.
+    회사명만 겹치는 경우에도 서로 다른 회사가 둘 이상 함께 겹치면 같은 사건일
+    가능성이 높아 그때만 예외로 병합한다.
+
+    이 변경으로 "회사명만 공유하는 진짜 같은 사건"(예: 제목에 금액·제품명이 없는
+    투자 유치 기사 두 건)은 갈라질 수 있다. 그쪽이 안전한 실패다 — 잘못 묶으면
+    정상 기사가 폐기되지만, 갈라지면 비슷한 기사 두 건이 실릴 뿐이고 화제성은
+    `compute_cross_source_counts`가 따로 잡아 순위로 반영한다.
+
+    `compute_cross_source_counts`(순위 매기기용, 느슨한 기준)와는 다른 용도라 별도
+    함수로 둔다 — 이건 "최종 선택에서 하나만 남길지" 판단에 쓰인다."""
     n = len(candidates)
     parent = list(range(n))
 
@@ -205,18 +265,52 @@ def build_same_story_clusters(candidates: list) -> list:
         if not specific_sets[i]:
             continue
         for j in range(i + 1, n):
-            if specific_sets[i] & specific_sets[j]:
+            shared = specific_sets[i] & specific_sets[j]
+            if not shared:
+                continue
+            # 제품·모델·버전명이 하나라도 겹치면 같은 사건으로 본다. 회사·브랜드명만
+            # 겹치는 건 근거가 못 된다 — 개수를 세는 것도 소용없다. "OpenAI"와
+            # "ChatGPT"처럼 한 회사의 이름 쌍은 늘 함께 등장해서, 둘 다 겹쳤다고
+            # 병합하면 무관한 ChatGPT 기사들이 union-find 전이로 줄줄이 엮인다
+            # (실제로 음성 모드 기사가 헬스 기사 묶음에 딸려 들어갔다).
+            if shared - CLUSTER_STOP_ENTITIES:
                 union(i, j)
 
     return [find(i) for i in range(n)]
 
 
-def entry_published_at(entry):
+def entry_published_at(entry, tz_name=None):
+    """피드 항목의 발행 시각을 UTC로 돌려준다.
+
+    feedparser는 타임존 표기가 없는 `pubDate`(예: `2026-07-29 17:26:28`)를 **UTC로
+    가정해** 파싱한다. 그런데 국내 매체는 타임존 없이 KST를 그대로 싣는 경우가 있어,
+    그대로 두면 발행 시각이 9시간 미래로 잡힌다. 그러면 (1) 룩백 컷오프를 항상
+    통과하고 (2) 신선도 점수가 늘 최대치가 되어 그 매체가 순위를 영구 독식하며
+    (3) `feeds_stale` 감지가 영원히 작동하지 않는다.
+
+    그래서 `config/feeds.json`에 `tz`가 지정된 피드는, 타임존이 없는 타임스탬프에
+    한해 그 지역시로 해석한다. 타임존을 제대로 주는 피드는 `*_parsed`에 이미 UTC로
+    정규화돼 들어오므로 이 보정이 적용되지 않는다."""
     for key in ("published_parsed", "updated_parsed"):
         struct = entry.get(key)
-        if struct:
-            return datetime.fromtimestamp(timegm(struct), tz=timezone.utc)
+        if not struct:
+            continue
+        as_utc = datetime.fromtimestamp(timegm(struct), tz=timezone.utc)
+        if tz_name and not _entry_has_explicit_tz(entry, key):
+            try:
+                local = as_utc.replace(tzinfo=ZoneInfo(tz_name))
+            except Exception:
+                return as_utc  # 알 수 없는 타임존 이름이면 보정을 포기하고 원본을 쓴다
+            return local.astimezone(timezone.utc)
+        return as_utc
     return None
+
+
+def _entry_has_explicit_tz(entry, parsed_key):
+    """원본 날짜 문자열에 타임존 표기가 있었는지 본다. feedparser는 파싱 결과에서
+    그 정보를 지워버리므로, 대응하는 원문 필드(`published`/`updated`)를 직접 확인한다."""
+    raw = entry.get(parsed_key.replace("_parsed", "")) or ""
+    return bool(re.search(r"(Z|[+-]\d{2}:?\d{2}|\b(?:UT|GMT|UTC|EST|EDT|PST|PDT|KST)\b)\s*$", raw.strip()))
 
 
 def entry_summary(entry):
@@ -271,7 +365,8 @@ def main():
         # (candidates용 cutoff가 아니라 별도의 넉넉한 기준을 쓴다 — cutoff는 신선도
         # 때문에 1~2일까지 짧아질 수 있는데, 그 기준으로 죽음을 판단하면 며칠에 한 번
         # 발행하는 정상 피드까지 매번 죽었다고 오탐한다.)
-        newest = max((d for d in (entry_published_at(e) for e in entries) if d), default=None)
+        feed_tz = feed.get("tz")
+        newest = max((d for d in (entry_published_at(e, feed_tz) for e in entries) if d), default=None)
         if entries and (newest is None or newest < stale_cutoff):
             stale_feeds.append(
                 {"name": name, "latest": newest.date().isoformat() if newest else None}
@@ -283,7 +378,7 @@ def main():
             )
 
         for entry in entries:
-            published_at = entry_published_at(entry)
+            published_at = entry_published_at(entry, feed_tz)
             if published_at is None or published_at < cutoff:
                 continue
             link = entry.get("link")
@@ -389,6 +484,25 @@ def main():
     # 안 된다 — 먼저 채운 순서를 그대로 두면 사소한 공식 블로그 글이 그날 가장 큰
     # 속보보다 위에 실린다. 최종 노출 순서는 점수 순으로 되돌린다.
     selected.sort(key=lambda a: (a["rank_score"], a["published_at"]), reverse=True)
+
+    # 같은 사건을 다룬 다른 매체(related). 클러스터 계산 결과에서 채택되지 않고
+    # 버려지던 형제 기사를 살려, 기사 카드에 "이 사건을 다룬 다른 매체"로 보여준다.
+    # 지금까지는 몇 곳이 다뤘는지(cross_source_count)만 숫자로 알려주고 정작 어디가
+    # 다뤘는지는 못 보여줬는데, Techmeme이 파는 가치가 정확히 그 "어디가"다.
+    #
+    # 클러스터가 정확해야만 의미가 있다 — 회사명 하나로 무관한 기사가 묶이던 시절에
+    # 이걸 만들었다면 전혀 다른 사건을 "같은 사건"이라고 독자에게 표시했을 것이다.
+    cluster_members = {}
+    for article, cid in zip(candidates, cluster_ids):
+        cluster_members.setdefault(cid, []).append(article)
+    cluster_of = {a["link"]: cid for a, cid in zip(candidates, cluster_ids)}
+    for article in selected:
+        siblings = cluster_members.get(cluster_of.get(article["link"]), [])
+        article["related"] = [
+            {"title": s["title"], "link": s["link"], "source": s["source"]}
+            for s in siblings
+            if s["link"] != article["link"]
+        ][:RELATED_MAX]
 
     # 예비 후보(reserves): 원문을 읽을 수 없거나 브리핑에 실을 가치가 없는 기사가
     # 나왔을 때 그 자리를 대신 채울 대체재다.

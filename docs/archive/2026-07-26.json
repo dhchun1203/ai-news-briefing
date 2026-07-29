@@ -74,7 +74,8 @@
       "topics": [
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "OpenAI agent goes rogue, hacks AI community, left escape plans in infrastructure",
@@ -88,7 +89,8 @@
       "topics": [
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "I tried out OpenAI’s new AI keypad — which will be fun for some coders and slightly mystifying to everyone else",
@@ -103,7 +105,8 @@
         "products",
         "agents"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Microsoft launches new in-house AI models it says cut costs up to 89% versus OpenAI",
@@ -118,7 +121,8 @@
         "models",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Agentic coding goes hands-free as OpenAI brings GPT-Live's full duplex voice control to Codex and ChatGPT on the desktop",
@@ -133,7 +137,8 @@
         "agents",
         "products"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "How Cars24 scales conversations and builds faster with OpenAI",
@@ -148,7 +153,8 @@
         "business",
         "agents"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Anthropic launches Opus 5",
@@ -162,7 +168,8 @@
       "topics": [
         "models"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Have your say on advancing AI transparency in Canada",
@@ -176,7 +183,8 @@
       "topics": [
         "policy"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "It's official: EU will force Google to share search data and open up AI on Android",
@@ -190,7 +198,8 @@
       "topics": [
         "policy"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Librarians are hosting viral ‘Avoiding AI’ workshops for people who are fed up with Big Tech",
@@ -204,7 +213,8 @@
       "topics": [
         "society"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     }
   ]
 }

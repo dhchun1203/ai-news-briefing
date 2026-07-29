@@ -75,7 +75,8 @@
         "models",
         "agents"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Hugging Face CEO calls for ‘radical transparency’ after ‘unprecedented’ OpenAI hack",
@@ -89,7 +90,8 @@
       "topics": [
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Court Reporter Submitted AI-Generated Errors in Official Court Transcript",
@@ -103,7 +105,8 @@
       "topics": [
         "society"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "The highest-leverage bet in the whole market is not AI, it's LSD",
@@ -117,7 +120,8 @@
       "topics": [
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Anti-AI nostalgia and the cult of the past",
@@ -131,7 +135,8 @@
       "topics": [
         "society"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Making sense of the panic over Chinese AI",
@@ -146,7 +151,8 @@
         "models",
         "policy"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Monday.com is the latest tech company to blame AI for layoffs — here are 20 others",
@@ -161,7 +167,8 @@
         "society",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Canadian legislator reads out apparent LLM response in floor speech",
@@ -175,7 +182,8 @@
       "topics": [
         "society"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "VentureBeat Research: Where enterprise AI agent governance hasn't caught up",
@@ -190,7 +198,8 @@
         "agents",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Team uses AlphaFold AI to redesign gene-editing proteins to make them safer",
@@ -204,7 +213,8 @@
       "topics": [
         "models"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     }
   ]
 }

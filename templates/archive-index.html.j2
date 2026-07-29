@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+{# 지난 브리핑 전체 목록(/archive/). 홈은 최근 60일만 링크해서, 그대로 두면 1년 뒤
+   300일치가 사람 내비게이션에서 사라진다(sitemap엔 남지만 크롤러는 링크를 따라간다).
+
+   이 페이지는 cleanUrls가 index.html을 벗겨내 `/archive`(세그먼트 1개, 트레일링
+   슬래시 없음)로 서빙되므로, 상대경로 기준 디렉터리가 **루트**다 — /glossary와 같은
+   깊이이고, /archive/<날짜>(세그먼트 2개)와는 다르다. 그래서 자산은 접두사 없이,
+   날짜 페이지는 `archive/`를 붙여 가리킨다. topic.html.j2가 같은 함정에 빠져
+   404를 냈던 자리라 여기서도 같은 방식으로 명시해 둔다. #}
+{% set title_ko = "지난 브리핑 전체 · Daily AI Thread" %}
+{% set title_en = "All Past Briefings · Daily AI Thread" %}
+{% set desc_ko = "AI 뉴스 브리핑의 지난 기록을 월별로 모아봅니다. 총 " ~ total_days ~ "일치." %}
+{% set desc_en = "Every past edition of the AI news briefing, grouped by month. " ~ total_days ~ " editions." %}
+<html lang="ko" data-lang="ko" data-title-ko="{{ title_ko }}" data-title-en="{{ title_en }}"
+      data-default-lang="ko" data-asset-prefix="" data-archive-prefix="archive/">
+<head>
+<meta charset="UTF-8">
+<title>{{ title_ko }}</title>
+<meta name="description" content="{{ desc_ko }}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ title_ko }}">
+<meta property="og:description" content="{{ desc_ko }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ title_ko }}">
+<meta name="twitter:description" content="{{ desc_ko }}">
+<link rel="canonical" href="{{ canonical_url }}">
+<meta name="robots" content="index, follow">
+<meta property="og:url" content="{{ canonical_url }}">
+<meta property="og:image" content="{{ og_image_url }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
+<meta name="twitter:image" content="{{ og_image_url }}">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="alternate" type="application/rss+xml" title="AI 뉴스 브리핑" href="feed.xml">
+{% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
+{% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
+<script type="application/ld+json">{{ jsonld|tojson }}</script>
+<script>
+(function () {
+  function getCookie(name) {
+    var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+  try {
+    var t = getCookie("theme");
+    if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    var l = localStorage.getItem("lang");
+    if (l === "ko" || l === "en") {
+      document.documentElement.setAttribute("data-lang", l);
+      document.documentElement.setAttribute("lang", l);
+      var titleAttr = l === "en" ? "data-title-en" : "data-title-ko";
+      var storedTitle = document.documentElement.getAttribute(titleAttr);
+      if (storedTitle) document.title = storedTitle;
+    }
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="site-base.css">
+<link rel="stylesheet" href="site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="site-desktop.css" media="(min-width: 768px)">
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">
+  <span class="lang-ko">본문으로 건너뛰기</span>
+  <span class="lang-en">Skip to content</span>
+</a>
+<header class="site-header">
+  <div class="utility-bar">
+    <a class="site-nav-link" href="topics/index.html">
+      <span class="lang-ko">주제별</span>
+      <span class="lang-en">Topics</span>
+      {% if nav_counts and nav_counts.topics %}<span class="site-nav-link-count">{{ nav_counts.topics }}</span>{% endif %}
+    </a>
+    <a class="site-nav-link" href="glossary.html">
+      <span class="lang-ko">용어사전</span>
+      <span class="lang-en">Glossary</span>
+      {% if nav_counts and nav_counts.terms %}<span class="site-nav-link-count">{{ nav_counts.terms }}</span>{% endif %}
+    </a>
+    <div class="share-wrap" id="share-wrap">
+      <button id="share-button" class="share-button" type="button" aria-label="링크 복사 / Copy link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+      <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite"></span>
+    </div>
+    <div class="lang-select" id="lang-select">
+      <button type="button" class="lang-select-trigger" id="lang-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+        <span class="lang-select-current lang-ko">한국어</span>
+        <span class="lang-select-current lang-en">English</span>
+        <span class="lang-select-caret" aria-hidden="true">▾</span>
+      </button>
+      <ul class="lang-select-list" id="lang-select-list" role="listbox" hidden>
+        <li role="option" tabindex="-1" data-lang-value="ko">한국어</li>
+        <li role="option" tabindex="-1" data-lang-value="en">English</li>
+      </ul>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환" data-aria-ko="다크모드 전환" data-aria-en="Toggle dark mode">
+      <span class="theme-toggle-thumb">
+        <span class="icon-moon" aria-hidden="true">&#9789;</span>
+        <span class="icon-sun" aria-hidden="true">&#9728;</span>
+      </span>
+    </button>
+  </div>
+  <div class="header-inner">
+    <h1>
+      <a href="index.html">
+        <span class="lang-ko">AI 뉴스 브리핑</span>
+        <span class="lang-en">AI News Briefing</span>
+      </a>
+    </h1>
+    <p class="tagline">
+      <span class="lang-ko">지난 브리핑 전체 · {{ total_days }}일치</span>
+      <span class="lang-en">All past briefings · {{ total_days }} editions</span>
+    </p>
+  </div>
+</header>
+
+<main class="content" id="main-content">
+  <div class="date-bar">
+    <a class="back-link" href="index.html">
+      <span class="lang-ko">← 오늘자 브리핑</span>
+      <span class="lang-en">← Today's briefing</span>
+    </a>
+  </div>
+
+  <p class="glossary-intro">
+    <span class="lang-ko">지금까지 발행한 모든 브리핑을 월별로 모았습니다. 각 날짜 옆은 그날의 인사이트 헤드라인입니다.</span>
+    <span class="lang-en">Every edition published so far, grouped by month. Each date is followed by that day's insight headline.</span>
+  </p>
+
+  {% for month in months %}
+  <section class="archive-month">
+    <h2 class="archive-month-label">
+      <span class="lang-ko">{{ month.label_ko }}</span>
+      <span class="lang-en">{{ month.label_en }}</span>
+      <span class="archive-month-count">{{ month.days|length }}</span>
+    </h2>
+    <ul class="archive-month-list">
+      {% for d in month.days %}
+      <li>
+        <a href="archive/{{ d.date }}.html">
+          <span class="archive-month-date">{{ d.date }}</span>
+          {% if d.headline_ko or d.headline_en %}
+          <span class="archive-month-headline">
+            <span class="lang-ko">{{ d.headline_ko }}</span>
+            <span class="lang-en">{{ d.headline_en }}</span>
+          </span>
+          {% endif %}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+</main>
+
+<footer class="site-footer">
+  <p>
+    <span class="lang-ko">매일 08:00 KST 자동 갱신 · 마지막 생성: {{ generated_at }}</span>
+    <span class="lang-en">Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}</span>
+  </p>
+  <p class="footer-links">
+    <a href="feed.xml">RSS</a>
+    <span aria-hidden="true">·</span>
+    <a href="topics/index.html"><span class="lang-ko">주제별 보기</span><span class="lang-en">Topics</span></a>
+    <span aria-hidden="true">·</span>
+    <a href="glossary.html"><span class="lang-ko">용어사전</span><span class="lang-en">Glossary</span></a>
+  </p>
+</footer>
+
+<script defer src="site.js"></script>
+</body>
+</html>

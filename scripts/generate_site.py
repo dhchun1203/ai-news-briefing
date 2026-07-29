@@ -31,6 +31,13 @@ SEARCH_INDEX_MAX_DAYS = 30
 # 파일은 아니지만, 상한이 없으면 인기 토픽 페이지가 몇 년 뒤 수천 건짜리 HTML이 된다.
 TOPIC_PAGE_MAX_ENTRIES = 100
 
+# 아카이브 인덱스의 영어 월 이름. locale에 의존하면 실행 환경(무인 컨테이너)에 따라
+# 결과가 달라지므로 직접 둔다.
+MONTH_NAMES_EN = (
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+)
+
 KO_CHARS_PER_MINUTE = 500  # 한국어는 음절 수 기준(띄어쓰기 단위 "단어"가 불명확해서)
 EN_WORDS_PER_MINUTE = 200  # 영어는 공백 기준 단어 수
 
@@ -163,6 +170,8 @@ def collect_archive_dates(archive_dir: Path, current_date: str):
     dates = set()
     if archive_dir.exists():
         for f in archive_dir.glob("*.html"):
+            if f.stem == "index":
+                continue  # 아카이브 목록 페이지 — 날짜가 아니다
             dates.add(f.stem)
     dates.add(current_date)
     dates.discard(current_date)  # index에는 "지난" 아카이브만 보여준다
@@ -202,6 +211,7 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
                 # (cross_source_count)가 과거 데이터를 읽을 수 있는 유일한 경로다.
                 "topics": a.get("topics") or [],
                 "cross_source_count": a.get("cross_source_count", 0),
+                "related": a.get("related") or [],
             }
             for a in raw_digest.get("articles", [])
         ],
@@ -353,7 +363,7 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
         )
         page_count += 1
 
-    index_url = f"{site_url}/topics/"
+    index_url = f"{site_url}/topics"  # 슬래시 없음 = cleanUrls가 실제로 서빙하는 정규 형태
     (topics_dir / "index.html").write_text(
         template.render(
             topic=None,
@@ -371,6 +381,61 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
         encoding="utf-8",
     )
     return page_count, sum(t["count"] for t in summary)
+
+
+def build_archive_index(docs_dir: Path, archive_dir: Path, site_url: str, verification: dict,
+                        og_image_url: str, nav_counts: dict = None) -> int:
+    """지난 브리핑 전체를 월별로 묶은 `docs/archive/index.html`을 만든다.
+
+    홈은 `MAX_ARCHIVE_LINKS`(60일)까지만 링크해서, 그대로 두면 1년 뒤 300일치가
+    사람 내비게이션에서 사라진다 — sitemap에는 남지만 크롤러는 링크를 따라가고,
+    링크가 끊긴 페이지는 색인 우선순위가 떨어진다. 주간 회고가 그 주 날짜들을
+    링크해 부분 경로를 주지만 회고는 건너뛸 수 있어 보장된 경로가 아니다.
+
+    용어사전·토픽 페이지와 같은 "아카이브 전량 재집계" 패턴이라 매 실행마다 전체를
+    다시 만든다(멱등)."""
+    months = {}
+    for day, stem in _iter_archive_days(archive_dir):
+        date = day.get("date", stem)
+        insight = day.get("daily_insight") or {}
+        months.setdefault(date[:7], []).append(
+            {
+                "date": date,
+                "headline_ko": insight.get("headline_ko", ""),
+                "headline_en": insight.get("headline_en", ""),
+            }
+        )
+
+    ordered = []
+    for ym in sorted(months, reverse=True):
+        year, mon = ym.split("-")
+        ordered.append(
+            {
+                "label_ko": f"{year}년 {int(mon)}월",
+                "label_en": f"{MONTH_NAMES_EN[int(mon) - 1]} {year}",
+                "days": sorted(months[ym], key=lambda d: d["date"], reverse=True),
+            }
+        )
+    total_days = sum(len(m["days"]) for m in ordered)
+
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html", "j2"]),
+    )
+    page_url = f"{site_url}/archive"  # 슬래시 없음 (seo_utils.build_sitemap 주석 참고)
+    html_out = env.get_template("archive-index.html.j2").render(
+        months=ordered,
+        total_days=total_days,
+        nav_counts=nav_counts,
+        generated_at=datetime.now().isoformat(),
+        canonical_url=page_url,
+        og_image_url=og_image_url,
+        google_site_verification=verification["google_site_verification"],
+        naver_site_verification=verification["naver_site_verification"],
+        jsonld=seo_utils.build_archive_index_jsonld(site_url, page_url, ordered),
+    )
+    (archive_dir / "index.html").write_text(html_out, encoding="utf-8")
+    return total_days
 
 
 def collect_nav_counts(archive_dir: Path) -> dict:
@@ -503,6 +568,18 @@ def load_digest(path: Path) -> dict:
             if count is not None and (not isinstance(count, int) or isinstance(count, bool) or count < 0):
                 problems.append(f'articles[{i}]의 "cross_source_count"는 0 이상의 정수여야 합니다 (실제: {count!r})')
 
+            # related도 선택 필드다(과거 아카이브에는 없다). 있으면 링크를 화면에
+            # 그대로 렌더하므로 최소한의 모양은 확인한다 — 빠진 필드가 있으면
+            # 템플릿에서 빈 링크가 찍힌다.
+            related = a.get("related")
+            if related is not None:
+                if not isinstance(related, list):
+                    problems.append(f'articles[{i}]의 "related"는 배열이어야 합니다 (실제: {type(related).__name__})')
+                else:
+                    for k, r in enumerate(related):
+                        if not isinstance(r, dict) or not str(r.get("link") or "").strip() or not str(r.get("title") or "").strip():
+                            problems.append(f"articles[{i}].related[{k}]에 title/link가 없습니다")
+
     insight = digest.get("daily_insight")
     if insight is not None:
         if not isinstance(insight, dict):
@@ -570,6 +647,7 @@ def main():
     nav_counts = collect_nav_counts(archive_dir)
     glossary_count = build_glossary_page(docs_dir, glossary_terms, site_url, verification, generic_og_image_url, nav_counts)
     topic_page_count, tagged_count = build_topic_pages(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
+    archive_index_days = build_archive_index(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
     site_stats = collect_site_stats(archive_dir, glossary_count)
     faq = seo_utils.load_faq()
 
@@ -706,7 +784,7 @@ def main():
     print(
         f"기사 {len(articles)}건, 지난 아카이브 {len(past_archives)}건, 검색 인덱스 {indexed_count}건, "
         f"용어사전 {glossary_count}건, 토픽 페이지 {topic_page_count}개(분류된 기사 {tagged_count}건), "
-        f"피드 {feed_count}건, sitemap {sitemap_count}건"
+        f"아카이브 목록 {archive_index_days}일, 피드 {feed_count}건, sitemap {sitemap_count}건"
     )
 
 

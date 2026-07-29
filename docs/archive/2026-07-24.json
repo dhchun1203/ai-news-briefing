@@ -82,7 +82,8 @@
       "topics": [
         "infra"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Google’s Gemini nears billion-user milestone",
@@ -97,7 +98,8 @@
         "products",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Google announces Gemini 3.6 Flash and cybersecurity AI, teases 3.5 Pro and Gemini 4",
@@ -111,7 +113,8 @@
       "topics": [
         "models"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Introducing Gemini 3.6 Flash, 3.5 Flash-Lite, and 3.5 Flash Cyber",
@@ -125,7 +128,8 @@
       "topics": [
         "models"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Introducing Gemini 3.5 Flash Cyber",
@@ -140,7 +144,8 @@
         "models",
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "AegisAI, founded by former Google security execs, lands $36M to stop AI-driven spear phishing",
@@ -155,7 +160,8 @@
         "business",
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Google just had its first negative cash flow quarter due to massive AI spending",
@@ -170,7 +176,8 @@
         "business",
         "infra"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "3 Google updates from Galaxy Unpacked 2026",
@@ -184,7 +191,8 @@
       "topics": [
         "products"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Introducing OpenAI Presence",
@@ -199,7 +207,8 @@
         "agents",
         "products"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "San Francisco orders Apple, Google to remove nudify apps from app stores",
@@ -214,7 +223,8 @@
         "policy",
         "media"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     }
   ]
 }

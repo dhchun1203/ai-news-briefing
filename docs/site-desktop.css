@@ -91,6 +91,9 @@ body {
 .article-summary { margin-bottom: 16px; }
 .article-summary p, .article-implication p { font-size: 1.12rem; }
 
+.article-related { font-size: 0.82rem; margin-top: 16px; }
+.related-label { font-size: 0.7rem; }
+
 .article-implication { padding: 16px 20px 16px 16px; }
 
 .archive-section { margin-top: 48px; padding-top: 24px; }
@@ -103,6 +106,13 @@ body {
 .archive-search-date { font-size: 0.72rem; margin-top: 4px; }
 .archive-list { gap: 8px 24px; }
 .archive-list a { font-size: 0.95rem; padding-bottom: 1px; }
+
+.archive-all-link { margin: 16px 0 0; font-size: 0.82rem; }
+.archive-month { margin-top: 32px; padding-top: 24px; }
+.archive-month-label { font-size: 0.82rem; margin: 0 0 12px; }
+.archive-month-list a { padding: 14px 0; }
+.archive-month-date { font-size: 0.78rem; margin-bottom: 4px; }
+.archive-month-headline { font-size: 1.05rem; line-height: 1.5; }
 
 .faq-section { margin-top: 48px; padding-top: 24px; }
 .faq-item { padding: 4px 0; }

@@ -32,7 +32,8 @@
         "policy",
         "opensource"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "AI, hackers, and prediction markets threaten the indie web",
@@ -46,7 +47,8 @@
       "topics": [
         "society"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Fractal by Plasma AI",
@@ -61,7 +63,8 @@
         "agents",
         "opensource"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "After shocking quarter, IBM insists that AI isn’t killing the mainframe",
@@ -75,7 +78,8 @@
       "topics": [
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Google justifies its massive AI spending with a booming cloud business",
@@ -90,7 +94,8 @@
         "business",
         "infra"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Treasury threatens sanctions after White House claims Moonshot distilled Anthropic’s Fable",
@@ -104,7 +109,8 @@
       "topics": [
         "policy"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Hyundai claims humanoid robot plan is not part of talks with striking workers",
@@ -119,7 +125,8 @@
         "robotics",
         "society"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "OpenAI says its AI agent broke out of testing sandbox to hack Hugging Face",
@@ -133,7 +140,8 @@
       "topics": [
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Accelerating the frontiers of scientific discovery: Google’s $40M commitment to the Genesis Mission",
@@ -148,7 +156,8 @@
         "policy",
         "models"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Unlimited AI tokens aren't unlimited after all as US Army burns through supply",
@@ -162,7 +171,8 @@
       "topics": [
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     }
   ]
 }

@@ -62,7 +62,8 @@
       "topics": [
         "products"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "OpenAI makes ChatGPT Health available to all US users",
@@ -76,7 +77,8 @@
       "topics": [
         "products"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "One ChatGPT link could smuggle a rogue AI agent into your company",
@@ -91,7 +93,8 @@
         "safety",
         "agents"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "AI arms race in line for a reckoning after OpenAI hacking incident",
@@ -105,7 +108,8 @@
       "topics": [
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Launching Health in ChatGPT",
@@ -119,7 +123,8 @@
       "topics": [
         "products"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Introducing the ChatGPT for small business program",
@@ -134,7 +139,8 @@
         "products",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "OpenAI and Hugging Face partner to address security incident during model evaluation",
@@ -148,7 +154,8 @@
       "topics": [
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Anthropic's Opus 5 is about token efficiency, not a capability leap",
@@ -162,7 +169,8 @@
       "topics": [
         "models"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "AMD and Cerebras Launch AI Inference Solution",
@@ -176,7 +184,8 @@
       "topics": [
         "infra"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "2026 State of AI Agents: Enterprise Insights on Building AI",
@@ -191,7 +200,8 @@
         "agents",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     }
   ]
 }

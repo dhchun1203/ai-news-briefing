@@ -311,6 +311,17 @@
         <p class="lang-ko">{{ article.implication_ko|safe }}</p>
         <p class="lang-en">{{ article.implication_en|safe }}</p>
       </div>
+      {% if article.related %}
+      {# 같은 사건을 다룬 다른 매체. "몇 곳이 다뤘나"(커버리지 배지)와 달리
+         "어디가 다뤘나"를 보여준다 — 한쪽 매체의 프레임만 읽지 않게 하는 장치다. #}
+      <p class="article-related">
+        <span class="related-label">
+          <span class="lang-ko">같은 사건 다른 매체</span>
+          <span class="lang-en">Also covered by</span>
+        </span>
+        {% for r in article.related %}<a href="{{ r.link }}" target="_blank" rel="noopener noreferrer">{{ r.source }}</a>{% if not loop.last %}<span class="related-sep" aria-hidden="true">·</span>{% endif %}{% endfor %}
+      </p>
+      {% endif %}
     </article>
     {% endfor %}
   </div>
@@ -332,6 +343,14 @@
       <li><a href="{{ archive_link_prefix }}{{ a }}.html">{{ a }}</a></li>
       {% endfor %}
     </ul>
+    {# 이 목록은 최근 60일까지만 나온다. 그보다 오래된 날짜로 가는 유일한 사람용
+       경로가 이 링크다(sitemap에만 있으면 크롤러가 링크를 못 따라간다). #}
+    <p class="archive-all-link">
+      <a href="{{ archive_link_prefix }}index.html">
+        <span class="lang-ko">지난 브리핑 전체 보기 →</span>
+        <span class="lang-en">Browse all past briefings →</span>
+      </a>
+    </p>
   </section>
   {% endif %}
 

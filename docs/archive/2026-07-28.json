@@ -57,7 +57,8 @@
         "safety",
         "products"
       ],
-      "cross_source_count": 2
+      "cross_source_count": 2,
+      "related": []
     },
     {
       "title": "How AI is expanding what people do at work",
@@ -72,7 +73,8 @@
         "society",
         "models"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Satya Nadella says companies that trust one AI for everything may not survive",
@@ -87,7 +89,8 @@
         "business",
         "infra"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "OpenAI's Hugging Face breach has reignited the debate over alignment and control",
@@ -101,7 +104,8 @@
       "topics": [
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "AI cites the deep pages but sends humans to the homepage — most sites are built backward",
@@ -116,7 +120,8 @@
         "business",
         "society"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "New ransomware targets AI model weights and can't even collect the ransom",
@@ -130,7 +135,8 @@
       "topics": [
         "safety"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Threads users can now chat with Meta AI in their DMs",
@@ -144,7 +150,8 @@
       "topics": [
         "products"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Ilya Sutskever's Safe Superintelligence partners with Nvidia to scale its AI research",
@@ -159,7 +166,8 @@
         "infra",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     },
     {
       "title": "Enigma raises $71M to make controlling a robot as easy as adjusting the volume",
@@ -174,7 +182,8 @@
         "robotics",
         "business"
       ],
-      "cross_source_count": 0
+      "cross_source_count": 0,
+      "related": []
     }
   ]
 }

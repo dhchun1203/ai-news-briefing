@@ -278,6 +278,10 @@ function finishPage(label, doc, window, opts) {
   // depth-2 페이지(/archive/<날짜>)도 함께 실제 clean URL로 검사한다.
   checkCleanUrlLinks("glossary.html", "https://www.dailyaithread.com/glossary", "glossary (clean URL)");
   checkCleanUrlLinks("archive/2026-07-25.html", "https://www.dailyaithread.com/archive/2026-07-25", "archive (clean URL)");
+  // 아카이브 목록은 /topics와 같은 깊이(세그먼트 1개)라 같은 함정이 있는 자리다.
+  if (fs.existsSync(path.join(DOCS, "archive", "index.html"))) {
+    checkCleanUrlLinks("archive/index.html", "https://www.dailyaithread.com/archive", "archive/index (clean URL)");
+  }
   if (fs.existsSync(path.join(DOCS, "topics", "index.html"))) {
     checkCleanUrlLinks("topics/index.html", "https://www.dailyaithread.com/topics", "topics/index (clean URL)");
   }
