@@ -61,6 +61,28 @@ function resolveExists(absUrl) {
   return candidates.some((c) => fs.existsSync(c));
 }
 
+
+// 영어판 페이지의 내부 링크가 /en/ 밖으로 나가면 안 된다. 자산(CSS·JS·favicon)은
+// 사이트 루트에만 있으므로 예외다. 실제로 이 누수가 있었다 — 영어로 보다가
+// "Topics"를 누르면 한국어 토픽 페이지가 나왔다(사이트 루트 접두사와 언어 루트
+// 접두사를 같은 값으로 쓴 탓).
+function checkNoLanguageLeak(relPath, canonicalUrl, label) {
+  const { doc } = load(relPath, canonicalUrl);
+  const refs = [];
+  doc.querySelectorAll("a[href]").forEach((a) => refs.push([a.getAttribute("href"), a.href]));
+  doc.querySelectorAll("link[href]").forEach((l) => refs.push([l.getAttribute("href"), l.href]));
+  doc.querySelectorAll("script[src]").forEach((s) => refs.push([s.getAttribute("src"), s.src]));
+  const leaks = [];
+  refs.forEach(([raw, resolved]) => {
+    if (!raw || raw.startsWith("#") || raw.startsWith("http") || raw.startsWith("mailto:")) return;
+    if (raw.startsWith("/_vercel/")) return;
+    const p = resolved.replace(/^https?:\/\/[^/]+/, "");
+    if (/\.(css|js|svg|png|json)$/.test(p)) return;   // 사이트 루트 공유 자산
+    if (!p.startsWith("/en/")) leaks.push(`${raw} -> ${p}`);
+  });
+  check(label, "영어판 링크가 /en/ 안에 머무름", leaks.length === 0, leaks.join(" | "));
+}
+
 function checkCleanUrlLinks(relPath, canonicalUrl, label) {
   const { doc } = load(relPath, canonicalUrl);
   const refs = [];
@@ -300,6 +322,13 @@ function finishPage(label, doc, window, opts) {
   if (fs.existsSync(path.join(DOCS, "en", "glossary.html"))) {
     checkCleanUrlLinks("en/glossary.html", "https://www.dailyaithread.com/en/glossary", "en/glossary (clean URL)");
   }
+  // 언어 누수 검사 — 영어판 주요 페이지 전체
+  [["en/index.html", "/en/"], ["en/glossary.html", "/en/glossary"], ["en/about.html", "/en/about"],
+   ["en/topics/index.html", "/en/topics"], ["en/archive/index.html", "/en/archive"]].forEach(([f, u]) => {
+    if (fs.existsSync(path.join(DOCS, f))) {
+      checkNoLanguageLeak(f, "https://www.dailyaithread.com" + u, `${u} (언어 누수)`);
+    }
+  });
   if (fs.existsSync(path.join(DOCS, "en", "topics", "index.html"))) {
     checkCleanUrlLinks("en/topics/index.html", "https://www.dailyaithread.com/en/topics", "en/topics (clean URL)");
   }

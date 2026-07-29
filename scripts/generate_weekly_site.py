@@ -15,7 +15,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 import seo_utils
 # 주간 회고 페이지도 일별 페이지와 같은 상단 내비를 그리므로, 개수 계산을 한 곳에서
 # 가져온다(두 스크립트가 다른 숫자를 보여주면 페이지를 옮길 때마다 값이 달라진다).
-from generate_site import LANGS, collect_nav_counts, lang_root, up_prefix
+from generate_site import LANGS, collect_nav_counts, lang_root, lang_up_prefix, up_prefix
 
 KST = ZoneInfo("Asia/Seoul")
 
@@ -107,6 +107,7 @@ def main():
                 lang=lang,
                 lang_alt_url=(ko_url if lang == "en" else en_url),
                 up=up_prefix(lang, 1),
+                lup=lang_up_prefix(1),
                 week_label=week_label,
                 start_date=weekly["start_date"],
                 end_date=weekly["end_date"],

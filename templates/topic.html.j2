@@ -20,7 +20,7 @@
    (`../`가 붙은 나머지는 루트에서 클램핑돼 우연히 맞았을 뿐이다). p/tp로 깊이별
    접두사를 분리해 이 클래스의 버그를 다시 만들지 않는다. #}
 <html lang="{{ lang }}" data-lang="{{ lang }}"
-      data-default-lang="{{ lang }}" data-asset-prefix="{{ up }}" data-archive-prefix="{{ up }}archive/">
+      data-default-lang="{{ lang }}" data-asset-prefix="{{ up }}" data-archive-prefix="{{ lup }}archive/">
 <head>
 <meta charset="UTF-8">
 <title>{{ title_ko if lang == 'ko' else title_en }}</title>
@@ -45,7 +45,7 @@
 <meta property="og:image:alt" content="{% if lang == 'ko' %}AI 뉴스 브리핑 · Daily AI Thread{% else %}Daily AI Thread · AI News Briefing{% endif %}">
 <meta name="twitter:image" content="{{ og_image_url }}">
 <link rel="icon" type="image/svg+xml" href="{{ up }}favicon.svg">
-<link rel="alternate" type="application/rss+xml" title="{% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}" href="{{ up }}feed.xml">
+<link rel="alternate" type="application/rss+xml" title="{% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}" href="{{ lup }}feed.xml">
 {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
 {% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
 <script type="application/ld+json">{{ jsonld|tojson }}</script>
@@ -86,7 +86,7 @@
       {% if lang == 'ko' %}주제별{% else %}Topics{% endif %}
       {% if nav_counts and nav_counts.topics %}<span class="site-nav-link-count">{{ nav_counts.topics }}</span>{% endif %}
     </a>
-    <a class="site-nav-link" href="{{ up }}glossary.html">
+    <a class="site-nav-link" href="{{ lup }}glossary.html">
       {% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}
       {% if nav_counts and nav_counts.terms %}<span class="site-nav-link-count">{{ nav_counts.terms }}</span>{% endif %}
     </a>
@@ -111,7 +111,7 @@
   </div>
   <div class="header-inner">
     <h1>
-      <a href="{{ up }}index.html">
+      <a href="{{ lup }}index.html">
         {% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}
       </a>
     </h1>
@@ -127,7 +127,7 @@
 
 <main class="content" id="main-content">
   <div class="date-bar">
-    <a class="back-link" href="{{ up }}index.html">
+    <a class="back-link" href="{{ lup }}index.html">
       {% if lang == 'ko' %}← 오늘자 브리핑{% else %}← Today's briefing{% endif %}
     </a>
     {% if not is_index %}
@@ -169,7 +169,7 @@
     {% for e in entries %}
     <li class="topic-entry">
       <div class="article-meta">
-        <a class="topic-entry-date" href="{{ up }}archive/{{ e.date }}.html">{{ e.date }}</a>
+        <a class="topic-entry-date" href="{{ lup }}archive/{{ e.date }}.html">{{ e.date }}</a>
         <span class="source">{{ e.source }}</span>
       </div>
       <h2 class="topic-entry-title"><a href="{{ e.link }}" target="_blank" rel="noopener noreferrer">{{ e.title }}</a></h2>
@@ -187,9 +187,9 @@
     {% if lang == 'ko' %}매일 08:00 KST 자동 갱신 · 마지막 생성: {{ generated_at }}{% else %}Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}{% endif %}
   </p>
   <p class="footer-links">
-    <a href="{{ up }}feed.xml">RSS</a>
+    <a href="{{ lup }}feed.xml">RSS</a>
     <span aria-hidden="true">·</span>
-    <a href="{{ up }}glossary.html">{% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}</a>
+    <a href="{{ lup }}glossary.html">{% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}</a>
     <span aria-hidden="true">·</span>
     <a href="{{ tp }}index.html">{% if lang == 'ko' %}주제별 보기{% else %}Topics{% endif %}</a>
   </p>

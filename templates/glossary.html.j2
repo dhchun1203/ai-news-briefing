@@ -4,7 +4,7 @@
 {% set desc_ko = "AI 뉴스 브리핑에 등장한 AI 용어를 쉬운 말로 설명하는 용어사전" %}
 {% set desc_en = "Plain-language explanations of the AI jargon that appears in the daily briefing." %}
 <html lang="{{ lang }}" data-lang="{{ lang }}"
-      data-default-lang="{{ lang }}" data-asset-prefix="{{ up }}" data-archive-prefix="{{ up }}archive/">
+      data-default-lang="{{ lang }}" data-asset-prefix="{{ up }}" data-archive-prefix="{{ lup }}archive/">
 <head>
 <meta charset="UTF-8">
 <title>{{ title_ko if lang == 'ko' else title_en }}</title>
@@ -29,7 +29,7 @@
 <meta property="og:image:alt" content="{% if lang == 'ko' %}AI 뉴스 브리핑 · Daily AI Thread{% else %}Daily AI Thread · AI News Briefing{% endif %}">
 <meta name="twitter:image" content="{{ og_image_url }}">
 <link rel="icon" type="image/svg+xml" href="{{ up }}favicon.svg">
-<link rel="alternate" type="application/rss+xml" title="{% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}" href="{{ up }}feed.xml">
+<link rel="alternate" type="application/rss+xml" title="{% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}" href="{{ lup }}feed.xml">
 {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
 {% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
 <script type="application/ld+json">{{ jsonld|tojson }}</script>
@@ -64,7 +64,7 @@
 </a>
 <header class="site-header">
   <div class="utility-bar">
-    <a class="site-nav-link" href="{{ up }}topics/index.html">
+    <a class="site-nav-link" href="{{ lup }}topics/index.html">
       {% if lang == 'ko' %}주제별{% else %}Topics{% endif %}
       {% if nav_counts and nav_counts.topics %}<span class="site-nav-link-count">{{ nav_counts.topics }}</span>{% endif %}
     </a>
@@ -96,7 +96,7 @@
   </div>
   <div class="header-inner">
     <h1>
-      <a href="{{ up }}index.html">
+      <a href="{{ lup }}index.html">
         {% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}
       </a>
     </h1>
@@ -137,7 +137,7 @@
       <dt class="glossary-term-name">
         {# 개별 페이지로 연결한다 — "MCP란?" 같은 질문형 검색이 목록 전체가 아니라
            해당 용어 페이지에 닿아야 한다. #}
-        <a href="{{ up }}glossary/{{ t.slug }}.html">
+        <a href="{{ lup }}glossary/{{ t.slug }}.html">
           {% if lang == 'ko' %}{{ t.term_ko }}{% else %}{{ t.term_en }}{% endif %}
         </a>
       </dt>
@@ -154,11 +154,11 @@
     {% if lang == 'ko' %}매일 08:00 KST 자동 갱신 · 마지막 생성: {{ generated_at }}{% else %}Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}{% endif %}
   </p>
   <p class="footer-links">
-    <a href="{{ up }}feed.xml">RSS</a>
+    <a href="{{ lup }}feed.xml">RSS</a>
     <span aria-hidden="true">·</span>
-    <a href="{{ up }}topics/index.html">{% if lang == 'ko' %}주제별 보기{% else %}Topics{% endif %}</a>
+    <a href="{{ lup }}topics/index.html">{% if lang == 'ko' %}주제별 보기{% else %}Topics{% endif %}</a>
     <span aria-hidden="true">·</span>
-    <a href="{{ up }}index.html">{% if lang == 'ko' %}오늘자 브리핑{% else %}Today's briefing{% endif %}</a>
+    <a href="{{ lup }}index.html">{% if lang == 'ko' %}오늘자 브리핑{% else %}Today's briefing{% endif %}</a>
   </p>
 </footer>
 

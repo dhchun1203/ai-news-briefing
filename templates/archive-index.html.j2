@@ -12,7 +12,7 @@
 {% set desc_ko = "AI 뉴스 브리핑의 지난 기록을 월별로 모아봅니다. 총 " ~ total_days ~ "일치." %}
 {% set desc_en = "Every past edition of the AI news briefing, grouped by month. " ~ total_days ~ " editions." %}
 <html lang="{{ lang }}" data-lang="{{ lang }}"
-      data-default-lang="{{ lang }}" data-asset-prefix="{{ up }}" data-archive-prefix="{{ up }}archive/">
+      data-default-lang="{{ lang }}" data-asset-prefix="{{ up }}" data-archive-prefix="{{ lup }}archive/">
 <head>
 <meta charset="UTF-8">
 <title>{{ title_ko if lang == 'ko' else title_en }}</title>
@@ -37,7 +37,7 @@
 <meta property="og:image:alt" content="{% if lang == 'ko' %}AI 뉴스 브리핑 · Daily AI Thread{% else %}Daily AI Thread · AI News Briefing{% endif %}">
 <meta name="twitter:image" content="{{ og_image_url }}">
 <link rel="icon" type="image/svg+xml" href="{{ up }}favicon.svg">
-<link rel="alternate" type="application/rss+xml" title="{% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}" href="{{ up }}feed.xml">
+<link rel="alternate" type="application/rss+xml" title="{% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}" href="{{ lup }}feed.xml">
 {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
 {% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
 <script type="application/ld+json">{{ jsonld|tojson }}</script>
@@ -72,11 +72,11 @@
 </a>
 <header class="site-header">
   <div class="utility-bar">
-    <a class="site-nav-link" href="{{ up }}topics/index.html">
+    <a class="site-nav-link" href="{{ lup }}topics/index.html">
       {% if lang == 'ko' %}주제별{% else %}Topics{% endif %}
       {% if nav_counts and nav_counts.topics %}<span class="site-nav-link-count">{{ nav_counts.topics }}</span>{% endif %}
     </a>
-    <a class="site-nav-link" href="{{ up }}glossary.html">
+    <a class="site-nav-link" href="{{ lup }}glossary.html">
       {% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}
       {% if nav_counts and nav_counts.terms %}<span class="site-nav-link-count">{{ nav_counts.terms }}</span>{% endif %}
     </a>
@@ -101,7 +101,7 @@
   </div>
   <div class="header-inner">
     <h1>
-      <a href="{{ up }}index.html">
+      <a href="{{ lup }}index.html">
         {% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}
       </a>
     </h1>
@@ -113,7 +113,7 @@
 
 <main class="content" id="main-content">
   <div class="date-bar">
-    <a class="back-link" href="{{ up }}index.html">
+    <a class="back-link" href="{{ lup }}index.html">
       {% if lang == 'ko' %}← 오늘자 브리핑{% else %}← Today's briefing{% endif %}
     </a>
   </div>
@@ -131,7 +131,7 @@
     <ul class="archive-month-list">
       {% for d in month.days %}
       <li>
-        <a href="{{ up }}archive/{{ d.date }}.html">
+        <a href="{{ lup }}archive/{{ d.date }}.html">
           <span class="archive-month-date">{{ d.date }}</span>
           {% if d.headline_ko or d.headline_en %}
           <span class="archive-month-headline">
@@ -151,11 +151,11 @@
     {% if lang == 'ko' %}매일 08:00 KST 자동 갱신 · 마지막 생성: {{ generated_at }}{% else %}Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}{% endif %}
   </p>
   <p class="footer-links">
-    <a href="{{ up }}feed.xml">RSS</a>
+    <a href="{{ lup }}feed.xml">RSS</a>
     <span aria-hidden="true">·</span>
-    <a href="{{ up }}topics/index.html">{% if lang == 'ko' %}주제별 보기{% else %}Topics{% endif %}</a>
+    <a href="{{ lup }}topics/index.html">{% if lang == 'ko' %}주제별 보기{% else %}Topics{% endif %}</a>
     <span aria-hidden="true">·</span>
-    <a href="{{ up }}glossary.html">{% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}</a>
+    <a href="{{ lup }}glossary.html">{% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}</a>
   </p>
 </footer>
 

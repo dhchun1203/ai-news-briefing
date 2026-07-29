@@ -70,7 +70,7 @@
       {% if lang == 'ko' %}주제별{% else %}Topics{% endif %}
       {% if nav_counts and nav_counts.topics %}<span class="site-nav-link-count">{{ nav_counts.topics }}</span>{% endif %}
     </a>
-    <a class="site-nav-link" href="{{ css_prefix }}glossary.html">
+    <a class="site-nav-link" href="{{ lang_prefix }}glossary.html">
       {% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}
       {% if nav_counts and nav_counts.terms %}<span class="site-nav-link-count">{{ nav_counts.terms }}</span>{% endif %}
     </a>
@@ -98,7 +98,7 @@
   </div>
   <div class="header-inner">
     <h1>
-      <a href="{{ css_prefix }}index.html">
+      <a href="{{ lang_prefix }}index.html">
         {% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}
       </a>
     </h1>
@@ -347,9 +347,9 @@
     <span aria-hidden="true">·</span>
     <a href="{{ topic_link_prefix }}index.html">{% if lang == 'ko' %}주제별 보기{% else %}Topics{% endif %}</a>
     <span aria-hidden="true">·</span>
-    <a href="{{ css_prefix }}glossary.html">{% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}</a>
+    <a href="{{ lang_prefix }}glossary.html">{% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}</a>
     <span aria-hidden="true">·</span>
-    <a href="{{ css_prefix }}about.html">{% if lang == 'ko' %}소개{% else %}About{% endif %}</a>
+    <a href="{{ lang_prefix }}about.html">{% if lang == 'ko' %}소개{% else %}About{% endif %}</a>
   </p>
 </footer>
 
