@@ -16,13 +16,13 @@
 <head>
 <meta charset="UTF-8">
 <title>{{ title_ko if lang == 'ko' else title_en }}</title>
-<meta name="description" content="{{ desc_ko }}">
+<meta name="description" content="{{ desc_ko if lang == 'ko' else desc_en }}">
 <meta property="og:type" content="website">
-<meta property="og:title" content="{{ title_ko }}">
-<meta property="og:description" content="{{ desc_ko }}">
+<meta property="og:title" content="{{ title_ko if lang == 'ko' else title_en }}">
+<meta property="og:description" content="{{ desc_ko if lang == 'ko' else desc_en }}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ title_ko }}">
-<meta name="twitter:description" content="{{ desc_ko }}">
+<meta name="twitter:title" content="{{ title_ko if lang == 'ko' else title_en }}">
+<meta name="twitter:description" content="{{ desc_ko if lang == 'ko' else desc_en }}">
 <link rel="canonical" href="{{ canonical_url }}">
 <meta name="robots" content="index, follow">
 {% if hreflang_ko_url and hreflang_en_url %}
@@ -34,10 +34,10 @@
 <meta property="og:image" content="{{ og_image_url }}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="AI 뉴스 브리핑 · Daily AI Thread">
+<meta property="og:image:alt" content="{% if lang == 'ko' %}AI 뉴스 브리핑 · Daily AI Thread{% else %}Daily AI Thread · AI News Briefing{% endif %}">
 <meta name="twitter:image" content="{{ og_image_url }}">
 <link rel="icon" type="image/svg+xml" href="{{ up }}favicon.svg">
-<link rel="alternate" type="application/rss+xml" title="AI 뉴스 브리핑" href="{{ up }}feed.xml">
+<link rel="alternate" type="application/rss+xml" title="{% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}" href="{{ up }}feed.xml">
 {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
 {% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
 <script type="application/ld+json">{{ jsonld|tojson }}</script>

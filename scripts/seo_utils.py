@@ -318,7 +318,7 @@ def load_about() -> dict:
         return {}
 
 
-def build_about_page_jsonld(site_url: str, page_url: str, about: dict) -> dict:
+def build_about_page_jsonld(site_url: str, page_url: str, about: dict, lang: str = "ko") -> dict:
     """소개 페이지용 JSON-LD. AboutPage로 표시하고, 이 페이지가 설명하는 대상이
     우리 Organization임을 mainEntity로 명시한다 — "이 사이트가 무엇인가"를 묻는
     질의에 이 페이지가 답으로 잡히게 하는 연결이다."""
@@ -326,17 +326,20 @@ def build_about_page_jsonld(site_url: str, page_url: str, about: dict) -> dict:
         "@type": "AboutPage",
         "@id": f"{page_url}#page",
         "url": page_url,
-        "name": "소개 — Daily AI Thread",
-        "description": about.get("tagline_ko", ""),
-        "inLanguage": ["ko", "en"],
+        "name": "소개 — Daily AI Thread" if lang == "ko" else "About — Daily AI Thread",
+        "description": about.get("tagline_ko" if lang == "ko" else "tagline_en", ""),
+        "inLanguage": lang,
         "isPartOf": {"@id": f"{site_url}/#website"},
         "mainEntity": {"@id": f"{site_url}/#organization"},
     }
-    crumb = build_breadcrumb(site_url, [("홈", f"{site_url}/"), ("소개", page_url)])
-    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node, crumb]}
+    crumb = build_breadcrumb(site_url, [
+        ("홈" if lang == "ko" else "Home", f"{site_url}/" if lang == "ko" else f"{site_url}/en/"),
+        ("소개" if lang == "ko" else "About", page_url),
+    ])
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url, lang) + [node, crumb]}
 
 
-def build_glossary_term_jsonld(site_url: str, page_url: str, term: dict) -> dict:
+def build_glossary_term_jsonld(site_url: str, page_url: str, term: dict, lang: str = "ko") -> dict:
     """용어 개별 페이지용 JSON-LD. DefinedTerm은 "[용어]는 [정의]다" 구조를 그대로
     표현하는 타입이라, 질문형 쿼리("MCP란?")에 이 페이지가 답으로 잡히게 하는 데
     가장 직접적인 마크업이다. 용어사전 전체(DefinedTermSet)에 속함을 함께 밝힌다."""
@@ -344,27 +347,29 @@ def build_glossary_term_jsonld(site_url: str, page_url: str, term: dict) -> dict
         "@type": "DefinedTerm",
         "@id": f"{page_url}#term",
         "url": page_url,
-        "name": term.get("term_ko", ""),
-        "alternateName": [n for n in ([term.get("term_en")] + list(term.get("aliases_ko") or [])) if n],
-        "description": term.get("explanation_ko", ""),
+        "name": term.get("term_ko" if lang == "ko" else "term_en", "") or term.get("term_ko", ""),
+        "alternateName": [n for n in ([term.get("term_en" if lang == "ko" else "term_ko")]
+                                      + list(term.get("aliases_ko") or [])) if n],
+        "description": term.get("explanation_ko" if lang == "ko" else "explanation_en", ""),
         "inDefinedTermSet": {
             "@type": "DefinedTermSet",
             "@id": f"{site_url}/glossary#glossary",
             "url": f"{site_url}/glossary",
-            "name": "AI 용어사전",
+            "name": "AI 용어사전" if lang == "ko" else "AI Glossary",
         },
-        "inLanguage": ["ko", "en"],
+        "inLanguage": lang,
         "publisher": {"@id": f"{site_url}/#organization"},
     }
+    base = site_url if lang == "ko" else f"{site_url}/en"
     crumb = build_breadcrumb(site_url, [
-        ("홈", f"{site_url}/"),
-        ("용어사전", f"{site_url}/glossary"),
-        (term.get("term_ko", ""), page_url),
+        ("홈" if lang == "ko" else "Home", f"{base}/"),
+        ("용어사전" if lang == "ko" else "Glossary", f"{base}/glossary"),
+        (term.get("term_ko" if lang == "ko" else "term_en", "") or term.get("term_ko", ""), page_url),
     ])
-    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node, crumb]}
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url, lang) + [node, crumb]}
 
 
-def _website_org_nodes(site_url: str) -> list:
+def _website_org_nodes(site_url: str, lang: str = "ko") -> list:
     """모든 페이지가 공유하는 WebSite/Organization 그래프 노드. 페이지마다 이걸
     JSON-LD @graph에 포함시켜, 크롤러가 페이지 하나만 읽어도 사이트 정체성을
     파악할 수 있게 한다(다른 페이지의 @id를 따라가지 않아도 됨)."""
@@ -373,8 +378,8 @@ def _website_org_nodes(site_url: str) -> list:
             "@type": "WebSite",
             "@id": f"{site_url}/#website",
             "url": f"{site_url}/",
-            "name": "AI 뉴스 브리핑 · Daily AI Thread",
-            "inLanguage": ["ko", "en"],
+            "name": "AI 뉴스 브리핑 · Daily AI Thread" if lang == "ko" else "Daily AI Thread · AI News Briefing",
+            "inLanguage": lang,
             "publisher": {"@id": f"{site_url}/#organization"},
             # 사이트 내 검색을 실제로 제공하므로(/api/search) SearchAction을 선언한다.
             # 없는 기능을 선언하면 안 되는 마크업이라, 검색 API가 생긴 뒤에야 넣었다.
@@ -398,7 +403,7 @@ def _website_org_nodes(site_url: str) -> list:
             "logo": f"{site_url}/og-image.png",
             # 사이트 정체성 한 문장. About 페이지·홈 description·RSS 설명과 같은
             # 내용을 유지한다(config/about.json이 유일한 출처).
-            "description": load_about().get("tagline_ko", ""),
+            "description": load_about().get("tagline_ko" if lang == "ko" else "tagline_en", ""),
         },
     ]
 
@@ -436,7 +441,7 @@ def build_faq_jsonld_node(faq: list, lang: str = "ko") -> dict:
     }
 
 
-def build_topic_page_jsonld(site_url: str, page_url: str, topic: dict, entries: list) -> dict:
+def build_topic_page_jsonld(site_url: str, page_url: str, topic: dict, entries: list, lang: str = "ko") -> dict:
     """토픽별 아카이브 페이지용 JSON-LD. 일별 브리핑 페이지와 같은 이유로
     CollectionPage + ItemList를 쓰고, 원문은 우리 저작물이 아니므로 citation으로
     분리한다(build_archive_page_jsonld 주석 참고)."""
@@ -450,7 +455,7 @@ def build_topic_page_jsonld(site_url: str, page_url: str, topic: dict, entries: 
                 "url": f"{site_url}/archive/{e.get('date', '')}",
                 "datePublished": e.get("date", ""),
                 "author": {"@type": "Organization", "name": "Daily AI Thread"},
-                "articleSection": e.get("summary_ko", ""),
+                "articleSection": e.get("summary_ko" if lang == "ko" else "summary_en", ""),
                 "citation": {
                     "@type": "NewsArticle",
                     "headline": e.get("title", ""),
@@ -465,20 +470,22 @@ def build_topic_page_jsonld(site_url: str, page_url: str, topic: dict, entries: 
         "@type": "CollectionPage",
         "@id": f"{page_url}#page",
         "url": page_url,
-        "name": f"{topic.get('label_ko', '')} — AI 뉴스 브리핑",
-        "description": topic.get("description_ko", ""),
-        "inLanguage": ["ko", "en"],
+        "name": (f"{topic.get('label_ko', '')} — AI 뉴스 브리핑" if lang == "ko"
+                 else f"{topic.get('label_en', '')} — AI News Briefing"),
+        "description": topic.get("description_ko" if lang == "ko" else "description_en", ""),
+        "inLanguage": lang,
         "isPartOf": {"@id": f"{site_url}/#website"},
         "publisher": {"@id": f"{site_url}/#organization"},
         "mainEntity": {"@type": "ItemList", "itemListElement": items},
     }
-    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url, lang) + [node]}
 
 
-def build_archive_index_jsonld(site_url: str, page_url: str, months: list) -> dict:
+def build_archive_index_jsonld(site_url: str, page_url: str, months: list, lang: str = "ko") -> dict:
     """지난 브리핑 전체 목록 페이지용 JSON-LD. 크롤러가 이 한 페이지만 읽어도
     모든 날짜 페이지를 발견할 수 있게 ItemList로 전부 나열한다 — 홈이 최근 60일만
     링크해서 생기던 고립을 메우는 게 이 페이지의 존재 이유다."""
+    base = site_url if lang == "ko" else f"{site_url}/en"
     items = []
     for month in months:
         for d in month.get("days", []):
@@ -486,32 +493,33 @@ def build_archive_index_jsonld(site_url: str, page_url: str, months: list) -> di
                 {
                     "@type": "ListItem",
                     "position": len(items) + 1,
-                    "name": d.get("headline_ko") or d.get("date", ""),
-                    "url": f"{site_url}/archive/{d.get('date', '')}",
+                    "name": d.get("headline_ko" if lang == "ko" else "headline_en") or d.get("date", ""),
+                    "url": f"{base}/archive/{d.get('date', '')}",
                 }
             )
     node = {
         "@type": "CollectionPage",
         "@id": f"{page_url}#page",
         "url": page_url,
-        "name": "지난 브리핑 전체 — AI 뉴스 브리핑",
-        "inLanguage": ["ko", "en"],
+        "name": "지난 브리핑 전체 — AI 뉴스 브리핑" if lang == "ko" else "All Past Briefings — AI News Briefing",
+        "inLanguage": lang,
         "isPartOf": {"@id": f"{site_url}/#website"},
         "publisher": {"@id": f"{site_url}/#organization"},
         "mainEntity": {"@type": "ItemList", "itemListElement": items},
     }
-    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url, lang) + [node]}
 
 
-def build_topic_index_jsonld(site_url: str, page_url: str, topics: list) -> dict:
+def build_topic_index_jsonld(site_url: str, page_url: str, topics: list, lang: str = "ko") -> dict:
     """토픽 목록 페이지용 JSON-LD. 각 토픽 페이지를 ItemList로 가리켜, 크롤러가
     이 한 페이지만 읽어도 토픽 페이지 전체를 발견할 수 있게 한다."""
+    base = site_url if lang == "ko" else f"{site_url}/en"
     items = [
         {
             "@type": "ListItem",
             "position": i + 1,
-            "name": t.get("label_ko", ""),
-            "url": f"{site_url}/topics/{t.get('slug', '')}",
+            "name": t.get("label_ko" if lang == "ko" else "label_en", ""),
+            "url": f"{base}/topics/{t.get('slug', '')}",
         }
         for i, t in enumerate(topics)
     ]
@@ -519,16 +527,16 @@ def build_topic_index_jsonld(site_url: str, page_url: str, topics: list) -> dict
         "@type": "CollectionPage",
         "@id": f"{page_url}#page",
         "url": page_url,
-        "name": "주제별 브리핑 — AI 뉴스 브리핑",
-        "inLanguage": ["ko", "en"],
+        "name": "주제별 브리핑 — AI 뉴스 브리핑" if lang == "ko" else "Browse by Topic — AI News Briefing",
+        "inLanguage": lang,
         "isPartOf": {"@id": f"{site_url}/#website"},
         "publisher": {"@id": f"{site_url}/#organization"},
         "mainEntity": {"@type": "ItemList", "itemListElement": items},
     }
-    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url, lang) + [node]}
 
 
-def build_archive_page_jsonld(site_url, page_url, date, generated_at, articles, daily_insight, faq=None) -> dict:
+def build_archive_page_jsonld(site_url, page_url, date, generated_at, articles, daily_insight, faq=None, lang="ko") -> dict:
     """일별 브리핑(홈/아카이브 공용) 페이지용 JSON-LD. 이 사이트는 원문 기사의
     저작자가 아니라 큐레이션·분석 주체이므로, 우리 자체 요약/시사점만 Article로
     표시하고 원문은 citation으로 분리한다 — NewsArticle을 우리 것처럼 마크업하면
@@ -542,9 +550,9 @@ def build_archive_page_jsonld(site_url, page_url, date, generated_at, articles, 
                 "item": {
                     "@type": "Article",
                     "headline": a.get("title", ""),
-                    "url": f"{page_url}#article-{i + 1}",
+                    "url": f"{page_url}#article-{i + 1}",  # page_url이 이미 언어판 주소다
                     "author": {"@type": "Organization", "name": "Daily AI Thread"},
-                    "articleSection": a.get("summary_ko", ""),
+                    "articleSection": a.get("summary_ko" if lang == "ko" else "summary_en", ""),
                     "citation": {
                         "@type": "NewsArticle",
                         "headline": a.get("title", ""),
@@ -558,39 +566,40 @@ def build_archive_page_jsonld(site_url, page_url, date, generated_at, articles, 
         "@type": "CollectionPage",
         "@id": f"{page_url}#page",
         "url": page_url,
-        "name": f"AI 뉴스 브리핑 — {date}",
+        "name": (f"AI 뉴스 브리핑 — {date}" if lang == "ko" else f"AI News Briefing — {date}"),
         "datePublished": generated_at,
         "dateModified": generated_at,
-        "inLanguage": ["ko", "en"],
+        "inLanguage": lang,
         "isPartOf": {"@id": f"{site_url}/#website"},
         "publisher": {"@id": f"{site_url}/#organization"},
         "mainEntity": {"@type": "ItemList", "itemListElement": items},
     }
-    if daily_insight and daily_insight.get("headline_ko"):
+    insight_headline = (daily_insight or {}).get("headline_ko" if lang == "ko" else "headline_en")
+    if insight_headline:
         node["about"] = {
             "@type": "Article",
-            "headline": daily_insight["headline_ko"],
+            "headline": insight_headline,
             "author": {"@type": "Organization", "name": "Daily AI Thread"},
         }
     # FAQ는 홈(/, /en/)에서만 렌더링되므로 그때만 노드를 합류시킨다 — 화면에 없는
     # 내용을 FAQPage로 마크업하면 구조화 데이터 가이드라인 위반이다.
-    graph = _website_org_nodes(site_url) + [node]
+    graph = _website_org_nodes(site_url, lang) + [node]
     if faq:
-        graph.append(build_faq_jsonld_node(faq))
+        graph.append(build_faq_jsonld_node(faq, lang))
     return {"@context": "https://schema.org", "@graph": graph}
 
 
-def build_weekly_page_jsonld(site_url, page_url, headline_ko, end_date, generated_at, paragraphs_ko, daily_briefings) -> dict:
+def build_weekly_page_jsonld(site_url, page_url, headline_ko, end_date, generated_at, paragraphs_ko, daily_briefings, lang="ko") -> dict:
     """주간 회고는 원문 요약이 아니라 그 주 daily_insight들을 Claude가 다시 종합한
     우리 원저작물이므로, 저작권 이슈 없이 순수 Article로 마크업한다."""
     node = {
         "@type": "Article",
         "@id": f"{page_url}#page",
         "url": page_url,
-        "headline": headline_ko,
+        "headline": headline_ko,  # 호출부가 언어에 맞는 값을 넘긴다
         "datePublished": end_date,
         "dateModified": generated_at,
-        "inLanguage": ["ko", "en"],
+        "inLanguage": lang,
         "author": {"@type": "Organization", "name": "Daily AI Thread"},
         "publisher": {"@id": f"{site_url}/#organization"},
         "isPartOf": {"@id": f"{site_url}/#website"},
@@ -599,10 +608,10 @@ def build_weekly_page_jsonld(site_url, page_url, headline_ko, end_date, generate
             {"@type": "CreativeWork", "url": f"{site_url}/archive/{d['date']}"} for d in (daily_briefings or [])
         ],
     }
-    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url, lang) + [node]}
 
 
-def build_glossary_page_jsonld(site_url: str, page_url: str, terms: list) -> dict:
+def build_glossary_page_jsonld(site_url: str, page_url: str, terms: list, lang: str = "ko") -> dict:
     """용어사전 페이지용 JSON-LD. schema.org가 정의문 콘텐츠에 딱 맞는 타입
     (DefinedTermSet/DefinedTerm)을 제공해서, 다른 페이지처럼 우회할 필요 없이
     바로 의미에 맞게 마크업할 수 있다 — GEO 관점에서도 "[용어]는 [정의]다" 구조를
@@ -610,9 +619,9 @@ def build_glossary_page_jsonld(site_url: str, page_url: str, terms: list) -> dic
     defined_terms = [
         {
             "@type": "DefinedTerm",
-            "name": t["term_ko"],
-            "alternateName": t.get("term_en") or t["term_ko"],
-            "description": t.get("explanation_ko", ""),
+            "name": t["term_ko"] if lang == "ko" else (t.get("term_en") or t["term_ko"]),
+            "alternateName": (t.get("term_en") or t["term_ko"]) if lang == "ko" else t["term_ko"],
+            "description": t.get("explanation_ko" if lang == "ko" else "explanation_en", ""),
             "inDefinedTermSet": f"{page_url}#glossary",
         }
         for t in terms
@@ -621,10 +630,10 @@ def build_glossary_page_jsonld(site_url: str, page_url: str, terms: list) -> dic
         "@type": "DefinedTermSet",
         "@id": f"{page_url}#glossary",
         "url": page_url,
-        "name": "AI 용어사전",
-        "inLanguage": ["ko", "en"],
+        "name": "AI 용어사전" if lang == "ko" else "AI Glossary",
+        "inLanguage": lang,
         "isPartOf": {"@id": f"{site_url}/#website"},
         "publisher": {"@id": f"{site_url}/#organization"},
         "hasDefinedTerm": defined_terms,
     }
-    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url) + [node]}
+    return {"@context": "https://schema.org", "@graph": _website_org_nodes(site_url, lang) + [node]}

@@ -125,8 +125,11 @@ def main():
                 google_site_verification=verification["google_site_verification"],
                 naver_site_verification=verification["naver_site_verification"],
                 jsonld=seo_utils.build_weekly_page_jsonld(
-                    site_url, page_url, weekly.get("headline_ko", ""), weekly["end_date"],
-                    generated_at, weekly.get("paragraphs_ko", []), daily_briefings,
+                    site_url, page_url,
+                    weekly.get("headline_ko" if lang == "ko" else "headline_en", ""),
+                    weekly["end_date"], generated_at,
+                    weekly.get("paragraphs_ko" if lang == "ko" else "paragraphs_en", []),
+                    daily_briefings, lang,
                 ),
             ),
             encoding="utf-8",

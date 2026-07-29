@@ -366,7 +366,7 @@ def build_glossary_term_pages(docs_dir: Path, entries: list, site_url: str, veri
                     hreflang_en_url=en_url,
                     google_site_verification=verification["google_site_verification"],
                     naver_site_verification=verification["naver_site_verification"],
-                    jsonld=seo_utils.build_glossary_term_jsonld(site_url, page_url, term),
+                    jsonld=seo_utils.build_glossary_term_jsonld(site_url, page_url, term, lang),
                 ),
                 encoding="utf-8",
             )
@@ -405,7 +405,7 @@ def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification
                 hreflang_en_url=en_url,
                 google_site_verification=verification["google_site_verification"],
                 naver_site_verification=verification["naver_site_verification"],
-                jsonld=seo_utils.build_glossary_page_jsonld(site_url, page_url, terms),
+                jsonld=seo_utils.build_glossary_page_jsonld(site_url, page_url, terms, lang),
             ),
             encoding="utf-8",
         )
@@ -495,7 +495,7 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
                     hreflang_ko_url=ko_url, hreflang_en_url=en_url,
                     google_site_verification=verification["google_site_verification"],
                     naver_site_verification=verification["naver_site_verification"],
-                    jsonld=seo_utils.build_topic_page_jsonld(site_url, page_url, topic, entries),
+                    jsonld=seo_utils.build_topic_page_jsonld(site_url, page_url, topic, entries, lang),
                 ),
                 encoding="utf-8",
             )
@@ -514,7 +514,7 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
                 hreflang_ko_url=ko_index, hreflang_en_url=en_index,
                 google_site_verification=verification["google_site_verification"],
                 naver_site_verification=verification["naver_site_verification"],
-                jsonld=seo_utils.build_topic_index_jsonld(site_url, index_url, [t for t in summary if t["count"]]),
+                jsonld=seo_utils.build_topic_index_jsonld(site_url, index_url, [t for t in summary if t["count"]], lang),
             ),
             encoding="utf-8",
         )
@@ -580,7 +580,7 @@ def build_archive_index(docs_dir: Path, archive_dir: Path, site_url: str, verifi
                 hreflang_en_url=en_url,
                 google_site_verification=verification["google_site_verification"],
                 naver_site_verification=verification["naver_site_verification"],
-                jsonld=seo_utils.build_archive_index_jsonld(site_url, page_url, ordered),
+                jsonld=seo_utils.build_archive_index_jsonld(site_url, page_url, ordered, lang),
             ),
             encoding="utf-8",
         )
@@ -620,7 +620,7 @@ def build_about_page(docs_dir: Path, site_url: str, verification: dict, og_image
                 hreflang_en_url=en_url,
                 google_site_verification=verification["google_site_verification"],
                 naver_site_verification=verification["naver_site_verification"],
-                jsonld=seo_utils.build_about_page_jsonld(site_url, page_url, about),
+                jsonld=seo_utils.build_about_page_jsonld(site_url, page_url, about, lang),
             ),
             encoding="utf-8",
         )
@@ -906,7 +906,7 @@ def main():
                 hreflang_ko_url=ko_index_url,
                 hreflang_en_url=en_index_url,
                 jsonld=seo_utils.build_archive_page_jsonld(
-                    site_url, this_index_url, date, generated_at, articles, daily_insight, faq),
+                    site_url, this_index_url, date, generated_at, articles, daily_insight, faq, lang),
             ),
             encoding="utf-8",
         )
@@ -950,7 +950,7 @@ def main():
                 hreflang_en_url=en_archive_url,
                 jsonld=seo_utils.build_archive_page_jsonld(
                     site_url, (en_archive_url if lang == "en" else ko_archive_url),
-                    date, generated_at, articles, daily_insight),
+                    date, generated_at, articles, daily_insight, None, lang),
             ),
             encoding="utf-8",
         )
