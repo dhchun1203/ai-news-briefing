@@ -155,7 +155,10 @@
       '<line x1="3" y1="12" x2="21" y2="12"></line>' +
       '<line x1="3" y1="18" x2="21" y2="18"></line></svg>';
 
-    utilityBar.insertBefore(navToggle, utilityBar.firstChild);
+    // 내용이 본문 칼럼 폭에 맞춰 가둬져 있으므로 바깥 .utility-bar가 아니라 안쪽
+    // 컨테이너에 넣어야 다른 컨트롤과 같은 줄·같은 여백에 선다.
+    var barInner = utilityBar.querySelector(".utility-bar-inner") || utilityBar;
+    barInner.insertBefore(navToggle, barInner.firstChild);
     document.body.appendChild(drawerBackdrop);
     document.body.appendChild(drawer);
     // 이 요소들은 최초 updateLocalizedAttrs() 호출보다 늦게 만들어지므로, 영어 모드로

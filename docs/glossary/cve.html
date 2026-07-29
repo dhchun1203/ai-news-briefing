@@ -64,33 +64,64 @@
   본문으로 건너뛰기
 </a>
 <header class="site-header">
-  <div class="utility-bar">
-    <a class="site-nav-link" href="../topics/index.html">
-      주제별
-      <span class="site-nav-link-count">11</span>
-    </a>
-    <a class="site-nav-link site-nav-link-current" href="../glossary.html" aria-current="page">
-      용어사전
-      <span class="site-nav-link-count">29</span>
-    </a>
-    <div class="share-wrap" id="share-wrap">
-      <button id="share-button" class="share-button" type="button" aria-label="링크 복사 / Copy link">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-      </button>
-      <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite"></span>
-    </div>
+  
+  
+  
+
+<div class="utility-bar">
+  <div class="utility-bar-inner">
     
-    <a class="lang-switch" href="https://www.dailyaithread.com/en/glossary/cve" hreflang="en"
-       rel="alternate" aria-label="Switch to English">
-      EN
-    </a>
-    <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환" data-aria-ko="다크모드 전환" data-aria-en="Toggle dark mode">
-      <span class="theme-toggle-thumb">
-        <span class="icon-moon" aria-hidden="true">&#9789;</span>
-        <span class="icon-sun" aria-hidden="true">&#9728;</span>
-      </span>
-    </button>
+    <nav class="site-nav-group" aria-label="주요 메뉴">
+      
+      <a class="site-nav-link"
+         href="../topics/index.html">
+        주제별
+        <span class="site-nav-link-count">11</span>
+      </a>
+      
+      <a class="site-nav-link site-nav-link-current"
+         href="../glossary.html" aria-current="page">
+        용어사전
+        <span class="site-nav-link-count">29</span>
+      </a>
+      
+      <a class="site-nav-link"
+         href="../archive/index.html">
+        아카이브
+        <span class="site-nav-link-count">7</span>
+      </a>
+      
+      <a class="site-nav-link"
+         href="../about.html">
+        소개
+        
+      </a>
+      
+    </nav>
+    <div class="utility-actions">
+      <div class="share-wrap" id="share-wrap">
+        <button id="share-button" class="share-button" type="button" aria-label="링크 복사 / Copy link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+        <!-- 비워둔 채 시작해야 한다: aria-live는 CSS 변화가 아니라 "내용이 바뀌는" 순간에만
+             읽어준다. 문구를 미리 넣어두면 복사해도 스크린리더가 아무 말도 하지 않는다.
+             복사 시점에 site.js가 현재 언어에 맞는 문구를 채운다. -->
+        <span class="share-tooltip" id="share-tooltip" role="status" aria-live="polite"></span>
+      </div>
+      
+      <a class="lang-switch" href="https://www.dailyaithread.com/en/glossary/cve" hreflang="en"
+         rel="alternate" aria-label="Switch to English">
+        EN
+      </a>
+      <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="다크모드 전환" data-aria-ko="다크모드 전환" data-aria-en="Toggle dark mode">
+        <span class="theme-toggle-thumb">
+          <span class="icon-moon" aria-hidden="true">&#9789;</span>
+          <span class="icon-sun" aria-hidden="true">&#9728;</span>
+        </span>
+      </button>
+    </div>
   </div>
+</div>
   <div class="header-inner">
     <h1>
       <a href="../index.html">
@@ -155,7 +186,7 @@
 
 <footer class="site-footer">
   <p>
-    매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-30T00:36:58.052981
+    매일 08:00 KST 자동 갱신 · 마지막 생성: 2026-07-30T00:51:52.077016
   </p>
   <p class="footer-links">
     <a href="../feed.xml">RSS</a>

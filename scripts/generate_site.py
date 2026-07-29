@@ -659,6 +659,7 @@ def collect_nav_counts(archive_dir: Path) -> dict:
         # 슬러그로 합친 뒤의 개수를 센다 — 한국어 표기만 다른 같은 개념은 한 페이지로
         # 묶이므로, 병합 전 숫자를 쓰면 내비의 개수와 실제 페이지 수가 어긋난다.
         "terms": len(group_glossary_by_slug(collect_glossary_terms(archive_dir))),
+        "days": sum(1 for _ in _iter_archive_days(archive_dir)),
     }
 
 
@@ -917,6 +918,7 @@ def main():
                 feed_href=lup + "feed.xml",
                 css_prefix=up,
                 lang_prefix=lup,
+                nav_current="",
                 home_link=None,
                 is_archive=False,
                 site_stats=site_stats,
@@ -959,6 +961,7 @@ def main():
                 feed_href=lup_archive + "feed.xml",
                 css_prefix=up_archive,
                 lang_prefix=lup_archive,
+                nav_current="archive",
                 home_link=lup_archive + "index.html",
                 is_archive=True,
                 site_stats=site_stats,

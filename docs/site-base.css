@@ -112,19 +112,26 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   position: sticky;
   top: 0;
   z-index: 30;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+}
+
+/* 바 배경은 화면을 꽉 채우되 **내용은 본문 칼럼에 맞춰 가둔다**. 예전에는 바 전체가
+   플렉스 컨테이너라 넓은 모니터에서 메뉴가 화면 왼쪽 끝, 컨트롤이 오른쪽 끝에
+   붙었고, 그 아래 720px로 가운데 정렬된 제목·본문과 아무것도 줄이 맞지 않았다.
+   데스크톱 CSS에서 max-width와 좌우 여백을 .header-inner와 같은 값으로 준다. */
+.utility-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .share-wrap { position: relative; }
 
 .share-button {
   background: none;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 999px;
   cursor: pointer;
   color: var(--text);
@@ -132,8 +139,9 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   align-items: center;
   justify-content: center;
   line-height: 1;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
-.share-button:hover { border-color: var(--text); }
+.share-button:hover { color: var(--accent); background: var(--implication-bg); }
 .share-button svg { display: block; }
 
 .share-tooltip {
@@ -996,16 +1004,28 @@ a.topic-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offse
 }
 
 /* ---------- 용어사전 페이지 (모든 브리핑에 등장한 용어를 모은 별도 페이지) ---------- */
-/* 유틸리티 바 왼쪽의 내비 메뉴(주제별·용어사전).
+/* 유틸리티 바 내비 메뉴(주제별·용어사전·아카이브·소개).
 
    평문 텍스트로 두면 메뉴로 안 읽힌다 — 이 바에는 공유·언어·다크모드 같은 "설정
    컨트롤"이 함께 있어서, 테두리 없는 굵은 글씨는 메뉴가 아니라 그 구역의 라벨처럼
-   보이고 눈이 그냥 지나친다. 그래서 (1) 알약 테두리로 눌리는 대상임을 드러내고,
-   (2) 본문 대비 충분히 키우고, (3) 뒤에 쌓인 개수를 붙여 들어갈 이유를 만든다.
+   보이고 눈이 그냥 지나친다.
 
-   나머지 컨트롤을 오른쪽으로 밀어내는 건 이 그룹의 "마지막" 링크여야 한다 — 모든
-   링크에 margin-right:auto를 주면 링크들 사이가 벌어져 한 그룹으로 안 읽힌다. */
+   그렇다고 링크마다 알약 테두리를 두르면 이번엔 바 전체에 같은 굵기의 알약이
+   대여섯 개 흩어져, 무엇이 메뉴이고 무엇이 설정인지 구분이 안 된다. 그래서
+   **하나의 알약 안에서 칸막이로 나뉜 세그먼트 그룹**으로 만든다 — 도형은 하나뿐이라
+   조용하지만, 묶여 있다는 사실 자체가 "이건 메뉴다"를 말해준다. 대신 오른쪽
+   컨트롤들은 테두리를 버리고 호버할 때만 배경이 뜨게 해서 위계를 벌린다. */
+.site-nav-group {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  /* 양 끝 세그먼트의 배경·밑줄이 알약 곡선 밖으로 삐져나오지 않게 한다. */
+  overflow: hidden;
+}
+
 .site-nav-link {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1013,12 +1033,15 @@ a.topic-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offse
   font-weight: 700;
   color: var(--text);
   text-decoration: none;
-  border: 1px solid var(--border);
-  border-radius: 999px;
   white-space: nowrap;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
-.utility-bar > .site-nav-link:last-of-type { margin-right: auto; }
-.site-nav-link:hover { color: var(--accent); border-color: var(--accent); }
+/* 칸막이는 box-shadow로 그린다 — border-left를 쓰면 그만큼 폭이 늘어 세그먼트
+   너비가 첫 칸만 1px 어긋난다. */
+.site-nav-group > .site-nav-link + .site-nav-link {
+  box-shadow: inset 1px 0 0 var(--border);
+}
+.site-nav-link:hover { color: var(--accent); background: var(--implication-bg); }
 
 /* 개수는 라벨을 밀어내지 않도록 가늘고 흐리게 — 정보이지 강조가 아니다. */
 .site-nav-link-count {
@@ -1029,11 +1052,42 @@ a.topic-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offse
 .site-nav-link:hover .site-nav-link-count { color: var(--accent); }
 
 /* 현재 보고 있는 섹션은 채워서 표시한다 — 메뉴가 "지금 어디인지"를 알려주지 않으면
-   내비게이션이 아니라 링크 모음일 뿐이다. */
-.site-nav-link-current {
-  background: var(--implication-bg);
-  border-color: var(--rule);
+   내비게이션이 아니라 링크 모음일 뿐이다. 배경만으로는 호버와 구분이 안 되므로
+   유일한 강조색인 밑줄을 함께 깐다. */
+.site-nav-link-current { background: var(--implication-bg); }
+.site-nav-group .site-nav-link-current::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
 }
+
+/* 오른쪽 설정 컨트롤 묶음. 메뉴와 달리 테두리가 없어 한 단계 뒤로 물러나 보인다. */
+.utility-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 언어 전환은 드롭다운을 상대 URL 링크로 바꾸면서 스타일이 통째로 빠져 있었다 —
+   알약 두 개 사이에 밑줄 그어진 맨 텍스트 링크가 끼어 있는 상태였다. */
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sans);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: 999px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.lang-switch:hover { color: var(--accent); background: var(--implication-bg); }
 
 /* ---------- 모바일 내비 서랍 (햄버거) ----------
    유틸리티 바에 내비 링크 2개 + 공유 + 언어 + 다크모드가 모두 들어가면 최소 412px가

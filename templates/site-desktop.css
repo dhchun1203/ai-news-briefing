@@ -15,8 +15,13 @@ body {
   line-height: 1.75;
 }
 
-.utility-bar { padding: 8px 24px; }
+/* 좌우 여백을 .header-inner와 같은 값(max-width 720 / padding 24)으로 줘서 메뉴
+   왼쪽 끝이 아래 제목의 왼쪽 끝과 정확히 한 줄에 선다. 여백을 바깥 .utility-bar에
+   주면 배경만 넓고 내용은 여전히 화면 끝에 붙으므로 안쪽 컨테이너에 준다. */
+.utility-bar { padding: 8px 0; }
+.utility-bar-inner { max-width: 720px; margin: 0 auto; padding: 0 24px; }
 .share-button { width: 34px; height: 34px; font-size: 1rem; }
+.lang-switch { height: 34px; padding: 0 12px; font-size: 0.82rem; }
 .share-tooltip { font-size: 0.78rem; padding: 8px 12px; }
 .theme-toggle { width: 52px; height: 28px; --toggle-travel: 24px; }  /* 52 - 보더2 - 패딩6 - 썸20 */
 .theme-toggle-thumb { width: 20px; height: 20px; font-size: 0.72rem; }
