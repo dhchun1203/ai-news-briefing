@@ -193,72 +193,109 @@
 쓴다** — Product Hunt의 "Website URL" 필드도 포함(§6 참고: `/en/`에 착지하면
 그 뒤로 사이트 안 다른 페이지를 눌러도 영어가 유지됨).
 
-### Product Hunt
-- **제품명**: Daily AI Thread
-- **태그라인**(60자 내외): `AI news that reads the full article, not just the headline`
-- **설명**(제품 소개란):
-  > Every morning, Daily AI Thread reads the full text of the day's top AI
-  > articles (not just RSS snippets), flags when multiple outlets are covering
-  > the same story, and writes a daily synthesis of what it all means — with
-  > inline plain-English explanations for any jargon. Free, bilingual (EN/KO),
-  > no signup required to read.
-- **메이커 첫 댓글**(등록 직후 본인 계정으로 다는 소개 댓글 — PH 관례):
-  > Hey PH! I built this because most AI newsletters just paste RSS headlines
-  > with zero synthesis. Daily AI Thread actually reads each day's top
-  > articles in full, notices when multiple outlets are covering the same
-  > event (a real significance signal), and writes a "why this matters"
-  > analysis across all of it — not just per-article blurbs. Click any
-  > unfamiliar term (RAG, MoE, zero-day, etc.) for a plain-English explanation
-  > without leaving the page. Runs automatically every morning, free, no
-  > login wall. Would love feedback — especially on what you wish AI news
-  > coverage did differently.
+### 공통 — 게시 전에 확인할 사실 (2026-07-30 기준)
 
-### Hacker News — Show HN
-- **제목**: `Show HN: A pipeline that reads AI news in full and explains why it matters`
+카피에 숫자를 쓸 때 이 값을 쓴다. 게시 시점에 `/about`이나 홈 하단 지표에서
+현재 값을 다시 확인할 것 — 매일 늘어난다.
+
+| 항목 | 값 |
+|---|---|
+| 브리핑 | 8일 연속 (2026-07-23 시작) |
+| 누적 기사 | 79건 |
+| 용어사전 | 33개 (각각 개별 URL) |
+| 주제 | 12개 분류 중 11개에 기사 있음 |
+| 주간 회고 | 1개 |
+| RSS 소스 | 12개 — 언론 8, 공식 발표 3, 커뮤니티 1 |
+| 총 페이지 | 116쪽 (한/영 각각) |
+
+**8일차에 무엇을 런칭할지 가려야 한다.** GeekNews와 Show HN은 "무엇을 만들었나"에
+반응하는 곳이라 규모와 무관하게 지금 나가도 된다. 반대로 **Product Hunt는 아껴둔다**
+— 실질적으로 한 번뿐인 카드이고, "8일치 아카이브"보다 "30일 무중단 + 주간 회고 4개"가
+훨씬 강한 소재다. 한 달쯤 더 쌓은 뒤에 쓴다.
+
+### Hacker News — Show HN (지금 사용 가능)
+- **제목**: `Show HN: I built a pipeline that reads AI news in full and explains why it matters`
 - **본문**:
-  > Most AI newsletters just paste RSS summaries. I wanted something that
-  > actually reads each article, notices when multiple outlets are covering
-  > the same event (a signal RSS timestamps alone don't give you), and
-  > explains the "so what" — not just the "what happened."
+  > Most AI newsletters paste RSS summaries. I wanted something that actually
+  > reads each article, notices when several outlets are covering the same
+  > event, and explains the "so what" instead of just the "what."
   >
-  > How it works: a daily pipeline pulls candidates from ~11 RSS feeds,
-  > excludes anything already covered on a previous day, and ranks candidates
-  > partly by how many independent sources are covering the same story
-  > (keyword clustering on headlines). The top 10 get their full text read,
-  > summarized, and analyzed for implications. Once a week it also
-  > synthesizes that week's throughlines into a recap.
+  > How it works: every morning it pulls candidates from 12 feeds (8 press,
+  > 3 official company blogs, 1 community), drops anything covered on a
+  > previous day, and ranks what's left by source type, recency, and how many
+  > independent outlets are covering the same story. The top 10 get their full
+  > text fetched, summarized, and analyzed. Then it writes one cross-cutting
+  > synthesis of what the whole day adds up to — that part is the piece I
+  > actually care about. Sundays get a weekly recap if there's a real
+  > throughline.
   >
-  > One thing I'm fairly happy with: any jargon term becomes a clickable
-  > inline explainer, written the same day, so non-experts don't get lost.
+  > Two things I'm happy with:
   >
-  > Static site (Python + Jinja2) on Vercel; the daily reading/writing step
-  > runs on Claude. Bilingual (EN/KO).
+  > - Any jargon term becomes a clickable inline explainer, written the same
+  >   day. 33 terms so far, each with its own URL, so the glossary grew as a
+  >   byproduct rather than as a separate writing task.
+  > - Same-story detection was the hardest part and I got it wrong twice. My
+  >   first version merged on a single shared headline keyword, which decided
+  >   that "5 ways to host a dinner party with Google Search" and "Google's AI
+  >   search is becoming the default" were the same event — and since it keeps
+  >   only one article per cluster, it was silently discarding 4 good articles
+  >   a day. Company and product names turned out to be useless as merge
+  >   evidence; excluding them fixed it.
   >
-  > https://www.dailyaithread.com/en/ — happy to answer questions about the
-  > pipeline.
+  > Known limitation: some outlets block full-text fetching, so those entries
+  > fall back to the feed summary. I keep reserve candidates to swap in when
+  > that happens, but it's not fully solved.
+  >
+  > Static site (Python + Jinja2) on Vercel, no server. The daily
+  > reading/writing step runs on Claude. Fully bilingual — separate EN and KO
+  > page trees, not a toggle. Free, no signup to read.
+  >
+  > https://www.dailyaithread.com/en/ — happy to answer anything about the
+  > pipeline, and genuinely want to hear what you wish AI news coverage did
+  > differently.
 
 ### Reddit (self-promo 허용 스레드에서만 사용)
-> Built Daily AI Thread — reads AI news in full, flags multi-outlet coverage
-> as a significance signal, and explains jargon inline. Free, bilingual,
-> no login. Feedback welcome: dailyaithread.com/en/
+> Built Daily AI Thread — it reads the day's top AI articles in full, flags
+> when multiple outlets cover the same story as a significance signal, and
+> writes one synthesis of what the day adds up to. Jargon is clickable
+> inline. Free, bilingual, no login: dailyaithread.com/en/
 
-## 6. 영어권 착지 페이지 (`/en/`)
+### Product Hunt (한 달쯤 뒤 — 지금은 보류)
+- **제품명**: Daily AI Thread
+- **태그라인**: `AI news that reads the full article, not just the headline`
+- **설명**:
+  > Every morning, Daily AI Thread reads the full text of the day's top AI
+  > articles, flags when multiple outlets are covering the same story, and
+  > writes one synthesis of what it all means — with clickable plain-English
+  > explanations for any jargon. Browse by topic, search the whole archive,
+  > or subscribe by email or RSS. Free, bilingual (EN/KO), no signup to read.
+- **메이커 첫 댓글**: §5의 Show HN 본문을 PH 톤으로 줄여 재사용한다(같은 내용을
+  두 번 쓰지 않는다). 게시 시점의 무중단 일수와 누적 기사 수로 숫자를 갱신할 것.
 
-기존엔 한 페이지 안에서 언어 토글만 지원해서, 구글 검색결과나 Reddit/HN에서
-클릭해 들어온 영어권 방문자도 처음엔 한국어 제목·설명을 먼저 보게 되는
-문제가 있었다. `dailyaithread.com/en/`을 새로 만들어 같은 날 콘텐츠를
-`default_lang="en"`으로만 다시 렌더링한다 — 원문은 이미 한/영 둘 다 작성돼
-있으므로 새로 쓸 콘텐츠는 없다.
-- `/`(한국어 기본)과 `/en/`(영어 기본) 사이에 `hreflang` 상호 참조 태그를
-  추가했다(`x-default`는 한국어). 구글에 "같은 콘텐츠의 언어 버전"이라고
-  정확히 알려주는 정식 방법 — 중복 콘텐츠로 오인될 위험 없음.
-- `/en/`에 착지하면 언어 선택이 `localStorage`에 저장돼, 이후 아카이브·주간
-  회고·용어사전 등 다른 페이지로 이동해도(전부 이미 한/영 토글을 지원하므로)
-  영어가 계속 유지된다 — 이 트릭 덕분에 모든 페이지를 `/en/` 아래에 따로
-  미러링할 필요가 없었다(범위를 "착지 페이지 하나"로 좁게 유지).
-- 매일 오늘자 `docs/index.html`과 함께 `docs/en/index.html`도 자동 생성되고
-  `sitemap.xml`에도 포함된다. Product Hunt/HN/Reddit 링크는 앞으로 이
-  `/en/` URL을 우선 사용하면 된다.
+## 6. 영어권 URL 트리 (`/en/`)
+
+영어권 방문자가 구글·HN·Reddit에서 들어왔을 때 한국어 제목을 먼저 보는 문제를
+없애기 위해 `/en/` 트리를 만들었다. 원문은 이미 한/영 둘 다 작성돼 있으므로 새로
+쓸 콘텐츠는 없다.
+
+**처음에는 착지 페이지 하나만 만들고 이후 탐색은 `localStorage`에 언어를 저장해
+유지하는 방식이었는데, 그 방식은 버렸다.** 크롤러가 보는 언어와 사람이 보는 언어가
+어긋나 한 페이지에 두 언어의 마크업이 섞였고(영어 화면에 한국어 FAQPage 구조화
+데이터가 나가는 등), 무엇보다 색인 단위가 하나뿐이어서 영어 페이지가 개별적으로
+검색에 걸리지 않았다. 지금은 **한 페이지 = 한 언어**로 완전히 분리했다:
+
+- `docs/`(한국어)와 `docs/en/`(영어)에 홈·아카이브·주제별·용어사전·용어 개별
+  페이지·소개·주간 회고·RSS까지 전부 각각 생성된다. 총 116쪽이 sitemap에 들어간다.
+- `/`와 `/en/` 사이에 `hreflang` 상호 참조(`x-default`는 한국어). 중복 콘텐츠로
+  오인될 위험 없이 "같은 콘텐츠의 언어 버전"임을 알린다.
+- 언어 전환은 클라이언트 토글이 아니라 **상대 URL 이동**이다(`.lang-switch`).
+- 접두사가 두 종류인 것이 이 구조의 함정이다 — 공유 자산(CSS·JS·favicon)은 사이트
+  루트에, 페이지 링크는 **언어 루트**에 상대적이어야 한다. 둘을 같은 값으로 쓰면
+  영어판에서 "Topics"를 눌렀을 때 한국어 페이지로 새는 버그가 생긴다(실제로 발생,
+  `dom_smoke.test.js`의 `checkNoLanguageLeak`가 회귀를 막는다).
+
+**해외 채널에 링크를 걸 때는 반드시 `dailyaithread.com/en/`을 쓴다** — Product Hunt의
+Website URL 필드도 포함. 그 뒤로 사이트 안 어느 페이지를 눌러도 영어가 유지된다.
 
 ## 7. 국내(한국) 시장 노출 전략
 
@@ -311,25 +348,40 @@
 
 ### 초안 카피
 
-**GeekNews Show 게시글**
+**GeekNews Show 게시글** (지금 사용 가능 — 국내 첫 채널로 권장)
 - 제목: `AI 뉴스를 매일 원문까지 읽고, 여러 매체가 같은 사건을 다루는지 감지해 종합하는 파이프라인을 만들었습니다`
 - 본문:
-  > 대부분의 AI 뉴스레터는 RSS 요약을 그대로 붙여넣습니다. 저는 매일 그날의
-  > 주요 AI 기사 원문을 실제로 다 읽고, 여러 매체가 같은 사건을 동시에
-  > 다루는지 감지하고(중요도 신호로 씀), 그날 기사 전체를 가로질러 "결국 무슨
-  > 의미인가"를 종합해서 쓰는 파이프라인을 만들었습니다.
+  > 대부분의 AI 뉴스레터는 RSS 요약을 그대로 붙여넣습니다. 저는 매일 그날의 주요
+  > AI 기사 원문을 실제로 다 읽고, 여러 매체가 같은 사건을 동시에 다루는지
+  > 감지해 중요도 신호로 쓰고, 그날 기사 전체를 가로질러 "결국 무슨 의미인가"를
+  > 한 편으로 종합해서 쓰는 파이프라인을 만들었습니다.
   >
-  > 동작 방식: 매일 RSS 피드 약 11개에서 후보를 모으고, 전날 이미 다룬 건
-  > 제외하고, 여러 출처가 동시에 다루는 사건에 가중치를 줘 상위 10개를
-  > 고릅니다. 이 10개만 원문을 읽어 요약·시사점을 씁니다. 일요일엔 그 주
-  > 전체를 관통하는 흐름을 주간 회고로 한 번 더 종합합니다.
+  > 동작 방식: 매일 아침 피드 12개(언론 8, 기업 공식 블로그 3, 커뮤니티 1)에서
+  > 후보를 모으고, 전날까지 다룬 건 제외하고, 출처 종류·최신성·같은 사건을 다루는
+  > 매체 수로 점수를 매겨 상위 10건을 고릅니다. 이 10건만 원문을 가져와 요약과
+  > 시사점을 쓰고, 마지막에 그날 전체를 관통하는 흐름을 하나로 종합합니다.
+  > 일요일엔 그 주에 흐름이 있었으면 주간 회고를 한 번 더 씁니다.
   >
-  > 개인적으로 만족하는 부분: 어려운 용어가 나올 때마다 그 자리에서 클릭하면
-  > 쉬운 말로 설명이 뜹니다(같은 날 바로 등록되고, 누적돼 용어사전으로도
-  > 남습니다). 무료, 회원가입 없음, 한/영 둘 다 지원합니다.
+  > 만들면서 제일 애먹은 건 **같은 사건 판별**이었고 두 번 틀렸습니다. 처음엔
+  > 제목에서 특정 키워드 하나만 겹치면 같은 사건으로 묶었는데, 그러다 보니
+  > "구글 검색으로 디너파티 여는 5가지 방법"과 "구글 AI 검색이 기본값이 되고 있다"가
+  > 같은 사건이 됐습니다. 클러스터당 1건만 채택하는 구조라 **매일 멀쩡한 기사
+  > 4건이 조용히 버려지고 있었습니다.** 회사명·제품명은 병합 근거로 쓸 수 없다는
+  > 걸 뒤늦게 알고 제외하니 해결됐습니다.
   >
-  > https://www.dailyaithread.com — 피드백 환영합니다, 특히 "AI 뉴스가 이렇게
-  > 다뤄줬으면" 하는 부분이 있다면 듣고 싶어요.
+  > 개인적으로 만족하는 부분은 어려운 용어가 나올 때마다 그 자리에서 클릭하면
+  > 쉬운 말 설명이 뜨는 것입니다. 지금까지 33개가 쌓였고 각각 개별 URL을 가집니다 —
+  > 용어사전을 따로 쓴 게 아니라 매일 쓰던 설명이 그대로 누적된 것입니다.
+  >
+  > 한계도 있습니다. 일부 매체는 원문 접근을 막아서 그런 기사는 피드 요약으로
+  > 대체됩니다. 예비 후보를 두고 교체하지만 완전히 해결하진 못했습니다.
+  >
+  > 정적 사이트(Python + Jinja2)라 서버가 없고 Vercel에 올라갑니다. 매일 읽고 쓰는
+  > 단계는 Claude가 맡습니다. 한국어와 영어를 각각 별도 페이지로 만들며, 무료이고
+  > 읽는 데 가입이 필요 없습니다.
+  >
+  > https://www.dailyaithread.com — 피드백 환영합니다. 특히 "AI 뉴스가 이렇게
+  > 다뤄줬으면" 하는 부분이 있다면 듣고 싶습니다.
 
 **X/Threads 데일리 인사이트 스레드 템플릿** (매일 `daily_insight` 기반)
 - 1번째 글(후크, 연결형/반전형 예시):
