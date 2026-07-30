@@ -1,152 +1,110 @@
-# 모델 오케스트레이션
+# ai-news-briefing 작업 규칙
 
-이 프로젝트는 Claude Fable 5를 리더(coordinator)로 두는 계층형 오케스트레이션을 기본으로
-한다. 리더는 계획·분해·판단·최종 검수를 맡고, 실제 대량 생성과 반복 작업은 하위 모델에
-위임한다.
+`dailyaithread.com` — 매일 08:00 KST에 Claude Code Routine이 자동 실행하는 한/영 AI 뉴스
+브리핑. 정적 사이트(Python + Jinja2 → `docs/`)를 Vercel에 배포한다.
 
-## 역할 배분
+모델 오케스트레이션·API 제약 등 프로젝트와 무관한 지침은 전역 `~/.claude/CLAUDE.md`에
+있다. 이 문서는 **이 저장소에서만 통하는 것**만 다룬다.
 
-| 역할 | 모델 ID | 담당 |
-|---|---|---|
-| 리더 / coordinator | `claude-fable-5` | 문제 분해, 위임 계획, 교차 검증, 최종 판단 |
-| 주력 실행자 | `claude-opus-5` | 복잡한 코딩, 다중 파일 리팩터, 장기 에이전트 작업 |
-| 대량 실행자 | `claude-sonnet-5` | 일반 구현, 테스트 작성, 문서화, 반복 작업 |
-| 경량 실행자 | `claude-haiku-4-5` | 분류, 추출, 포맷 변환, 라우팅 판단 |
+## 배포 안전 — 가장 중요
 
-모델 ID는 위 문자열 그대로 사용한다. 날짜 접미사(`-20260101` 등)를 붙이지 않는다.
+이 저장소는 사람이 손대는 동안에도 **매일 08:00에 무인 파이프라인이 돈다.** 발송과
+아카이브 수집을 망가뜨리면 구독자에게 메일이 안 가거나 그날 기록이 유실된다.
 
-## 위임 원칙
+푸시 전에 **반드시** 확인한다:
 
-1. **리더는 만들지 않고 정한다.** Fable 5에서 대량 코드/문서를 직접 생성하지 않는다
-   (입력 $10 / 출력 $50 per MTok — Opus 5의 2배). 리더의 출력은 계획, 위임 지시,
-   검수 결과여야 한다.
-2. **위임 깊이는 1단계.** 하위 실행자는 다시 위임하지 않는다. Managed Agents의
-   coordinator 로스터도 1단계만 허용되며, 로스터에 든 에이전트가 자체 multiagent
-   설정을 가지면 생성 자체가 검증 오류로 거부된다.
-3. **작업 명세는 첫 턴에 전부 준다.** Fable 5·Opus 5 모두 초기 턴에 전체 명세가 주어진
-   장기 자율 실행에서 가장 좋은 결과를 낸다. 여러 턴에 걸쳐 요구사항을 흘리면 토큰
-   효율과 품질이 함께 떨어진다.
-4. **위임 대상이 애매하면 한 단계 위 모델로 올린다.** 재시도 비용이 모델 등급 차이보다
-   크다.
-5. **검수는 별도 컨텍스트에서.** 자기 비평보다 새 컨텍스트의 검증자 하위 에이전트가 낫다.
-
-## 실행자 선택 기준
-
-Haiku 4.5로 시작해서 필요할 때만 올린다 — 단, 아래에 해당하면 처음부터 해당 등급으로 간다.
-
-- 다중 파일 수정 / 아키텍처 변경 / 장기 에이전트 루프 → `claude-opus-5`
-- 단일 파일 구현, 테스트, 문서, 정형 변환 → `claude-sonnet-5`
-- 단일 판정, 라벨링, 추출, 200K 컨텍스트로 충분한 작업 → `claude-haiku-4-5`
-
-**컨텍스트 한계**: Fable 5 / Opus 5 / Sonnet 5는 1M(입력) · 128K(출력), Haiku 4.5는
-200K · 64K. Haiku에 1M급 입력을 넘기지 않는다.
-
-## effort 설정
-
-`output_config.effort`로 지정한다 (top-level 아님). 기본값은 `high`.
-
-- **리더(Fable 5)**: `high` 기본, 가장 어려운 판단만 `xhigh`
-- **Opus 5 코딩/에이전트**: `xhigh`로 시작한 뒤 `medium`까지 내려가며 스윕. Opus 5는
-  low/medium에서도 강하다 — 이전 모델의 effort 기본값을 그대로 가져오지 말 것.
-- **Sonnet 5**: `high` 유지, 가장 어려운 코딩만 `xhigh`
-- **Haiku 4.5**: effort 미지원. 보내면 에러.
-
-## 캐시 규율
-
-프롬프트 캐시는 **모델 단위**다. 대화 도중 모델을 바꾸면 캐시가 전부 무효화된다.
-
-- 메인 루프는 한 모델로 고정한다. 저렴한 모델이 필요하면 모델을 바꾸지 말고 하위
-  에이전트를 띄운다.
-- 도구 목록(`tools`)은 prefix 맨 앞에 렌더링된다. 대화 중 추가/삭제/재정렬 금지.
-- 시스템 프롬프트에 타임스탬프·UUID·세션 ID를 넣지 않는다. 중간에 지시를 추가해야 하면
-  `messages[]`에 `{"role": "system", ...}` 메시지를 덧붙인다 (Fable 5 / Opus 5 /
-  Opus 4.8 지원, beta 헤더 불필요. Sonnet 5는 미지원).
-
-## 모델별 API 제약 (위반 시 400)
-
-### `claude-fable-5`
-
-- `thinking` 파라미터를 **아예 생략**한다. thinking은 항상 켜져 있다.
-  `{"type": "disabled"}`도 `{"type": "enabled", "budget_tokens": N}`도 400.
-- raw chain of thought는 반환되지 않는다. 사용자에게 추론을 보여줘야 하면
-  `thinking: {"type": "adaptive", "display": "summarized"}`로 요약본을 받는다
-  (기본값은 `"omitted"` — 빈 문자열).
-- assistant prefill 불가.
-- `temperature` / `top_p` / `top_k` 불가.
-- **30일 데이터 보존 필수.** ZDR 조직은 모든 요청이 400. 요청 본문을 디버깅하기 전에
-  조직 보존 설정부터 확인할 것.
-
-### `claude-opus-5`
-
-- thinking이 **기본 ON**. thinking을 생략하면 adaptive로 동작한다 (Opus 4.8과 반대).
-- `thinking: {"type": "disabled"}`는 effort `high` 이하에서만 허용. `xhigh`/`max`와 함께
-  쓰면 400.
-- **thinking을 끄지 말 것.** 끄면 도구 호출이 구조화된 `tool_use` 블록 대신 평문 텍스트로
-  나올 수 있다 — 에러 없이 호출이 그냥 실행되지 않는다. 비용을 줄이려면 thinking을 켠 채
-  effort를 low/medium으로 내린다.
-- `budget_tokens` / 샘플링 파라미터 / prefill 불가.
-- 프롬프트 캐시 최소 길이 **512 토큰** (Opus 4.8은 1024).
-
-### `claude-sonnet-5`
-
-- thinking 기본 ON (adaptive). `budget_tokens` 제거됨.
-- 비기본값 샘플링 파라미터 400. prefill 400.
-- **새 토크나이저** — 같은 텍스트가 Sonnet 4.6 대비 약 30% 더 많은 토큰.
-  `max_tokens`와 비용 기준선을 다시 잡을 것.
-
-### 공통
-
-- `max_tokens`가 ~16000을 넘으면 **반드시 스트리밍**한다. 스트리밍 없이 큰 값을 쓰면
-  SDK HTTP 타임아웃.
-- `xhigh`/`max` effort에서는 `max_tokens`를 최소 64000으로 둔다. thinking + 응답이 같은
-  예산을 나눠 쓰기 때문에 부족하면 답변이 잘린다.
-
-## 거부(refusal) 처리 — 리더 필수
-
-Fable 5와 Opus 5는 안전 분류기가 요청을 거부할 수 있다. **HTTP 200에
-`stop_reason: "refusal"`로 오므로 에러로 잡히지 않는다.**
-
-- `response.content[0]`을 무조건 읽지 말고 `stop_reason`을 먼저 분기한다. 거부 시
-  `content`는 비어 있거나 부분 출력이다.
-- `stop_details`가 아니라 `stop_reason`으로 분기한다 — 거부여도 `stop_details`가 null일
-  수 있다.
-- 서버사이드 폴백을 기본으로 켠다: beta `server-side-fallback-2026-07-01` +
-  `fallbacks: "default"`. 거부 카테고리에 따라 Anthropic이 대체 모델로 라우팅하므로 모델
-  목록을 직접 관리할 필요가 없다.
-- 출력 전 거부는 과금되지 않고, 스트리밍 중 거부는 이미 흘러간 부분만 과금된다.
-
-## Managed Agents로 구성할 때
-
-리더-실행자 구조를 API 네이티브로 표현하려면 coordinator 로스터를 쓴다. `multiagent`는
-agent 객체의 **top-level 필드**이며 `tools[]` 항목이 아니다.
-
-```python
-coordinator = client.beta.agents.create(
-    name="Lead",
-    model={"id": "claude-fable-5", "effort": "high"},
-    system="당신은 작업을 분해하고 하위 에이전트에 위임한다. 직접 대량 생성하지 않는다.",
-    tools=[{"type": "agent_toolset_20260401"}],
-    multiagent={
-        "type": "coordinator",
-        "agents": [opus_worker.id, sonnet_worker.id, haiku_worker.id],
-    },
-)
+```bash
+git status --short docs/archive/ | grep -E "\.json$"   # 아무것도 안 나와야 정상
 ```
 
-- agent는 한 번만 생성하고 ID를 저장해 재사용한다. 요청 경로에서 `agents.create()`를
-  호출하지 않는다.
-- effort는 agent 설정에서만 유효하다. 세션의 model 오버라이드에 넣은 effort는 조용히
-  무시된다.
-- 로스터 최대 20개 에이전트, 동시 스레드 최대 25개.
-- `agents.archive()`는 되돌릴 수 없다 — 새 세션이 그 에이전트를 참조할 수 없게 된다.
-  정리 목적으로 호출하지 말 것.
+- `docs/archive/<날짜>.sent.json`은 **그날 발송이 끝났다는 유일한 기록**이다. 이게
+  바뀌거나 지워지면 이미 받은 사람에게 메일이 다시 나간다.
+- `docs/archive/<날짜>.json`은 영속 원본이다. 사이트를 재생성해도 이 파일은 안 바뀌어야
+  한다 — 바뀌었다면 생성기가 원본을 덮어쓰고 있다는 뜻이다.
+- 사이트 재생성은 `py scripts/generate_site.py --input docs/archive/<날짜>.json`으로
+  한다(`data/`는 `.gitignore` 대상이라 중간 산출물이 없을 수 있다).
 
-## Claude Code 하위 에이전트로 구성할 때
+## 무인 운영 원칙
 
-Agent 툴의 `model` 파라미터, 또는 `.claude/agents/*.md` frontmatter의 `model:` 필드로
-지정한다. 허용값은 `fable` / `opus` / `sonnet` / `haiku`.
+**부가 기능의 실패가 파이프라인 전체를 멈추면 안 된다.** 새 외부 의존을 추가할 때는
+반드시 이 패턴을 따른다:
 
-- **리더 세션이 fable일 때만 이 문서의 위임 규칙이 적용된다.**
-- 하위 에이전트는 매번 빈 컨텍스트에서 시작한다. 위임 프롬프트에 파일 경로와 배경을 전부
-  담아 자립적으로 만든다.
-- 병렬 위임은 독립적인 작업 갈래에만 쓴다. 파일 몇 개 읽고 끝나는 일은 직접 처리한다.
+- 예외를 호출부에서 삼키고 폴백을 돌려준다 (`seo_utils.build_og_image_url`,
+  `submit_indexnow`가 선례 — Pillow가 없어도, 망이 끊겨도 사이트 생성은 끝난다).
+- 네트워크 호출에는 **반드시 timeout**을 준다. 예전에 `urlopen` timeout이 없어 발송이
+  멈춘 적이 있다.
+- 실패는 조용히 넘어가되 **완료 보고에는 적는다** — 며칠 이어지면 설정 문제다.
+
+새 외부 API를 붙이면 **Environment allowlist에 도메인을 추가**해야 한다. 예전에 RSS
+도메인만 있고 Supabase·Resend가 빠져 있었다.
+
+## 개발 환경 (Windows)
+
+- **`python`이 아니라 `py`를 쓴다.** `python`은 Microsoft Store 스텁이라 버전 출력도 없이
+  실패한다.
+- **콘솔이 cp949다.** 한국어를 stdout으로 내보내면 깨지거나 `UnicodeEncodeError`가 난다.
+  스크립트로 한국어를 확인할 때는 파일에 `encoding="utf-8"`로 쓰고 Read로 읽는다.
+- 파일을 읽고 쓸 때 `encoding="utf-8"`를 **항상 명시**한다. 생략하면 cp949로 열려 실패한다.
+- 런타임 의존성 없음(`package.json` 없음). Node 테스트용 jsdom은 `--no-save`로 설치돼 있다.
+
+## 테스트
+
+```bash
+bash tests/run_all.sh    # Python 문법·단위 + Node 문법·API·HMAC·DOM 스모크
+```
+
+푸시 전 항상 전체를 돌린다. 개별 실행은 `py -m unittest discover -s tests -p "test_*.py"`,
+`node tests/dom_smoke.test.js`.
+
+**회귀 테스트를 실제로 실패시켜 확인한다.** 버그를 고치면 고친 코드를 일부러 되돌려
+넣어 테스트가 그 버그를 잡는지 본 뒤 복원한다. 통과만 확인한 테스트는 아무것도 지키지
+않을 수 있다.
+
+## 이 저장소에서 반복해서 사고가 난 곳
+
+### 1. 상대경로 접두사 두 종류
+
+`scripts/generate_site.py`에 함수가 둘 있고, 섞으면 반드시 버그가 난다:
+
+| 함수 | 도달점 | 용도 |
+|---|---|---|
+| `up_prefix(lang, depth)` | **사이트** 루트 | CSS·JS·favicon·og-image·search-index (양 언어 공유) |
+| `lang_up_prefix(depth)` | **언어** 루트 | index·about·glossary·topics·archive·weekly·feed.xml |
+
+페이지 링크에 `up_prefix`를 쓰면 영어판이 `/en/` 밖으로 새서 한국어 페이지로 떨어진다.
+템플릿에서는 `up`/`css_prefix`(자산)와 `lup`/`lang_prefix`(페이지)로 나뉜다.
+`tests/dom_smoke.test.js`의 `checkNoLanguageLeak`가 회귀를 막는다.
+
+### 2. `cleanUrls`가 상대경로 기준을 바꾼다
+
+`vercel.json`의 `cleanUrls: true`가 `/topics/index.html`을 **`/topics`(슬래시 없음)** 로
+308 리다이렉트한다. 그래서 그 페이지의 상대경로 기준은 `/topics/`가 아니라 **`/`** 다.
+깊이를 손으로 계산하지 말고 위 두 함수만 쓴다. `checkCleanUrlLinks`가 실제 서빙 URL
+기준으로 검사한다.
+
+부수 효과: **네이버 소유확인 HTML 파일 업로드 방식을 쓸 수 없다**(`.html`이 확장자 없는
+경로로 리다이렉트돼 인증 실패). 메타태그 방식(`config/site_verification.json`)을 쓴다.
+`.txt`·`.xml`은 영향받지 않는다.
+
+### 3. sitemap·canonical의 트레일링 슬래시
+
+정규 형태는 **슬래시 없는 쪽**이다. `/topics/`로 보내면 형제 링크가 깨진다.
+
+## 커밋
+
+- **한국어로 쓰고, "무엇을"보다 "왜"를 담는다.** 무엇을 바꿨는지는 diff에 있다. 어떤
+  증상이었고 원인이 무엇이었고 왜 이 방법을 골랐는지를 남긴다.
+- 사용자가 요청할 때만 커밋·푸시한다.
+- 끝에 붙인다: `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
+
+## 문서 역할 분담
+
+| 문서 | 다루는 것 |
+|---|---|
+| `.claude/skills/ai-news-briefing/SKILL.md` | 매일 08:00 파이프라인의 실행 절차 |
+| `PLAN.md` | 이 기능을 왜 이렇게 만들었나 |
+| `MARKETING.md` | 독자를 어떻게 늘리나 (SEO/GEO, 검색엔진 등록, 런칭 카피) |
+| `PRODUCT.md` | 어떻게 돈이 되게 하나 (수익 모델, 지표 게이트) |
+
+결정을 내리면 **배제한 선택지와 그 이유까지** 해당 문서에 남긴다 — 나중에 같은 논의를
+반복하지 않기 위해서다.
