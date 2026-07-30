@@ -70,6 +70,10 @@
 
 ## 3. 구글/네이버 등록 체크리스트 (사람이 직접 — 계정 기반이라 대행 불가)
 
+> **2026-07-30 완료**: 구글은 DNS TXT 레코드, 네이버는 메타태그
+> (`config/site_verification.json`) 방식으로 둘 다 소유 확인됨. 남은 것은 각
+> 콘솔에서의 sitemap 제출 확인과 색인 반영 대기뿐. 아래 절차는 기록용으로 남긴다.
+
 ### 구글 Search Console
 1. https://search.google.com/search-console 에서 **도메인 속성**으로
    `dailyaithread.com` 추가.
