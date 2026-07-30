@@ -10,6 +10,7 @@
 - 메일 HTML 이스케이프: 뚫려도 발송 자체는 성공해서 티가 안 난다.
 """
 import sys
+import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -31,6 +32,7 @@ from fetch_articles import (  # noqa: E402
     parse_args,
 )
 from kst_date import kst_date_facts  # noqa: E402
+import seo_utils  # noqa: E402
 from seo_utils import _weekly_lastmod  # noqa: E402
 
 KST = ZoneInfo("Asia/Seoul")
@@ -718,3 +720,76 @@ class TestSentMarker(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+class TestIndexNow(unittest.TestCase):
+    """IndexNow는 매일 무인으로 도는 경로에 네트워크 호출을 하나 더 얹는 것이라,
+    "실패해도 파이프라인이 멈추지 않는다"를 특히 확실히 해둬야 한다."""
+
+    def test_키_파일은_키_문자열_자체를_담는다(self):
+        # 프로토콜 규정 — 파일 내용이 키와 정확히 같아야 소유 증명이 된다.
+        with tempfile.TemporaryDirectory() as d:
+            docs = Path(d)
+            key = seo_utils.write_indexnow_key_file(docs)
+            self.assertIsNotNone(key, "config/indexnow.json에 키가 있어야 한다")
+            self.assertEqual((docs / f"{key}.txt").read_text(encoding="utf-8"), key)
+
+    def test_설정_파일이_없으면_비활성이고_예외도_안_난다(self):
+        original = seo_utils.CONFIG_DIR
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                seo_utils.CONFIG_DIR = Path(d)  # 빈 디렉토리 = 설정 없음
+                cfg = seo_utils.load_indexnow_config()
+                self.assertFalse(cfg["enabled"])
+                self.assertIsNone(cfg["key"])
+                with tempfile.TemporaryDirectory() as d2:
+                    self.assertIsNone(seo_utils.write_indexnow_key_file(Path(d2)))
+                ok, msg = seo_utils.submit_indexnow("https://example.com", ["https://example.com/"])
+                self.assertFalse(ok)
+        finally:
+            seo_utils.CONFIG_DIR = original
+
+    def test_망이_끊겨도_예외를_던지지_않는다(self):
+        # 무인 실행에서 통보 실패가 사이트 생성/발송을 막으면 안 된다.
+        original = seo_utils.INDEXNOW_ENDPOINT
+        try:
+            # 실제로 존재하지 않는 호스트 — DNS 해석부터 실패한다.
+            seo_utils.INDEXNOW_ENDPOINT = "https://indexnow.invalid-host-for-test.example/x"
+            ok, msg = seo_utils.submit_indexnow(
+                "https://www.dailyaithread.com", ["https://www.dailyaithread.com/"], timeout=3
+            )
+            self.assertFalse(ok)
+            self.assertTrue(msg, "실패 원인이 메시지로 남아야 한다")
+        finally:
+            seo_utils.INDEXNOW_ENDPOINT = original
+
+    def test_URL_목록이_비면_보내지_않는다(self):
+        ok, msg = seo_utils.submit_indexnow("https://www.dailyaithread.com", [])
+        self.assertFalse(ok)
+
+    def test_통보_대상은_매일_바뀌는_페이지로_한정된다(self):
+        # 과거 아카이브까지 매일 밀어 넣으면 엔진이 스팸으로 보고 무시하기 시작한다.
+        import ping_indexnow
+
+        urls = ping_indexnow.build_changed_urls("https://www.dailyaithread.com", "2026-07-30", None)
+        self.assertIn("https://www.dailyaithread.com/archive/2026-07-30", urls)
+        self.assertIn("https://www.dailyaithread.com/en/archive/2026-07-30", urls)
+        self.assertIn("https://www.dailyaithread.com/", urls)
+        self.assertIn("https://www.dailyaithread.com/en/", urls)
+        # 어제 날짜는 안 바뀌므로 들어가면 안 된다
+        self.assertNotIn("https://www.dailyaithread.com/archive/2026-07-29", urls)
+        # 두 언어판이 짝을 이룬다
+        self.assertEqual(len(urls), 10)
+
+    def test_주간_회고를_만든_날은_그_페이지도_통보한다(self):
+        import ping_indexnow
+
+        urls = ping_indexnow.build_changed_urls(
+            "https://www.dailyaithread.com", "2026-07-26", "2026-W30")
+        self.assertIn("https://www.dailyaithread.com/weekly/2026-W30", urls)
+        self.assertIn("https://www.dailyaithread.com/en/weekly/2026-W30", urls)
+        self.assertEqual(len(urls), 12)
+
+
+
+if __name__ == "__main__":
+    unittest.main()

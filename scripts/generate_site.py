@@ -847,6 +847,9 @@ def main():
 
     site_url = seo_utils.get_site_url()
     seo_utils.write_robots_txt(docs_dir, site_url)
+    # IndexNow 소유 증명용 키 파일. 실제 통보(핑)는 여기서 하지 않는다 — 배포 전에
+    # 알리면 크롤러가 옛 콘텐츠를 가져가므로 배포 뒤 ping_indexnow.py가 맡는다.
+    seo_utils.write_indexnow_key_file(docs_dir)
     verification = seo_utils.load_verification_tags()
     # 글로서리 링크화(HTML 마크업)가 섞이기 전의 raw_digest에서 헤드라인을 가져온다 —
     # 이미지에 <button> 태그 같은 마크업이 그대로 찍히면 안 되므로.

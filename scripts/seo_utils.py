@@ -294,6 +294,98 @@ def load_verification_tags() -> dict:
     }
 
 
+# ---------- IndexNow ----------
+# 사이트맵은 "여기 목록이 있으니 언제든 와서 보라"는 수동적 신호라 크롤러가 다시 읽어갈
+# 때까지 기다려야 한다(실제로 구글은 우리 sitemap이 24개에서 116개로 늘어난 걸 며칠 뒤에도
+# 모르고 있었다). IndexNow는 반대로 **바뀐 순간 우리가 먼저 알린다**. Bing이 확실히
+# 지원하고, 매일 새 페이지가 하나씩 생기는 이 사이트 성격에 정확히 맞는다.
+#
+# 소유 증명은 API 키가 아니라 **키 파일**로 한다 — https://<호스트>/<키>.txt 가 그 키를
+# 그대로 담고 있으면 그 호스트의 주인으로 인정된다. 그래서 이 키는 비밀이 아니고
+# (공개 URL로 배포하는 게 프로토콜 설계 자체다) 저장소에 커밋해도 된다.
+
+
+INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow"
+
+
+def load_indexnow_config() -> dict:
+    """config/indexnow.json에서 키와 사용 여부를 읽는다. 파일이 없거나 키가 비어
+    있으면 비활성으로 취급한다 — 설정이 빠졌다고 사이트 생성이 멈추면 안 된다."""
+    path = CONFIG_DIR / "indexnow.json"
+    if not path.exists():
+        return {"key": None, "enabled": False}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {"key": None, "enabled": False}
+    key = (data.get("key") or "").strip() or None
+    return {"key": key, "enabled": bool(data.get("enabled")) and key is not None}
+
+
+def write_indexnow_key_file(docs_dir: Path) -> str | None:
+    """docs/<키>.txt를 만든다. 내용은 키 문자열 그 자체여야 한다(프로토콜 규정).
+
+    enabled가 false여도 파일은 만든다 — 키 파일이 배포돼 있어야 나중에 켜는 순간
+    바로 동작하고, 파일만 있고 핑을 안 보내는 것은 아무 부작용이 없다.
+
+    cleanUrls가 켜져 있어도 .txt는 영향을 받지 않는다(확장자 없는 경로로 308
+    리다이렉트되는 것은 .html뿐). robots.txt가 정상 서빙되는 것으로 확인했다 —
+    네이버 소유확인 HTML 파일이 이 리다이렉트 때문에 실패했던 것과는 다른 경우다."""
+    key = load_indexnow_config()["key"]
+    if not key:
+        return None
+    (docs_dir / f"{key}.txt").write_text(key, encoding="utf-8")
+    return key
+
+
+def submit_indexnow(site_url: str, urls: list, timeout: int = 15) -> tuple:
+    """바뀐 URL 목록을 IndexNow에 알린다. (성공여부, 메시지)를 돌려준다.
+
+    호출하는 쪽에서 예외를 신경 쓰지 않아도 되도록 여기서 모두 삼킨다 — 이건
+    부가 기능이고, 검색엔진 통보 실패가 그날 파이프라인 전체를 무너뜨리면 안 된다
+    (build_og_image_url의 폴백과 같은 태도).
+
+    200(OK)과 202(Accepted) 둘 다 성공이다. 202는 "접수했고 키는 나중에 검증한다"는
+    뜻이라, 키 파일이 막 배포된 직후에는 이 응답이 정상적으로 나온다."""
+    import urllib.error
+    import urllib.request
+
+    cfg = load_indexnow_config()
+    if not cfg["enabled"]:
+        return False, "IndexNow 비활성(config/indexnow.json)"
+    if not urls:
+        return False, "알릴 URL이 없음"
+
+    host = site_url.split("://", 1)[-1].split("/", 1)[0]
+    payload = json.dumps(
+        {
+            "host": host,
+            "key": cfg["key"],
+            "keyLocation": f"{site_url}/{cfg['key']}.txt",
+            "urlList": urls,
+        }
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        INDEXNOW_ENDPOINT,
+        data=payload,
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        method="POST",
+    )
+    try:
+        # timeout을 반드시 준다 — 무인 실행이라 응답 없는 소켓에 매달리면 그날
+        # 파이프라인이 통째로 멈춘다(send_broadcast.py에서 같은 사고가 있었다).
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            code = resp.status
+        if code in (200, 202):
+            return True, f"HTTP {code}, {len(urls)}건 통보"
+        return False, f"예상치 못한 응답 HTTP {code}"
+    except urllib.error.HTTPError as e:
+        # 422=URL이 호스트와 불일치, 403=키 검증 실패. 원인 파악에 필요하므로 코드를 남긴다.
+        return False, f"HTTP {e.code} {e.reason}"
+    except Exception as e:  # 네트워크 단절, DNS 실패, 타임아웃 등
+        return False, f"{type(e).__name__}: {e}"
+
+
 def build_breadcrumb(site_url: str, trail: list) -> dict:
     """BreadcrumbList 노드. trail은 [(이름, URL), ...] 순서 그대로 계층을 만든다.
     마지막 항목(현재 페이지)에도 URL을 넣어야 검색엔진이 위치를 확정할 수 있다."""
