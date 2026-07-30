@@ -35,8 +35,24 @@ git status --short docs/archive/ | grep -E "\.json$"   # 아무것도 안 나와
   멈춘 적이 있다.
 - 실패는 조용히 넘어가되 **완료 보고에는 적는다** — 며칠 이어지면 설정 문제다.
 
-새 외부 API를 붙이면 **Environment allowlist에 도메인을 추가**해야 한다. 예전에 RSS
-도메인만 있고 Supabase·Resend가 빠져 있었다.
+### 새 도메인을 만지면 allowlist부터 — 두 번 당했다
+
+Routine은 **네트워크 allowlist가 걸린 클라우드 Environment**에서 돈다. 로컬에는 그런
+제한이 없어서, 여기서 잘 되던 코드가 배포 후 조용히 실패한다.
+
+- 2026-07-24: `send_broadcast.py`가 Supabase에 403. allowlist에 RSS 11개 도메인만 있고
+  Supabase·Resend가 없었다.
+- 2026-07-30: `ping_indexnow.py`를 추가하면서 `api.indexnow.org`와
+  **`www.dailyaithread.com`**(배포 확인용 HEAD)이 빠질 뻔했다. 자기 사이트라고 안심하면
+  안 된다 — 그동안 자기 사이트에 접속하는 스크립트가 없었으니 목록에도 없었다.
+
+**스크립트에 새 URL을 추가할 때마다 이 질문을 먼저 한다:** 이 도메인이
+`claude.ai/code` → Environments → `ai-news-briefing` → Custom network access에 있는가?
+없으면 사용자에게 추가를 요청한다(계정 안이라 대행 불가). 변경은 **새 세션부터** 적용되므로
+다음 Routine 실행부터 반영된다.
+
+Routine 실행이 "당연히 닿아야 할 도메인"에 403이나 connection refused로 실패하면,
+대상 서비스를 의심하기 전에 allowlist부터 본다.
 
 ## 개발 환경 (Windows)
 
