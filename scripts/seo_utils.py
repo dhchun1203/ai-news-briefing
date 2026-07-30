@@ -262,20 +262,36 @@ def build_rss_feed(docs_dir: Path, site_url: str, lang: str = "ko") -> int:
     return len(items)
 
 
-def build_og_image_url(site_url: str, docs_dir: Path, identifier: str, headline_ko: str) -> str:
+def og_image_name(identifier: str, lang: str) -> str:
+    """언어별 OG 이미지 파일명. 한국어는 기존 경로를 그대로 유지한다 — 이미 공유된
+    링크의 미리보기가 깨지지 않게 하려는 것이다."""
+    return f"{identifier}.png" if lang == "ko" else f"{identifier}-{lang}.png"
+
+
+def build_og_image_url(site_url: str, docs_dir: Path, identifier: str, headline: str,
+                       lang: str = "ko") -> str:
     """날짜(또는 주차)별 동적 OG 이미지를 시도하고, 성공하면 그 URL을, 실패하면
     (Pillow 미설치, 폰트 로딩 실패, 렌더링 오류 등 무엇이 됐든) 기존 정적
     og-image.png URL을 돌려준다. 이 함수는 절대로 예외를 밖으로 던지지 않는다 —
-    OG 이미지는 부가 기능이라 이것 때문에 사이트 생성 자체가 멈추면 안 된다."""
+    OG 이미지는 부가 기능이라 이것 때문에 사이트 생성 자체가 멈추면 안 된다.
+
+    **언어별로 다른 이미지를 만든다.** 예전에는 headline_ko로 그린 이미지 하나를
+    두 언어판이 함께 썼는데, 그래서 /en/ 링크를 Reddit·HN·트위터에 공유하면
+    영어 제목·설명 옆에 한국어 문장이 박힌 카드가 떴다(2026-07-30 발견).
+    영어 헤드라인이 비어 있으면 한국어 이미지로 대신하지 않고 정적 브랜드 카드로
+    떨어진다 — 틀린 언어를 보여주는 것보다 중립적인 카드가 낫다.
+
+    이미지는 docs_dir 기준으로 한 곳(docs/og/)에만 저장한다. 두 언어판이 같은
+    사이트 루트를 공유하므로 /en/ 페이지도 /og/<날짜>-en.png를 가리키면 된다."""
     static_fallback = f"{site_url}/og-image.png"
-    if not headline_ko:
+    if not headline:
         return static_fallback
     try:
         import og_image  # 지역 import: Pillow가 없어도 나머지 seo_utils 기능은 안 죽는다
 
-        out_path = docs_dir / "og" / f"{identifier}.png"
-        og_image.generate(identifier, headline_ko, out_path)
-        return f"{site_url}/og/{identifier}.png"
+        name = og_image_name(identifier, lang)
+        og_image.generate(identifier, headline, docs_dir / "og" / name)
+        return f"{site_url}/og/{name}"
     except Exception:
         return static_fallback
 

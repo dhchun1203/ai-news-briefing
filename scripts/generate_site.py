@@ -853,8 +853,14 @@ def main():
     verification = seo_utils.load_verification_tags()
     # 글로서리 링크화(HTML 마크업)가 섞이기 전의 raw_digest에서 헤드라인을 가져온다 —
     # 이미지에 <button> 태그 같은 마크업이 그대로 찍히면 안 되므로.
-    raw_headline_ko = (raw_digest.get("daily_insight") or {}).get("headline_ko", "")
-    og_image_url = seo_utils.build_og_image_url(site_url, docs_dir, date, raw_headline_ko)
+    raw_insight = raw_digest.get("daily_insight") or {}
+    # 언어별로 카드를 따로 그린다. 예전엔 한국어 이미지 하나를 두 언어판이 공유해서,
+    # /en/ 링크를 공유하면 영어 제목 옆에 한국어 문장이 박힌 카드가 떴다.
+    og_image_urls = {
+        lang: seo_utils.build_og_image_url(
+            site_url, docs_dir, date, raw_insight.get(f"headline_{lang}", ""), lang)
+        for lang in LANGS
+    }
 
     glossary_terms = collect_glossary_terms(archive_dir)
     generic_og_image_url = f"{site_url}/og-image.png"  # 용어사전·토픽은 날짜성 콘텐츠가 아니라 범용 카드 재사용
@@ -928,7 +934,7 @@ def main():
                 nav_counts=nav_counts,
                 faq=faq,
                 canonical_url=this_index_url,
-                og_image_url=og_image_url,
+                og_image_url=og_image_urls[lang],
                 google_site_verification=verification["google_site_verification"],
                 naver_site_verification=verification["naver_site_verification"],
                 hreflang_ko_url=ko_index_url,
@@ -973,7 +979,7 @@ def main():
                 # 매일 늘어나는 페이지 전부에 FAQPage 마크업이 붙는 것도 바람직하지 않다.
                 faq=None,
                 canonical_url=(en_archive_url if lang == "en" else ko_archive_url),
-                og_image_url=og_image_url,
+                og_image_url=og_image_urls[lang],
                 google_site_verification=verification["google_site_verification"],
                 naver_site_verification=verification["naver_site_verification"],
                 hreflang_ko_url=ko_archive_url,

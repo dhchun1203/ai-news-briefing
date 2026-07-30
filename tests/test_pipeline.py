@@ -791,5 +791,47 @@ class TestIndexNow(unittest.TestCase):
 
 
 
+class TestOgImagePerLanguage(unittest.TestCase):
+    """/en/ 링크를 공유했을 때 미리보기 카드에 한국어 문장이 뜨던 문제(2026-07-30
+    Reddit 게시로 발견)를 막는다. 런칭 채널에서 첫인상을 결정하는 부분이라 조용히
+    되돌아가면 안 된다."""
+
+    def test_언어별로_다른_파일명을_쓴다(self):
+        self.assertEqual(seo_utils.og_image_name("2026-07-30", "ko"), "2026-07-30.png")
+        self.assertEqual(seo_utils.og_image_name("2026-07-30", "en"), "2026-07-30-en.png")
+
+    def test_한국어_경로는_바뀌지_않는다(self):
+        # 이미 공유된 링크의 미리보기가 깨지면 안 된다.
+        with tempfile.TemporaryDirectory() as d:
+            url = seo_utils.build_og_image_url(
+                "https://example.com", Path(d), "2026-07-30", "오늘의 헤드라인", "ko")
+            self.assertTrue(url.endswith("/og/2026-07-30.png"), url)
+
+    def test_영어_헤드라인이_비면_한국어_이미지로_대체하지_않는다(self):
+        # 틀린 언어를 보여주느니 중립적인 브랜드 카드가 낫다.
+        with tempfile.TemporaryDirectory() as d:
+            url = seo_utils.build_og_image_url(
+                "https://example.com", Path(d), "2026-07-30", "", "en")
+            self.assertEqual(url, "https://example.com/og-image.png")
+
+    def test_두_언어가_서로_다른_이미지를_만든다(self):
+        with tempfile.TemporaryDirectory() as d:
+            docs = Path(d)
+            ko = seo_utils.build_og_image_url(
+                "https://example.com", docs, "2026-07-30", "한국어 헤드라인입니다", "ko")
+            en = seo_utils.build_og_image_url(
+                "https://example.com", docs, "2026-07-30", "An English headline here", "en")
+            self.assertNotEqual(ko, en)
+            # Pillow가 있으면 실제 파일이 두 개 생기고, 없으면 둘 다 폴백이라 같아진다.
+            if "og-image.png" not in ko:
+                files = sorted(f.name for f in (docs / "og").glob("*.png"))
+                self.assertEqual(files, ["2026-07-30-en.png", "2026-07-30.png"])
+                self.assertNotEqual(
+                    (docs / "og" / "2026-07-30.png").read_bytes(),
+                    (docs / "og" / "2026-07-30-en.png").read_bytes(),
+                    "두 언어 카드의 내용이 같으면 언어별 렌더링이 안 된 것이다",
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

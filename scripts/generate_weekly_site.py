@@ -87,7 +87,13 @@ def main():
     site_url = seo_utils.get_site_url()
     verification = seo_utils.load_verification_tags()
     page_url = f"{site_url}/weekly/{week_label}"
-    og_image_url = seo_utils.build_og_image_url(site_url, docs_dir, week_label, weekly.get("headline_ko", ""))
+    # 일간 페이지와 같은 이유로 언어별 카드를 따로 그린다 — 영어판 공유 시 한국어
+    # 문장이 박힌 미리보기가 뜨면 안 된다.
+    og_image_urls = {
+        lang: seo_utils.build_og_image_url(
+            site_url, docs_dir, week_label, weekly.get(f"headline_{lang}", ""), lang)
+        for lang in LANGS
+    }
 
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -120,7 +126,7 @@ def main():
                 nav_counts=nav_counts,
                 generated_at=generated_at,
                 canonical_url=page_url,
-                og_image_url=og_image_url,
+                og_image_url=og_image_urls[lang],
                 hreflang_ko_url=ko_url,
                 hreflang_en_url=en_url,
                 google_site_verification=verification["google_site_verification"],

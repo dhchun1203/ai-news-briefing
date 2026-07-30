@@ -31,9 +31,10 @@ def _font(size: int) -> ImageFont.FreeTypeFont:
 
 
 def _wrap_text(draw: ImageDraw.ImageDraw, text: str, font, max_width: int) -> list:
-    """한국어 headline은 정상적인 띄어쓰기가 있는 문장이므로 공백 기준으로
+    """헤드라인은 한국어든 영어든 정상적인 띄어쓰기가 있는 문장이므로 공백 기준으로
     줄바꿈한다. 실제 렌더 너비를 매번 측정해서(추측이 아니라) max_width를
-    넘지 않는 선에서 단어를 채운다."""
+    넘지 않는 선에서 단어를 채운다. 폰트(Noto Serif KR)는 라틴 문자도 포함하므로
+    영어 헤드라인도 같은 폰트로 그린다 — 두 언어판의 카드 디자인이 같아야 한다.""" 
     words = text.split(" ")
     lines, current = [], ""
     for w in words:
@@ -63,7 +64,7 @@ def _draw_wrapped(draw, text, font, x, y, max_width, line_height, max_lines, fil
         draw.text((x, y + i * line_height), line, font=font, fill=fill)
 
 
-def generate(identifier: str, headline_ko: str, out_path: Path) -> None:
+def generate(identifier: str, headline: str, out_path: Path) -> None:
     img = Image.new("RGB", (WIDTH, HEIGHT), BG)
     draw = ImageDraw.Draw(img)
     draw.rectangle([0, 0, 10, HEIGHT], fill=ACCENT)  # site.html.j2의 .insight 블록과 동일한 accent 모티프
@@ -73,7 +74,7 @@ def generate(identifier: str, headline_ko: str, out_path: Path) -> None:
 
     headline_font = _font(56)
     max_width = WIDTH - MARGIN * 2
-    _draw_wrapped(draw, headline_ko, headline_font, MARGIN, 190, max_width, 72, MAX_HEADLINE_LINES, TEXT)
+    _draw_wrapped(draw, headline, headline_font, MARGIN, 190, max_width, 72, MAX_HEADLINE_LINES, TEXT)
 
     footer_font = _font(26)
     draw.text((MARGIN, HEIGHT - 90), "dailyaithread.com", font=footer_font, fill=MUTED)
