@@ -30,6 +30,12 @@ SHARED_ASSETS = (
     STATIC_DIR / "site.js",
     STATIC_DIR / "favicon.svg",
     STATIC_DIR / "og-image.png",
+    # Bing 사이트 소유 확인 파일. 사이트 루트에 그대로 있어야 하므로 여기 둔다 —
+    # docs/에 직접 커밋해두면 되긴 하지만, 나중에 누가 docs/를 비우고 재생성할 때
+    # 조용히 사라져 소유 확인이 풀린다. 키 값은 공개돼도 무방하다(원래 공개 URL로
+    # 서빙하는 것이 이 방식의 설계다). cleanUrls는 .xml을 건드리지 않는다 —
+    # 네이버 소유확인 .html이 308 리다이렉트로 실패했던 것과는 다른 경우다.
+    STATIC_DIR / "BingSiteAuth.xml",
 )
 
 
