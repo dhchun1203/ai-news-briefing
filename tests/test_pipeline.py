@@ -9,6 +9,7 @@
 - KST 날짜 계산: 틀리면 주간 회고가 매주 건너뛰어진다(실제로 그랬다).
 - 메일 HTML 이스케이프: 뚫려도 발송 자체는 성공해서 티가 안 난다.
 """
+import json
 import sys
 import tempfile
 import unittest
@@ -788,6 +789,51 @@ class TestIndexNow(unittest.TestCase):
         self.assertIn("https://www.dailyaithread.com/weekly/2026-W30", urls)
         self.assertIn("https://www.dailyaithread.com/en/weekly/2026-W30", urls)
         self.assertEqual(len(urls), 12)
+
+    def test_그날_용어_페이지도_양_언어로_통보한다(self):
+        # 용어 페이지는 이 사이트 최고의 GEO 자산인데, sitemap만으로는 신규 도메인에서
+        # 발견 자체가 안 된다는 걸 2026-07-31에 실측했다(6일 된 페이지가 not discovered).
+        import ping_indexnow
+
+        urls = ping_indexnow.build_changed_urls(
+            "https://www.dailyaithread.com", "2026-07-31", None, ["ai-slop", "capex"])
+        self.assertIn("https://www.dailyaithread.com/glossary/ai-slop", urls)
+        self.assertIn("https://www.dailyaithread.com/en/glossary/ai-slop", urls)
+        self.assertIn("https://www.dailyaithread.com/glossary/capex", urls)
+        self.assertEqual(len(urls), 14)  # 기본 10 + 용어 2개 x 2언어
+
+    def test_용어_슬러그는_그날_digest에서만_온다(self):
+        # 누적 39개 전부를 매일 밀어 넣으면 엔진이 스팸으로 보고 무시하기 시작한다.
+        import ping_indexnow
+
+        with tempfile.TemporaryDirectory() as d:
+            docs = Path(d)
+            (docs / "archive").mkdir(parents=True)
+            (docs / "archive" / "2026-07-31.json").write_text(json.dumps({
+                "glossary": [
+                    {"term_ko": "AI 슬롭", "term_en": "AI Slop"},
+                    {"term_ko": "설비투자(캐펙스)", "term_en": "CapEx"},
+                ]
+            }, ensure_ascii=False), encoding="utf-8")
+            # 다른 날짜 파일은 읽지 않아야 한다
+            (docs / "archive" / "2026-07-30.json").write_text(json.dumps({
+                "glossary": [{"term_ko": "다른날", "term_en": "Other Day"}]
+            }, ensure_ascii=False), encoding="utf-8")
+
+            slugs = ping_indexnow.collect_glossary_slugs(docs, "2026-07-31")
+            self.assertEqual(slugs, ["ai-slop", "capex"])
+            self.assertNotIn("other-day", slugs)
+
+    def test_아카이브_파일이_없어도_통보는_계속된다(self):
+        # 부가 정보 수집 실패가 통보 전체를 막으면 안 된다(무인 운영 원칙).
+        import ping_indexnow
+
+        with tempfile.TemporaryDirectory() as d:
+            slugs = ping_indexnow.collect_glossary_slugs(Path(d), "2026-07-31")
+            self.assertEqual(slugs, [])
+            urls = ping_indexnow.build_changed_urls(
+                "https://www.dailyaithread.com", "2026-07-31", None, slugs)
+            self.assertEqual(len(urls), 10, "용어가 없어도 기본 10건은 그대로 나가야 한다")
 
 
 

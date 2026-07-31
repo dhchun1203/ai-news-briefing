@@ -42,13 +42,50 @@ def parse_args():
     return p.parse_args()
 
 
-def build_changed_urls(site_url: str, date: str, weekly_label: str | None) -> list:
+def collect_glossary_slugs(docs_dir: Path, date: str) -> list:
+    """그날 digest에 등장한 용어의 슬러그 목록.
+
+    **그날 것만** 고른다. 용어 개별 페이지는 매 실행마다 39개 전부 다시 렌더되지만,
+    내용이 실제로 바뀐 건 그날 새로 등록되거나 설명이 갱신된 것뿐이다. 안 바뀐
+    페이지까지 매일 밀어 넣으면 엔진이 스팸으로 보고 통보 자체를 무시하기 시작한다.
+
+    슬러그 계산은 generate_site의 것을 그대로 쓴다 — 여기서 다시 구현하면 규칙이
+    갈라지는 순간 존재하지 않는 URL을 통보하게 된다.
+
+    파일이 없거나 깨졌어도 예외를 올리지 않는다. 용어 URL 몇 개를 못 붙이는 것이
+    통보 전체를 막을 이유는 되지 않는다(무인 실행 원칙)."""
+    try:
+        import json
+
+        from generate_site import glossary_slug
+
+        data = json.loads((docs_dir / "archive" / f"{date}.json").read_text(encoding="utf-8"))
+        slugs = []
+        for term in data.get("glossary") or []:
+            slug = glossary_slug(term.get("term_en"), term.get("term_ko"))
+            if slug and slug not in slugs:
+                slugs.append(slug)
+        return slugs
+    except Exception as e:
+        print(f"용어 슬러그 수집 실패(통보는 계속): {type(e).__name__}: {e}", file=sys.stderr)
+        return []
+
+
+def build_changed_urls(site_url: str, date: str, weekly_label: str | None,
+                       glossary_slugs: list = None) -> list:
     """그날 실제로 내용이 바뀌는 페이지만 고른다.
 
     IndexNow는 "바뀐 URL"을 알리는 프로토콜이라 안 바뀐 것까지 매일 밀어 넣으면
     안 된다(엔진이 스팸으로 보고 무시하기 시작한다). 그래서 116개 전체가 아니라
     아래 목록만 보낸다 — 나머지 과거 아카이브는 한 번 만들어지면 변하지 않으므로
     sitemap이 담당한다.
+
+    **용어 개별 페이지를 포함하는 이유**: 2026-07-31에 실측해보니 6일 된
+    /archive/2026-07-25는 sitemap에 있는데도 Bing이 "not discovered"였고, 같은 날
+    IndexNow로 알린 /archive/2026-07-31만 당일 발견됐다. 신규 도메인은 크롤 예산이
+    거의 없어 sitemap만으로는 발견 자체가 안 된다는 뜻이다. 용어 페이지는
+    "[용어]는 [정의]다" 구조와 DefinedTerm 마크업을 갖춘 이 사이트 최고의 GEO
+    자산인데, 알리지 않으면 그대로 묻힌다.
 
     두 언어판을 모두 넣는다. /en/ 은 별도 URL 트리라 각각 알려야 색인된다."""
     paths = [
@@ -60,6 +97,8 @@ def build_changed_urls(site_url: str, date: str, weekly_label: str | None) -> li
     ]
     if weekly_label:
         paths.append(f"/weekly/{weekly_label}")
+    for slug in glossary_slugs or []:
+        paths.append(f"/glossary/{slug}")
 
     urls = []
     for p in paths:
@@ -105,7 +144,8 @@ def main():
 
     # 키 파일이 라이브에 있어야 소유 증명이 된다. 없으면 통보해도 거부되므로 먼저 본다.
     key_url = f"{site_url}/{cfg['key']}.txt"
-    urls = build_changed_urls(site_url, args.date, args.weekly_label)
+    glossary_slugs = collect_glossary_slugs(Path(args.docs_dir), args.date)
+    urls = build_changed_urls(site_url, args.date, args.weekly_label, glossary_slugs)
 
     if not args.skip_wait:
         if not wait_for_deploy(f"{site_url}/archive/{args.date}"):
