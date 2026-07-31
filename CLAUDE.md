@@ -46,8 +46,15 @@ Routine은 **네트워크 allowlist가 걸린 클라우드 Environment**에서 �
   **`www.dailyaithread.com`**(배포 확인용 HEAD)이 빠질 뻔했다. 자기 사이트라고 안심하면
   안 된다 — 그동안 자기 사이트에 접속하는 스크립트가 없었으니 목록에도 없었다.
 
-**스크립트에 새 URL을 추가할 때마다 이 질문을 먼저 한다:** 이 도메인이
+- 2026-07-31: 피드 5개가 `Tunnel connection failed: 403`으로 죽어 그날 브리핑 9건 중
+  **8건이 TechCrunch 한 곳**에서 나왔다. allowlist에는 `theverge.com`·`wired.com`·
+  `technologyreview.com`이 있었는데 **실제 피드 URL은 `www.` 서브도메인**이었다.
+  allowlist는 도메인 정확히 일치로 동작한다 — `wired.com`은 `www.wired.com`을
+  커버하지 않는다.
+
+**스크립트에 새 URL을 추가할 때마다 이 질문을 먼저 한다:** 이 URL의 **호스트명 그대로가**
 `claude.ai/code` → Environments → `ai-news-briefing` → Custom network access에 있는가?
+도메인이 아니라 `urlparse(url).netloc`을 비교한다 — `www.` 하나 차이로 막힌다.
 없으면 사용자에게 추가를 요청한다(계정 안이라 대행 불가). 변경은 **새 세션부터** 적용되므로
 다음 Routine 실행부터 반영된다.
 
