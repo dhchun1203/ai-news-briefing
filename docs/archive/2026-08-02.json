@@ -46,6 +46,7 @@
   "articles": [
     {
       "title": "문샷, 알리바바서 엔비디아 GPU 2만개 공급받아 '키미 K3' 개발",
+      "title_en": "Moonshot built Kimi K3 on a 20,000-Nvidia-GPU cluster supplied by Alibaba",
       "link": "https://www.aitimes.com/news/articleView.html?idxno=213438",
       "source": "AI타임스",
       "published_at": "2026-08-01T10:10:51+00:00",
@@ -163,6 +164,7 @@
     },
     {
       "title": "\"저렴한 AI가 더 많은 수요 만든다\"...오픈AI, 가격 인하 후 사용자 10억 발표",
+      "title_en": "OpenAI hits 1 billion users after price cuts: 'cheaper AI creates more demand'",
       "link": "https://www.aitimes.com/news/articleView.html?idxno=213439",
       "source": "AI타임스",
       "published_at": "2026-08-01T09:32:03+00:00",
