@@ -322,6 +322,22 @@ function finishPage(label, doc, window, opts) {
   if (fs.existsSync(path.join(DOCS, "en", "glossary.html"))) {
     checkCleanUrlLinks("en/glossary.html", "https://www.dailyaithread.com/en/glossary", "en/glossary (clean URL)");
   }
+  // 용어 페이지의 전환 경로. 검색 유입의 주력 착지점인데 구독 유도가 하나도 없어
+  // 읽고 나가면 끝나는 막다른 길이었다(2026-08-02 점검). 조용히 사라지면 안 된다.
+  ["glossary/mcp.html", "en/glossary/mcp.html"].forEach((f) => {
+    if (!fs.existsSync(path.join(DOCS, f))) return;
+    const url = "https://www.dailyaithread.com/" + f.replace(/\.html$/, "");
+    const { doc } = load(f, url);
+    check(f, "구독 폼이 있음", !!doc.querySelector("#subscribe-form .subscribe-submit"));
+    const dates = doc.querySelectorAll(".term-page-dates a");
+    check(f, "등장 브리핑이 링크로 있음", dates.length >= 1,
+      `링크 ${dates.length}개`);
+    const bad = [].filter.call(dates, (a) => !/\/archive\/\d{4}-\d{2}-\d{2}$/.test(
+      a.href.replace(/^https?:\/\/[^/]+/, "").replace(/\.html$/, "")));
+    check(f, "등장 브리핑 링크가 아카이브를 가리킴", bad.length === 0,
+      bad.map((a) => a.getAttribute("href")).join(" | "));
+  });
+
   // 언어 누수 검사 — 영어판 주요 페이지 전체
   [["en/index.html", "/en/"], ["en/glossary.html", "/en/glossary"], ["en/about.html", "/en/about"],
    ["en/topics/index.html", "/en/topics"], ["en/archive/index.html", "/en/archive"]].forEach(([f, u]) => {

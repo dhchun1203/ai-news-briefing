@@ -950,5 +950,69 @@ class TestDisplayTitle(unittest.TestCase):
         self.assertEqual(seo_utils.display_title(a, "en"), "Building abundant intelligence")
 
 
+class TestGlossarySeenDates(unittest.TestCase):
+    """용어 페이지는 검색 유입의 주력 착지점인데, 예전에는 '처음 등장'과 '가장 최근
+    등장' 두 줄이 47개 중 41개에서 같은 날짜였다(2026-08-02 점검). 등장 날짜를 전부
+    모아 브리핑으로 가는 길을 늘린다."""
+
+    def _archive(self, tmp, days):
+        import json
+        archive = Path(tmp)
+        for date, terms in days.items():
+            (archive / f"{date}.json").write_text(
+                json.dumps({"date": date, "glossary": terms}, ensure_ascii=False),
+                encoding="utf-8")
+        return archive
+
+    def test_등장한_날짜를_모두_모은다(self):
+        from generate_site import collect_glossary_terms
+
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = self._archive(tmp, {
+                "2026-07-25": [{"term_ko": "샌드박스", "term_en": "Sandbox"}],
+                "2026-07-26": [{"term_ko": "샌드박스", "term_en": "Sandbox"}],
+                "2026-08-01": [{"term_ko": "샌드박스", "term_en": "Sandbox"}],
+            })
+            term = collect_glossary_terms(archive)[0]
+            self.assertEqual(term["seen_dates"], ["2026-07-25", "2026-07-26", "2026-08-01"])
+            self.assertEqual(term["first_seen"], "2026-07-25")
+            self.assertEqual(term["last_seen"], "2026-08-01")
+
+    def test_한_번만_나온_용어는_날짜가_하나다(self):
+        from generate_site import collect_glossary_terms
+
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = self._archive(tmp, {
+                "2026-07-31": [{"term_ko": "AI 슬롭", "term_en": "AI Slop"}]})
+            term = collect_glossary_terms(archive)[0]
+            self.assertEqual(term["seen_dates"], ["2026-07-31"])
+
+    def test_슬러그로_합칠_때_날짜도_합쳐진다(self):
+        # 표기만 다른 같은 개념("정렬" / "정렬(얼라인먼트)")을 합치면서 밀려난 쪽의
+        # 날짜를 버리면 브리핑 링크가 실제보다 적어진다.
+        from generate_site import collect_glossary_terms, group_glossary_by_slug
+
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = self._archive(tmp, {
+                "2026-07-24": [{"term_ko": "정렬", "term_en": "Alignment"}],
+                "2026-07-28": [{"term_ko": "정렬(얼라인먼트)", "term_en": "Alignment"}],
+            })
+            merged = group_glossary_by_slug(collect_glossary_terms(archive))
+            self.assertEqual(len(merged), 1, "같은 term_en이면 한 페이지로 합쳐져야 한다")
+            self.assertEqual(merged[0]["seen_dates"], ["2026-07-24", "2026-07-28"])
+            self.assertEqual(merged[0]["first_seen"], "2026-07-24")
+            self.assertEqual(merged[0]["last_seen"], "2026-07-28")
+
+    def test_같은_날_중복_등록은_한_번만_센다(self):
+        from generate_site import collect_glossary_terms
+
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = self._archive(tmp, {"2026-07-31": [
+                {"term_ko": "LLM", "term_en": "LLM"},
+                {"term_ko": "LLM", "term_en": "LLM"},
+            ]})
+            self.assertEqual(collect_glossary_terms(archive)[0]["seen_dates"], ["2026-07-31"])
+
+
 if __name__ == "__main__":
     unittest.main()

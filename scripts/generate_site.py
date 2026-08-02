@@ -311,11 +311,18 @@ def collect_glossary_terms(archive_dir: Path) -> list:
             term_ko = g.get("term_ko")
             if not term_ko:
                 continue
-            entry = terms.setdefault(term_ko, {"term_ko": term_ko, "first_seen": date})
+            entry = terms.setdefault(
+                term_ko, {"term_ko": term_ko, "first_seen": date, "seen_dates": []})
             entry["term_en"] = g.get("term_en", "")
             entry["explanation_ko"] = g.get("explanation_ko", "")
             entry["explanation_en"] = g.get("explanation_en", "")
             entry["last_seen"] = date
+            # 등장한 날짜를 전부 모은다. first/last만 남기면 47개 중 41개(87%)가 두
+            # 값이 같아 같은 링크를 두 줄로 반복하게 되고, 여러 번 등장한 용어의
+            # 나머지 날짜는 아예 사라진다. 용어 페이지는 검색 유입의 주력 착지점이라
+            # 여기서 브리핑으로 건너갈 길이 많을수록 좋다.
+            if date not in entry["seen_dates"]:
+                entry["seen_dates"].append(date)
     return sorted(terms.values(), key=lambda t: t["term_ko"])
 
 
@@ -339,12 +346,18 @@ def group_glossary_by_slug(terms: list) -> list:
         if entry is None:
             by_slug[slug] = {**t, "slug": slug, "aliases_ko": []}
             continue
+        # 표기가 달라도 같은 개념이므로 등장 날짜는 합친다 — 대표 표기를 바꾸면서
+        # 밀려난 쪽의 날짜를 버리면 "이 용어가 나온 브리핑"이 실제보다 적어 보인다.
+        merged_dates = sorted(set(entry.get("seen_dates") or []) | set(t.get("seen_dates") or []))
         # 더 최근에 등장한 쪽을 대표로 삼고, 밀려난 표기는 별칭으로 보존한다.
         if (t.get("last_seen") or "") > (entry.get("last_seen") or ""):
             entry["aliases_ko"].append(entry["term_ko"])
             entry.update({k: v for k, v in t.items() if k != "aliases_ko"})
         elif t.get("term_ko") and t["term_ko"] != entry["term_ko"]:
             entry["aliases_ko"].append(t["term_ko"])
+        entry["seen_dates"] = merged_dates
+        entry["first_seen"] = merged_dates[0] if merged_dates else entry.get("first_seen")
+        entry["last_seen"] = merged_dates[-1] if merged_dates else entry.get("last_seen")
     return sorted(by_slug.values(), key=lambda t: t["term_ko"])
 
 

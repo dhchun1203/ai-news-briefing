@@ -796,6 +796,22 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .term-page-meta dd { margin: 4px 0 0; }
 .term-page-meta a { color: var(--text); }
 
+/* 등장 날짜는 개수가 1개일 수도, 여러 개일 수도 있다(가장 많이 나온 용어는 4번).
+   가로로 흘리되 좁은 화면에서 줄바꿈되게 두고, 날짜 사이는 가운뎃점으로 나눈다 —
+   구분자를 마크업이 아니라 CSS로 넣어야 마지막 항목 뒤에 안 붙는다. */
+.term-page-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 10px;
+  font-variant-numeric: tabular-nums;
+}
+.term-page-dates a + a::before {
+  content: "·";
+  color: var(--text-muted);
+  margin-right: 10px;
+}
+
 .term-page-nav {
   display: flex;
   flex-wrap: wrap;

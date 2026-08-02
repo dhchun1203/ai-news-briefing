@@ -104,14 +104,17 @@
       <p>{% if lang == 'ko' %}{{ term.explanation_ko }}{% else %}{{ term.explanation_en }}{% endif %}</p>
     </div>
 
+    {# 예전에는 "처음 등장"과 "가장 최근 등장" 두 줄이었는데, 47개 중 41개(87%)가
+       두 날짜가 같아 같은 링크를 두 번 반복했다. 등장한 날짜를 전부 나열하면
+       중복이 사라지고, 여러 번 나온 용어는 그만큼 브리핑으로 가는 길이 늘어난다. #}
     <dl class="term-page-meta">
       <div>
-        <dt>{% if lang == 'ko' %}브리핑에 처음 등장{% else %}First seen{% endif %}</dt>
-        <dd><a href="{{ lup }}archive/{{ term.first_seen }}.html">{{ term.first_seen }}</a></dd>
-      </div>
-      <div>
-        <dt>{% if lang == 'ko' %}가장 최근 등장{% else %}Most recent{% endif %}</dt>
-        <dd><a href="{{ lup }}archive/{{ term.last_seen }}.html">{{ term.last_seen }}</a></dd>
+        <dt>{% if lang == 'ko' %}이 용어가 나온 브리핑{% else %}Briefings mentioning this{% endif %}</dt>
+        <dd class="term-page-dates">
+          {% for d in term.seen_dates or [term.first_seen] %}
+          <a href="{{ lup }}archive/{{ d }}.html">{{ d }}</a>
+          {% endfor %}
+        </dd>
       </div>
     </dl>
   </article>
@@ -125,6 +128,9 @@
     {% endfor %}
   </nav>
   {% endif %}
+
+  {# 검색으로 이 페이지에 처음 온 사람에게 유일한 구독 경로다. #}
+  {% include '_subscribe-box.html.j2' %}
 </main>
 
 <footer class="site-footer">
@@ -136,7 +142,7 @@
     <span aria-hidden="true">·</span>
     <a href="{{ lup }}glossary.html">{% if lang == 'ko' %}용어사전 전체{% else %}All terms{% endif %}</a>
     <span aria-hidden="true">·</span>
-    <a href="../about.html">{% if lang == 'ko' %}소개{% else %}About{% endif %}</a>
+    <a href="{{ lup }}about.html">{% if lang == 'ko' %}소개{% else %}About{% endif %}</a>
   </p>
 </footer>
 
