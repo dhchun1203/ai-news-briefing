@@ -506,6 +506,48 @@ class TestArchiveJsonRoundTrip(unittest.TestCase):
             save_archive_json(archive, {"date": "2026-07-26", "articles": [article]})
             return json.loads((archive / "2026-07-26.json").read_text(encoding="utf-8"))["articles"][0]
 
+    def test_값_없는_선택필드는_키째로_빠진다(self):
+        """이 저장소의 제1 규칙 — 사이트를 재생성해도 영속 원본은 안 바뀌어야 한다.
+
+        title_en을 추가하면서 값이 없을 때 null을 써 넣었더니, 그것만으로 과거
+        아카이브 전체에 diff가 났다(2026-08-02). 매일 도는 파이프라인에서 이런
+        변경은 '오늘 뭐가 바뀌었나'를 볼 수 없게 만들고, 최악의 경우 발송 마커
+        주변 파일까지 함께 커밋되게 한다."""
+        saved = self._save_and_load({
+            "title": "Building abundant intelligence",
+            "link": "https://openai.com/x", "source": "OpenAI News",
+        })
+        self.assertNotIn("title_en", saved,
+                         "title_en이 없으면 키 자체가 없어야 한다 (null도 남기면 안 됨)")
+
+    def test_title_en이_있으면_보존된다(self):
+        saved = self._save_and_load({
+            "title": "문샷, 알리바바서 GPU 공급받아",
+            "title_en": "Moonshot secures GPUs from Alibaba",
+            "link": "https://www.aitimes.com/x", "source": "AI타임스",
+        })
+        self.assertEqual(saved["title_en"], "Moonshot secures GPUs from Alibaba")
+
+    def test_재저장해도_바이트가_같다(self):
+        """같은 입력을 두 번 저장하면 완전히 동일해야 한다(멱등)."""
+        import json
+        import tempfile
+        from generate_site import save_archive_json
+
+        digest = {"date": "2026-07-26", "articles": [
+            {"title": "A", "link": "https://a/", "source": "S"},
+            {"title": "한국어 제목", "title_en": "Korean title",
+             "link": "https://b/", "source": "AI타임스"},
+        ]}
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = Path(tmp)
+            save_archive_json(archive, digest)
+            first = (archive / "2026-07-26.json").read_bytes()
+            # 저장된 것을 다시 입력으로 넣어도 같아야 한다 — 실제 재생성 경로가 이것이다
+            reloaded = json.loads(first.decode("utf-8"))
+            save_archive_json(archive, reloaded)
+            self.assertEqual(first, (archive / "2026-07-26.json").read_bytes())
+
     def test_topics_and_count_survive(self):
         saved = self._save_and_load(
             {"title": "T", "link": "http://x", "source": "S", "topics": ["models", "safety"], "cross_source_count": 3}
@@ -877,6 +919,35 @@ class TestOgImagePerLanguage(unittest.TestCase):
                     (docs / "og" / "2026-07-30-en.png").read_bytes(),
                     "두 언어 카드의 내용이 같으면 언어별 렌더링이 안 된 것이다",
                 )
+
+
+class TestDisplayTitle(unittest.TestCase):
+    """영어판에 한국어 제목이 그대로 노출되던 문제(2026-08-02, AI타임스 기사가
+    allowlist 수정 후 처음 선정되면서 드러남)를 막는다."""
+
+    def test_영어판은_title_en을_쓴다(self):
+        a = {"title": "문샷, 알리바바서 엔비디아 GPU 2만개 공급받아",
+             "title_en": "Moonshot secures 20,000 Nvidia GPUs from Alibaba"}
+        self.assertEqual(seo_utils.display_title(a, "en"),
+                         "Moonshot secures 20,000 Nvidia GPUs from Alibaba")
+
+    def test_한국어판은_언제나_원제를_쓴다(self):
+        # 한국어판은 영어 기사도 영어 원제 그대로 — 출처 표기로 정직한 쪽을 택했다.
+        a = {"title": "Judge denies xAI's request", "title_en": "Judge denies xAI's request"}
+        self.assertEqual(seo_utils.display_title(a, "ko"), "Judge denies xAI's request")
+        b = {"title": "문샷, 알리바바서 GPU 공급받아", "title_en": "Moonshot secures GPUs"}
+        self.assertEqual(seo_utils.display_title(b, "ko"), "문샷, 알리바바서 GPU 공급받아")
+
+    def test_title_en이_없으면_원제로_떨어진다(self):
+        # 영어 원제 기사에는 아예 없고, 과거 아카이브에도 없다. 없다고 빈 제목이
+        # 나가면 그 기사만 화면에서 사라진다.
+        a = {"title": "Building abundant intelligence"}
+        self.assertEqual(seo_utils.display_title(a, "en"), "Building abundant intelligence")
+        self.assertEqual(seo_utils.display_title(a, "ko"), "Building abundant intelligence")
+
+    def test_title_en이_빈_문자열이어도_원제로_떨어진다(self):
+        a = {"title": "Building abundant intelligence", "title_en": "   "}
+        self.assertEqual(seo_utils.display_title(a, "en"), "Building abundant intelligence")
 
 
 if __name__ == "__main__":

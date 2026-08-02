@@ -44,6 +44,24 @@ def copy_shared_assets(docs_dir: Path) -> None:
     for src in SHARED_ASSETS:
         shutil.copyfile(src, docs_dir / src.name)
 
+
+def display_title(article: dict, lang: str) -> str:
+    """그 언어판에서 보여줄 기사 제목.
+
+    `title`은 출처 피드의 원문 헤드라인 하나뿐이라, 한국어 매체(AI타임스) 기사가
+    영어판에 한국어 제목으로 그대로 나왔다(2026-08-02 발견 — allowlist를 고쳐
+    AI타임스가 처음 선정되기 시작하면서 드러난 잠재 결함이다).
+
+    **한국어판은 원문 헤드라인을 그대로 쓴다.** 영어 기사의 실제 제목을 보여주는
+    것이 출처 표기로서 정직하고, 지금까지의 모습이기도 하다. 영어판에서만
+    `title_en`(Claude가 한국어 제목 기사에만 작성)으로 대체한다.
+
+    `title_en`은 **선택 필드**다. 영어 제목 기사에는 아예 없고, 과거 아카이브에도
+    없다 — 없으면 원문으로 떨어지므로 옛 날짜를 재생성해도 깨지지 않는다."""
+    if lang == "en":
+        return (article.get("title_en") or "").strip() or (article.get("title") or "")
+    return article.get("title") or ""
+
 # AI 답변엔진 크롤러는 User-agent별로 가장 구체적인 블록만 따르는 경우가 많아,
 # 와일드카드(*) 하나로 뭉뚱그리지 않고 명시적으로 하나씩 허용한다.
 AI_CRAWLERS = (
@@ -195,7 +213,7 @@ def _feed_item_description(day: dict, lang: str) -> str:
         parts.append(f"<p>{escape(paragraphs[0])}</p>")
     items = []
     for a in day.get("articles", []):
-        title = escape(a.get("title") or "")
+        title = escape(display_title(a, lang))
         link = escape(a.get("link") or "")
         summary = escape(a.get(summary_key) or "")
         items.append(f'<li><a href="{link}">{title}</a> — {summary}</li>')
@@ -565,14 +583,14 @@ def build_topic_page_jsonld(site_url: str, page_url: str, topic: dict, entries: 
             "position": i + 1,
             "item": {
                 "@type": "Article",
-                "headline": e.get("title", ""),
+                "headline": display_title(e, lang),
                 "url": f"{site_url}/archive/{e.get('date', '')}",
                 "datePublished": e.get("date", ""),
                 "author": {"@type": "Organization", "name": "Daily AI Thread"},
                 "articleSection": e.get("summary_ko" if lang == "ko" else "summary_en", ""),
                 "citation": {
                     "@type": "NewsArticle",
-                    "headline": e.get("title", ""),
+                    "headline": display_title(e, lang),
                     "url": e.get("link", ""),
                     "publisher": {"@type": "Organization", "name": e.get("source", "")},
                 },
@@ -663,13 +681,13 @@ def build_archive_page_jsonld(site_url, page_url, date, generated_at, articles, 
                 "position": i + 1,
                 "item": {
                     "@type": "Article",
-                    "headline": a.get("title", ""),
+                    "headline": display_title(a, lang),
                     "url": f"{page_url}#article-{i + 1}",  # page_url이 이미 언어판 주소다
                     "author": {"@type": "Organization", "name": "Daily AI Thread"},
                     "articleSection": a.get("summary_ko" if lang == "ko" else "summary_en", ""),
                     "citation": {
                         "@type": "NewsArticle",
-                        "headline": a.get("title", ""),
+                        "headline": display_title(a, lang),
                         "url": a.get("link", ""),
                         "publisher": {"@type": "Organization", "name": a.get("source", "")},
                     },

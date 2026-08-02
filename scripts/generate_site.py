@@ -243,6 +243,11 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
         "articles": [
             {
                 "title": a.get("title"),
+                # title_en은 원제가 한국어인 기사에만 있는 선택 필드다. 없을 때 null을
+                # 써 넣으면 그것만으로 영속 원본이 바뀌어, 사이트를 재생성할 때마다
+                # 과거 아카이브에 diff가 생긴다(실제로 그렇게 만들었다가 잡았다).
+                # 그래서 값이 있을 때만 키를 남긴다 — 아래에서 None 항목을 걷어낸다.
+                "title_en": a.get("title_en") or None,
                 "link": a.get("link"),
                 "source": a.get("source"),
                 "published_at": a.get("published_at"),
@@ -260,6 +265,11 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
             for a in raw_digest.get("articles", [])
         ],
     }
+    # 값이 없는 선택 필드는 키째로 뺀다. 이 파일은 영속 원본이라 "재생성해도 안 바뀐다"가
+    # 지켜져야 하는데, null 키 하나만 새로 생겨도 매일 전 아카이브에 diff가 난다.
+    for a in payload["articles"]:
+        if a.get("title_en") is None:
+            a.pop("title_en", None)
     (archive_dir / f"{date}.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -458,6 +468,7 @@ def collect_topic_entries(archive_dir: Path) -> dict:
                     {
                         "date": date,
                         "title": a.get("title", ""),
+                        "title_en": a.get("title_en", ""),
                         "link": a.get("link", ""),
                         "source": a.get("source", ""),
                         "summary_ko": a.get("summary_ko", ""),

@@ -222,7 +222,7 @@
         {% endfor %}
       </div>
       <h2 class="article-title">
-        <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
+        <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">{% if lang == 'en' and article.title_en %}{{ article.title_en }}{% else %}{{ article.title }}{% endif %}</a>
       </h2>
       <div class="article-summary">
         <h3 class="block-label">
