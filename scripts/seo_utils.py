@@ -35,6 +35,9 @@ SHARED_ASSETS = (
     # 다시 돌려 favicon.svg와 맞춘다(빌드 때 렌더링하지 않는 이유는 그 파일의
     # 주석 참고 — 매일 도는 경로에 Pillow 의존을 늘리지 않으려는 것이다).
     STATIC_DIR / "favicon.png",
+    # 링크 태그와 무관하게 사이트 루트에 있어야 하는 자리다. 구글이 <link>를 못 읽으면
+    # /favicon.ico를 찾는데, 비어 있으면 폴백이 통째로 사라진다(실제로 404였다).
+    STATIC_DIR / "favicon.ico",
     STATIC_DIR / "og-image.png",
     # Bing 사이트 소유 확인 파일. 사이트 루트에 그대로 있어야 하므로 여기 둔다 —
     # docs/에 직접 커밋해두면 되긴 하지만, 나중에 누가 docs/를 비우고 재생성할 때

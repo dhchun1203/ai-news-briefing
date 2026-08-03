@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """templates/static/favicon.svg와 같은 그림을 PNG로 렌더링한다.
 
-**왜 PNG가 따로 필요한가**: 구글 검색 결과에 파비콘이 지구본(기본 아이콘)으로
+**왜 PNG/ICO가 따로 필요한가**: 구글 검색 결과에 파비콘이 지구본(기본 아이콘)으로
 나왔다. 이 사이트는 SVG 파비콘만 제공하고 있었는데, 구글 파비콘 크롤러가 SVG를
 못 가져가는 경우가 보고된다. 브라우저 탭에는 선명한 SVG를 그대로 쓰고, 검색엔진용
 으로 PNG를 나란히 둔다.
+
+**favicon.ico도 함께 만든다.** 구글은 <link rel="icon">을 먼저 보지만, 그걸 못 읽으면
+사이트 루트의 /favicon.ico를 찾는다. 링크 태그와 무관하게 항상 있어야 하는 자리라
+비워두면 폴백이 통째로 사라진다(실제로 404였다). 16/32/48 세 크기를 한 파일에 담는다.
 
 **왜 매 실행 렌더링이 아니라 한 번 만들어 커밋하나**: 파비콘은 디자인이 바뀔 때만
 갱신되는 정적 자산이다. 매일 도는 파이프라인에 Pillow 의존을 하나 더 얹으면,
@@ -22,7 +26,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 FONT_PATH = ROOT / "templates" / "static" / "fonts" / "NotoSerifKR-Variable.ttf"
-OUT_PATH = ROOT / "templates" / "static" / "favicon.png"
+OUT_PNG = ROOT / "templates" / "static" / "favicon.png"
+OUT_ICO = ROOT / "templates" / "static" / "favicon.ico"
+# ICO에 담을 크기들. 브라우저 탭·북마크·검색엔진이 각각 다른 크기를 고른다.
+ICO_SIZES = [(48, 48), (32, 32), (16, 16)]
 
 # favicon.svg는 viewBox="0 0 64 64" 기준이다. 아래 값들은 그 좌표를 그대로 옮기고
 # SCALE만 곱한 것이라, SVG를 고치면 같은 자리에 같은 배율로 반영하면 된다.
@@ -66,8 +73,14 @@ def main() -> None:
         fill=ACCENT,
     )
 
-    img.resize((SIZE, SIZE), Image.LANCZOS).save(OUT_PATH, "PNG")
-    print(f"{OUT_PATH} ({SIZE}x{SIZE}) 생성")
+    flat = img.resize((SIZE, SIZE), Image.LANCZOS)
+    flat.save(OUT_PNG, "PNG")
+    print(f"{OUT_PNG} ({SIZE}x{SIZE}) 생성")
+
+    # ICO는 큰 원본 하나를 넘기면 Pillow가 각 크기로 줄여 담는다. 미리 96px로 줄인
+    # 것을 다시 줄이면 두 번 리샘플링돼 작은 크기에서 뭉개지므로 고해상도에서 간다.
+    img.resize((256, 256), Image.LANCZOS).save(OUT_ICO, "ICO", sizes=ICO_SIZES)
+    print(f"{OUT_ICO} ({', '.join(f'{w}x{h}' for w, h in ICO_SIZES)}) 생성")
 
 
 if __name__ == "__main__":
