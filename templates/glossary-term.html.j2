@@ -122,7 +122,7 @@
   {% if neighbors %}
   <nav class="term-page-nav" aria-label="다른 용어" data-aria-ko="다른 용어" data-aria-en="Other terms">
     {% for n in neighbors %}
-    <a class="site-nav-link" href="{{ n.slug }}.html">
+    <a class="site-nav-link" href="{{ lup }}glossary/{{ n.slug }}.html">
       {% if lang == 'ko' %}{{ n.term_ko }}{% else %}{{ n.term_en or n.term_ko }}{% endif %}
     </a>
     {% endfor %}

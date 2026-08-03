@@ -54,33 +54,39 @@ def lang_site_url(site_url: str, lang: str) -> str:
     return site_url if lang == "ko" else f"{site_url}/en"
 
 
-def up_prefix(lang: str, dir_depth: int) -> str:
-    """**사이트 루트**까지 거슬러 올라가는 접두사 — 두 언어가 공유하는 자산용.
+# 링크 접두사는 **절대경로**다. 상대경로를 쓰면 안 되는 이유가 실측으로 확인됐다:
+#
+#   /en/   200  (상대경로 기준 = /en/)
+#   /en    200  (상대경로 기준 = /  )   ← 같은 파일, 서로 리다이렉트하지 않음
+#
+# cleanUrls가 켜져 있으면 모든 디렉터리 인덱스가 슬래시 유무 두 형태로 서빙되는데
+# 둘의 상대경로 기준이 다르다. 즉 **한 파일이 두 기준으로 열리므로 상대경로로는
+# 양쪽을 동시에 맞출 수 없다.** 이 저장소에서 같은 계열 사고가 세 번 났고
+# (`/topics` 404, 영어판 언어 누수, /en 홈에서 한국어로 새는 것) 매번 "깊이를 더
+# 정확히 계산"으로 고쳤지만 근본 원인이 이것이라 계속 재발했다.
+#
+# 절대경로는 어느 URL에서 열리든 같은 곳을 가리키므로 이 문제가 원천적으로 없다.
+# dir_depth 인자는 호출부를 한꺼번에 고치지 않기 위해 남겨두었을 뿐 쓰이지 않는다.
+
+
+def up_prefix(lang: str = "ko", dir_depth: int = 0) -> str:
+    """**사이트 루트** 접두사 — 두 언어가 공유하는 자산용.
 
     CSS·JS·favicon·OG 이미지·search-index.json은 docs/ 루트에만 있고 언어별 사본이
-    없다. 그래서 영어판(/en/ 아래)에서는 한 단계 더 거슬러 올라가야 한다.
-
-    dir_depth는 그 페이지가 서빙될 때의 기준 디렉터리 깊이다(언어 루트 기준):
-      /            -> 0      /glossary        -> 0   (cleanUrls: 세그먼트 1개)
-      /topics      -> 0      /topics/models   -> 1
-      /archive     -> 0      /archive/2026-.. -> 1
-
-    `/topics` 404 사고가 이 계산을 페이지마다 손으로 하다 어긋나서 났다.
-    깊이 계산은 반드시 이 함수와 lang_up_prefix()만 쓴다."""
-    return "../" * (dir_depth + (1 if lang == "en" else 0))
+    없다. 절대경로라 언어·깊이와 무관하게 항상 "/"다."""
+    return "/"
 
 
-def lang_up_prefix(dir_depth: int) -> str:
-    """**언어 루트**까지 거슬러 올라가는 접두사 — 같은 언어판 안의 페이지 링크용.
+def lang_up_prefix(dir_depth: int = 0, lang: str = "ko") -> str:
+    """**언어 루트** 접두사 — 같은 언어판 안의 페이지 링크용.
 
-    up_prefix()와 반드시 구분해야 한다. 내비게이션·홈·RSS 링크에 up_prefix()를 쓰면
-    영어판에서 /en/ 밖으로 나가버려 한국어 페이지로 떨어진다(실제로 그랬다 —
-    영어로 보다가 "Topics"를 누르면 한국어 토픽 페이지가 나왔다).
+    up_prefix()와 반드시 구분해야 한다. 페이지 링크에 up_prefix()를 쓰면 영어판이
+    /en/ 밖으로 나가 한국어 페이지로 떨어진다.
 
     언어별로 각각 존재하는 것: index.html, about.html, glossary.html,
     glossary/<슬러그>, topics/, archive/, weekly/, feed.xml
     사이트 루트에만 있는 것(up_prefix 사용): CSS, JS, favicon, og-image, search-index"""
-    return "../" * dir_depth
+    return "/en/" if lang == "en" else "/"
 
 KO_CHARS_PER_MINUTE = 500  # 한국어는 음절 수 기준(띄어쓰기 단위 "단어"가 불명확해서)
 EN_WORDS_PER_MINUTE = 200  # 영어는 공백 기준 단어 수
@@ -381,7 +387,7 @@ def build_glossary_term_pages(docs_dir: Path, entries: list, site_url: str, veri
     for lang in LANGS:
         out_dir = lang_root(docs_dir, lang) / "glossary"
         out_dir.mkdir(parents=True, exist_ok=True)
-        up, lup = up_prefix(lang, 1), lang_up_prefix(1)
+        up, lup = up_prefix(lang), lang_up_prefix(lang=lang)
         for i, term in enumerate(entries):
             ko_url = f"{site_url}/glossary/{term['slug']}"
             en_url = f"{site_url}/en/glossary/{term['slug']}"
@@ -433,8 +439,8 @@ def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification
             template.render(
                 lang=lang,
                 lang_alt_url=(ko_url if lang == "en" else en_url),
-                up=up_prefix(lang, 0),
-                lup=lang_up_prefix(0),
+                up=up_prefix(lang),
+                lup=lang_up_prefix(lang=lang),
                 terms=terms,
                 term_lookup=term_lookup,
                 nav_counts=nav_counts,
@@ -517,8 +523,8 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
         topics_dir.mkdir(parents=True, exist_ok=True)
         # 목록(/topics)은 cleanUrls로 세그먼트 1개가 되어 기준 디렉터리가 언어 루트,
         # 개별(/topics/<slug>)은 한 단계 아래다.
-        up_index, up_item = up_prefix(lang, 0), up_prefix(lang, 1)
-        lup_index, lup_item = lang_up_prefix(0), lang_up_prefix(1)
+        up_index = up_item = up_prefix(lang)
+        lup_index = lup_item = lang_up_prefix(lang=lang)
 
         for topic in topics:
             entries = by_topic.get(topic["slug"], [])[:TOPIC_PAGE_MAX_ENTRIES]
@@ -530,7 +536,7 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
             (topics_dir / f"{topic['slug']}.html").write_text(
                 template.render(
                     lang=lang, lang_alt_url=(ko_url if lang == "en" else en_url),
-                    up=up_item, lup=lup_item, tp="",
+                    up=up_item, lup=lup_item, tp=lup_item + "topics/",
                     topic=topic, entries=entries, topic_summary=summary, is_index=False,
                     nav_counts=nav_counts, generated_at=generated_at,
                     canonical_url=page_url, og_image_url=og_image_url,
@@ -549,7 +555,7 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
         (topics_dir / "index.html").write_text(
             template.render(
                 lang=lang, lang_alt_url=(ko_index if lang == "en" else en_index),
-                up=up_index, lup=lup_index, tp="topics/",
+                up=up_index, lup=lup_index, tp=lup_index + "topics/",
                 topic=None, entries=[], topic_summary=summary, is_index=True,
                 nav_counts=nav_counts, generated_at=generated_at,
                 canonical_url=index_url, og_image_url=og_image_url,
@@ -611,8 +617,8 @@ def build_archive_index(docs_dir: Path, archive_dir: Path, site_url: str, verifi
             env.get_template("archive-index.html.j2").render(
                 lang=lang,
                 lang_alt_url=(ko_url if lang == "en" else en_url),
-                up=up_prefix(lang, 0),
-                lup=lang_up_prefix(0),
+                up=up_prefix(lang),
+                lup=lang_up_prefix(lang=lang),
                 months=ordered,
                 total_days=total_days,
                 nav_counts=nav_counts,
@@ -652,8 +658,8 @@ def build_about_page(docs_dir: Path, site_url: str, verification: dict, og_image
             env.get_template("about.html.j2").render(
                 lang=lang,
                 lang_alt_url=(ko_url if lang == "en" else en_url),
-                up=up_prefix(lang, 0),
-                lup=lang_up_prefix(0),
+                up=up_prefix(lang),
+                lup=lang_up_prefix(lang=lang),
                 about=about,
                 site_stats=site_stats,
                 nav_counts=nav_counts,
@@ -925,8 +931,8 @@ def main():
         root.mkdir(parents=True, exist_ok=True)
         # 자산(CSS·JS·favicon)은 사이트 루트에만 있고, 페이지는 언어별로 있다.
         # 둘을 같은 접두사로 쓰면 영어판 내비가 한국어 페이지로 떨어진다.
-        up, lup = up_prefix(lang, 0), lang_up_prefix(0)                    # 홈
-        up_archive, lup_archive = up_prefix(lang, 1), lang_up_prefix(1)    # /archive/<날짜>
+        up = up_archive = up_prefix(lang)
+        lup = lup_archive = lang_up_prefix(lang=lang)
         this_index_url = en_index_url if lang == "en" else ko_index_url
         alt_index_url = ko_index_url if lang == "en" else en_index_url
 
@@ -988,7 +994,10 @@ def main():
                 archives=past_archives,
                 weekly_labels=weekly_labels,
                 show_weekly_banner=False,
-                archive_link_prefix="",
+                # 절대경로라 형제 페이지도 언어 루트부터 적는다. 예전에는 같은
+                # 디렉터리라 빈 문자열이었는데, /en/archive/<날짜>가 슬래시 없는
+                # 형태로도 열리면 그 기준이 /en/이 아니라 /en이 된다.
+                archive_link_prefix=lup_archive + "archive/",
                 weekly_link_prefix=lup_archive + "weekly/",
                 topic_link_prefix=lup_archive + "topics/",
                 feed_href=lup_archive + "feed.xml",

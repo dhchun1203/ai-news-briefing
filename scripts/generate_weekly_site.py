@@ -112,8 +112,8 @@ def main():
             template.render(
                 lang=lang,
                 lang_alt_url=(ko_url if lang == "en" else en_url),
-                up=up_prefix(lang, 1),
-                lup=lang_up_prefix(1),
+                up=up_prefix(lang),
+                lup=lang_up_prefix(lang=lang),
                 week_label=week_label,
                 start_date=weekly["start_date"],
                 end_date=weekly["end_date"],

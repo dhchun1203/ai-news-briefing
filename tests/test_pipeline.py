@@ -340,13 +340,32 @@ class TestArchiveIndex(unittest.TestCase):
         self.assertIn("July 2026", en)
         self.assertNotIn("2026년 7월", en, "영어판에 한국어가 섞였다")
 
-    def test_links_are_prefixed_for_the_clean_url_depth(self):
-        # /archive(세그먼트 1개)에서 서빙되므로 날짜 링크에 archive/가 붙어야 한다.
+    def test_links_are_absolute_and_language_correct(self):
+        """링크는 절대경로여야 한다.
+
+        cleanUrls가 켜져 있으면 /archive 와 /archive/ 가 **둘 다 200으로 서빙되는데
+        서로 리다이렉트하지 않는다**(2026-08-03 실측). 두 URL의 상대경로 기준이
+        달라서 상대경로로는 양쪽을 동시에 맞출 수 없다 — 이 저장소에서 같은 계열
+        사고가 세 번 났고(/topics 404, 영어판 언어 누수, /en 홈에서 한국어로 새는 것)
+        전부 이 원인이었다."""
         _, ko, en = self._build(["2026-07-15"])
-        self.assertIn('href="archive/2026-07-15.html"', ko)
-        self.assertIn('href="site-base.css"', ko)  # 한국어판은 루트라 접두사 없이
-        # 영어판은 /en/ 아래라 한 단계 더 거슬러 올라가야 한다.
-        self.assertIn('href="../site-base.css"', en)
+        self.assertIn('href="/archive/2026-07-15.html"', ko)
+        self.assertIn('href="/site-base.css"', ko)
+        # 자산은 사이트 루트 하나뿐이라 두 언어판이 같은 경로를 쓴다.
+        self.assertIn('href="/site-base.css"', en)
+        # 페이지 링크는 언어 루트부터 — 영어판이 한국어 트리로 새면 안 된다.
+        self.assertIn('href="/en/archive/2026-07-15.html"', en)
+        self.assertNotIn('href="/archive/2026-07-15.html"', en)
+
+    def test_no_relative_links_remain(self):
+        """상대경로가 하나라도 남으면 그 링크만 조용히 다른 곳을 가리킨다."""
+        import re
+
+        _, ko, en = self._build(["2026-07-15"])
+        for label, html_text in (("ko", ko), ("en", en)):
+            rel = [m for m in re.findall(r'(?:href|src)="([^"]+)"', html_text)
+                   if not m.startswith(("http", "#", "mailto:", "/"))]
+            self.assertEqual(rel, [], f"{label}판에 상대경로가 남아 있다: {rel}")
 
     def test_sent_markers_are_not_listed_as_days(self):
         total, _, _ = self._build(["2026-07-15"])
