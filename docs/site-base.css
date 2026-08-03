@@ -1020,24 +1020,23 @@ a.topic-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offse
 }
 
 /* ---------- 용어사전 페이지 (모든 브리핑에 등장한 용어를 모은 별도 페이지) ---------- */
-/* 유틸리티 바 내비 메뉴(주제별·용어사전·아카이브·소개).
+/* 유틸리티 바 내비 메뉴(주제별·용어사전·아카이브·소개) — 신문 섹션 탭.
 
    평문 텍스트로 두면 메뉴로 안 읽힌다 — 이 바에는 공유·언어·다크모드 같은 "설정
    컨트롤"이 함께 있어서, 테두리 없는 굵은 글씨는 메뉴가 아니라 그 구역의 라벨처럼
-   보이고 눈이 그냥 지나친다.
+   보이고 눈이 그냥 지나친다. 그렇다고 링크마다 알약 테두리를 두르면 바 전체에 같은
+   굵기의 도형이 대여섯 개 흩어져 무엇이 메뉴이고 무엇이 설정인지 구분이 안 된다.
 
-   그렇다고 링크마다 알약 테두리를 두르면 이번엔 바 전체에 같은 굵기의 알약이
-   대여섯 개 흩어져, 무엇이 메뉴이고 무엇이 설정인지 구분이 안 된다. 그래서
-   **하나의 알약 안에서 칸막이로 나뉜 세그먼트 그룹**으로 만든다 — 도형은 하나뿐이라
-   조용하지만, 묶여 있다는 사실 자체가 "이건 메뉴다"를 말해준다. 대신 오른쪽
-   컨트롤들은 테두리를 버리고 호버할 때만 배경이 뜨게 해서 위계를 벌린다. */
+   한동안 "하나의 알약 안에서 칸막이로 나뉜 세그먼트 그룹"을 썼는데, 흑백 신문 톤
+   위에서 그 덩어리가 무겁고 아래 세리프 마스트헤드와 재질이 달라 보였다. 지금은
+   **바가 이미 갖고 있는 아래 경계선을 활용한다** — 탭이 그 선 위에 앉고, 현재 섹션만
+   강조색으로 선을 끊고 올라온다. 새 도형을 하나도 더하지 않으면서 "지금 어디인지"를
+   가장 강하게 말하고, 항목이 늘어도 알약처럼 무거워지지 않는다.
+
+   오른쪽 컨트롤들은 테두리를 버리고 호버할 때만 배경이 뜨게 해서 위계를 벌린다. */
 .site-nav-group {
   display: inline-flex;
   align-items: stretch;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  /* 양 끝 세그먼트의 배경·밑줄이 알약 곡선 밖으로 삐져나오지 않게 한다. */
-  overflow: hidden;
 }
 
 .site-nav-link {
@@ -1050,14 +1049,21 @@ a.topic-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offse
   color: var(--text);
   text-decoration: none;
   white-space: nowrap;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
-/* 칸막이는 box-shadow로 그린다 — border-left를 쓰면 그만큼 폭이 늘어 세그먼트
-   너비가 첫 칸만 1px 어긋난다. */
-.site-nav-group > .site-nav-link + .site-nav-link {
-  box-shadow: inset 1px 0 0 var(--border);
+.site-nav-link:hover { color: var(--accent); }
+
+/* 탭 모양은 **그룹 안에 있을 때만** 준다. 모바일 서랍의 링크는 site.js가 이 요소를
+   복제해 .nav-drawer 바로 아래에 붙이므로 이 규칙에 걸리지 않는다 — 세로로 쌓이는
+   서랍 항목에 음수 margin이 붙으면 간격이 무너진다. */
+.site-nav-group > .site-nav-link {
+  border-bottom: 3px solid transparent;
+  /* 바의 아래 패딩 + 경계선 두께(1px)만큼 끌어내린다. 패딩만큼만 내리면 탭 밑줄이
+     경계선 바로 위에 얹혀 두 줄로 보인다 — 1px을 더해야 강조색이 경계선을 덮으면서
+     "현재 섹션이 선을 끊고 올라온다"는 이 디자인의 요점이 성립한다. */
+  margin-bottom: calc(-1 * (var(--nav-tab-drop, 9px) + 1px));
 }
-.site-nav-link:hover { color: var(--accent); background: var(--implication-bg); }
+.site-nav-group > .site-nav-link:hover { border-bottom-color: var(--border); }
 
 /* 개수는 라벨을 밀어내지 않도록 가늘고 흐리게 — 정보이지 강조가 아니다. */
 .site-nav-link-count {
@@ -1067,18 +1073,12 @@ a.topic-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offse
 }
 .site-nav-link:hover .site-nav-link-count { color: var(--accent); }
 
-/* 현재 보고 있는 섹션은 채워서 표시한다 — 메뉴가 "지금 어디인지"를 알려주지 않으면
-   내비게이션이 아니라 링크 모음일 뿐이다. 배경만으로는 호버와 구분이 안 되므로
-   유일한 강조색인 밑줄을 함께 깐다. */
-.site-nav-link-current { background: var(--implication-bg); }
-.site-nav-group .site-nav-link-current::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  background: var(--accent);
+/* 현재 보고 있는 섹션. 메뉴가 "지금 어디인지"를 알려주지 않으면 내비게이션이 아니라
+   링크 모음일 뿐이다. 배경을 채우지 않고 밑줄만 강조색으로 두는 편이 신문 섹션
+   내비의 관용이고, 호버(연한 회색 밑줄)와도 확실히 구분된다. */
+.site-nav-group > .site-nav-link-current,
+.site-nav-group > .site-nav-link-current:hover {
+  border-bottom-color: var(--accent);
 }
 
 /* 오른쪽 설정 컨트롤 묶음. 메뉴와 달리 테두리가 없어 한 단계 뒤로 물러나 보인다. */
