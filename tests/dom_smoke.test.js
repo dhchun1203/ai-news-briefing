@@ -322,6 +322,24 @@ function finishPage(label, doc, window, opts) {
   if (fs.existsSync(path.join(DOCS, "en", "glossary.html"))) {
     checkCleanUrlLinks("en/glossary.html", "https://www.dailyaithread.com/en/glossary", "en/glossary (clean URL)");
   }
+  // 영어판에 한국어가 남지 않는지 — 기사 카드만 고치고 목차를 빠뜨린 적이 있다
+  // (2026-08-03). 한 군데만 놓쳐도 그 목록 전체가 읽을 수 없는 글자로 남는다.
+  if (fs.existsSync(path.join(DOCS, "en", "index.html"))) {
+    const { doc } = load("en/index.html", "https://www.dailyaithread.com/en/");
+    const hangul = /[가-힣]/;
+    const spots = [
+      [".toc-text", "목차"],
+      [".article-title a, .article h2 a", "기사 제목"],
+    ];
+    spots.forEach(([sel, label]) => {
+      const nodes = [].slice.call(doc.querySelectorAll(sel));
+      if (!nodes.length) return;
+      const bad = nodes.filter((n) => hangul.test(n.textContent || ""));
+      check("en/index", `${label}에 한글 없음`, bad.length === 0,
+        bad.map((n) => (n.textContent || "").trim().slice(0, 30)).join(" | "));
+    });
+  }
+
   // 용어 페이지의 전환 경로. 검색 유입의 주력 착지점인데 구독 유도가 하나도 없어
   // 읽고 나가면 끝나는 막다른 길이었다(2026-08-02 점검). 조용히 사라지면 안 된다.
   ["glossary/mcp.html", "en/glossary/mcp.html"].forEach((f) => {

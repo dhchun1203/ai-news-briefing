@@ -26,6 +26,7 @@
 <meta property="og:image:alt" content="{% if lang == 'ko' %}AI 뉴스 브리핑 · Daily AI Thread{% else %}Daily AI Thread · AI News Briefing{% endif %}">
 <meta name="twitter:image" content="{{ og_image_url }}">
 <link rel="icon" type="image/svg+xml" href="{{ css_prefix }}favicon.svg">
+<link rel="icon" type="image/png" sizes="96x96" href="{{ css_prefix }}favicon.png">
 <link rel="alternate" type="application/rss+xml" title="{{ title_default }}" href="{{ feed_href }}">
 {% if hreflang_ko_url and hreflang_en_url %}
 <link rel="alternate" hreflang="ko" href="{{ hreflang_ko_url }}">
@@ -167,7 +168,7 @@
     </h2>
     <ol class="toc-list">
       {% for article in articles %}
-      <li><a href="#article-{{ loop.index }}"><span class="toc-num">{{ "%02d"|format(loop.index) }}</span><span class="toc-text">{{ article.title }}</span></a></li>
+      <li><a href="#article-{{ loop.index }}"><span class="toc-num">{{ "%02d"|format(loop.index) }}</span><span class="toc-text">{% if lang == 'en' and article.title_en %}{{ article.title_en }}{% else %}{{ article.title }}{% endif %}</span></a></li>
       {% endfor %}
     </ol>
   </nav>

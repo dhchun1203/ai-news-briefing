@@ -29,6 +29,12 @@ SHARED_ASSETS = (
     TEMPLATES_DIR / "site-desktop.css",
     STATIC_DIR / "site.js",
     STATIC_DIR / "favicon.svg",
+    # 검색엔진용 PNG 파비콘. 구글 검색 결과에 지구본(기본 아이콘)이 뜨던 것을
+    # 고치려고 추가했다 — SVG만 제공하면 구글 파비콘 크롤러가 못 가져가는
+    # 경우가 있다. 디자인이 바뀌면 scripts/tools/generate_favicon_png.py를
+    # 다시 돌려 favicon.svg와 맞춘다(빌드 때 렌더링하지 않는 이유는 그 파일의
+    # 주석 참고 — 매일 도는 경로에 Pillow 의존을 늘리지 않으려는 것이다).
+    STATIC_DIR / "favicon.png",
     STATIC_DIR / "og-image.png",
     # Bing 사이트 소유 확인 파일. 사이트 루트에 그대로 있어야 하므로 여기 둔다 —
     # docs/에 직접 커밋해두면 되긴 하지만, 나중에 누가 docs/를 비우고 재생성할 때
