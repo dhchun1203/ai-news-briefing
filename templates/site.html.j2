@@ -92,7 +92,11 @@
     {# 구독자 수 대신 '얼마나 꾸준히 나왔는가'를 보여준다 — 규모가 작을 때도 정직하게
        쌓이는 신뢰 신호이고, 시작 시점부터 스스로 늘어나서 손댈 일이 없다. #}
     <p class="site-stats">
-      {% if lang == 'ko' %}브리핑 {{ site_stats.days }}일 · 기사 {{ site_stats.articles }}건 · 용어 {{ site_stats.terms }}개{% if site_stats.since %} · {{ site_stats.since }}부터 하루도 빠짐없이{% endif %}{% else %}{{ site_stats.days }} editions · {{ site_stats.articles }} stories · {{ site_stats.terms }} terms explained{% if site_stats.since %} · every day since {{ site_stats.since }}{% endif %}{% endif %}
+      {# "하루도 빠짐없이"는 days 숫자와 다른 주장이다 — days는 발행한 날 수라 하루
+         걸러도 안 늘 뿐이지만, 이 문구는 결번이 없다고 단언한다. 둘을 묶어두면 하루
+         거른 뒤에도 문구가 그대로 나가 거짓말이 되므로 unbroken일 때만 붙인다.
+         결번이 생겨도 시작일은 사실이므로 그건 남긴다. #}
+      {% if lang == 'ko' %}브리핑 {{ site_stats.days }}일 · 기사 {{ site_stats.articles }}건 · 용어 {{ site_stats.terms }}개{% if site_stats.since %} · {{ site_stats.since }}부터{% if site_stats.unbroken %} 하루도 빠짐없이{% endif %}{% endif %}{% else %}{{ site_stats.days }} editions · {{ site_stats.articles }} stories · {{ site_stats.terms }} terms explained{% if site_stats.since %} · {% if site_stats.unbroken %}every day since{% else %}since{% endif %} {{ site_stats.since }}{% endif %}{% endif %}
     </p>
     {% endif %}
   </div>

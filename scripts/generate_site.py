@@ -5,6 +5,7 @@ import copy
 import html
 import json
 import re
+from datetime import date as date_cls
 from datetime import datetime
 from pathlib import Path
 
@@ -693,6 +694,25 @@ def collect_nav_counts(archive_dir: Path) -> dict:
     }
 
 
+def _is_unbroken_streak(days: list) -> bool:
+    """첫 발행일부터 마지막 발행일까지 하루도 거르지 않았는가.
+
+    화면의 "하루도 빠짐없이"(every day since)는 `days` 숫자와 **다른 주장**이다.
+    days는 발행한 날 수라 하루 걸러도 그냥 안 늘 뿐이지만, 저 문구는 결번이 없다고
+    단언한다. 둘을 묶어두면 하루 거른 뒤에도 문구가 그대로 나가 거짓말이 된다.
+
+    날짜를 못 읽으면 False를 돌려준다 — 확인할 수 없을 때는 주장하지 않는 쪽이 맞고,
+    무인 실행이라 여기서 예외가 나면 그날 사이트 생성이 통째로 멈춘다."""
+    if not days:
+        return False
+    try:
+        parsed = sorted(date_cls.fromisoformat(d) for d in days)
+    except (ValueError, TypeError):
+        return False
+    span = (parsed[-1] - parsed[0]).days + 1  # 양끝 포함
+    return len(set(parsed)) == span
+
+
 def collect_site_stats(archive_dir: Path, glossary_count: int) -> dict:
     """랜딩에 띄울 누적 지표(브리핑 일수·기사 수·용어 수·시작일).
 
@@ -702,10 +722,13 @@ def collect_site_stats(archive_dir: Path, glossary_count: int) -> dict:
     days = [stem for _, stem in _iter_archive_days(archive_dir)]
     article_count = sum(len(day.get("articles", [])) for day, _ in _iter_archive_days(archive_dir))
     return {
+        # **발행한 날 수**다(아카이브 파일 개수). "시작일로부터 경과일"이 아니라서
+        # 하루 거르면 숫자가 정직하게 멈춘다 — 그게 이 지표를 신뢰 신호로 쓰는 이유다.
         "days": len(days),
         "articles": article_count,
         "terms": glossary_count,
         "since": min(days) if days else None,
+        "unbroken": _is_unbroken_streak(days),
     }
 
 

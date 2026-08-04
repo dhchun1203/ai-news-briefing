@@ -1033,5 +1033,49 @@ class TestGlossarySeenDates(unittest.TestCase):
             self.assertEqual(collect_glossary_terms(archive)[0]["seen_dates"], ["2026-07-31"])
 
 
+class TestUnbrokenStreak(unittest.TestCase):
+    """홈의 "하루도 빠짐없이"(every day since)는 `days` 숫자와 **다른 주장**이다.
+    days는 발행한 날 수라 하루 걸러도 안 늘 뿐이지만, 저 문구는 결번이 없다고
+    단언한다. 둘을 묶어두면 하루 거른 뒤에도 문구가 그대로 나가 거짓말이 된다.
+    마케팅 카피가 이 숫자를 인용하므로 특히 조용히 틀리면 안 된다(2026-08-04)."""
+
+    def _stats(self, dates):
+        from generate_site import collect_site_stats
+
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = Path(tmp)
+            for d in dates:
+                (archive / f"{d}.json").write_text(
+                    json.dumps({"date": d, "articles": []}), encoding="utf-8")
+            return collect_site_stats(archive, glossary_count=0)
+
+    def test_연속이면_참(self):
+        s = self._stats(["2026-07-23", "2026-07-24", "2026-07-25"])
+        self.assertTrue(s["unbroken"])
+        self.assertEqual(s["days"], 3)
+        self.assertEqual(s["since"], "2026-07-23")
+
+    def test_하루라도_비면_거짓(self):
+        # 7/24가 빠졌다 — days는 3이지만 시작~끝은 4일이다.
+        s = self._stats(["2026-07-23", "2026-07-25", "2026-07-26"])
+        self.assertFalse(s["unbroken"])
+        self.assertEqual(s["days"], 3, "days는 발행한 날 수 그대로여야 한다")
+
+    def test_하루뿐이어도_참(self):
+        self.assertTrue(self._stats(["2026-07-23"])["unbroken"])
+
+    def test_아카이브가_비면_거짓(self):
+        s = self._stats([])
+        self.assertFalse(s["unbroken"])
+        self.assertIsNone(s["since"])
+
+    def test_날짜를_못_읽으면_주장하지_않는다(self):
+        # 확인할 수 없을 때는 주장하지 않는 쪽이 맞다. 무인 실행이라 예외로 죽어서도
+        # 안 된다 — 파일명이 이상해도 사이트 생성은 끝나야 한다.
+        from generate_site import _is_unbroken_streak
+
+        self.assertFalse(_is_unbroken_streak(["not-a-date", "2026-07-24"]))
+
+
 if __name__ == "__main__":
     unittest.main()
