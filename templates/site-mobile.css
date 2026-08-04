@@ -14,7 +14,7 @@ body {
 .utility-bar { padding: 8px 16px; }
 .utility-bar-inner { flex-wrap: wrap; row-gap: 8px; }
 .lang-switch { height: 36px; padding: 0 10px; font-size: 0.8rem; }
-.share-button { width: 40px; height: 40px; font-size: 1rem; }
+.share-button { width: 44px; height: 44px; font-size: 1rem; }
 .share-tooltip { font-size: 0.74rem; padding: 4px 8px; }
 .theme-toggle { width: 54px; height: 30px; --toggle-travel: 24px; }  /* 54 - 보더2 - 패딩6 - 썸22 */
 .theme-toggle-thumb { width: 22px; height: 22px; font-size: 0.72rem; }
@@ -35,7 +35,7 @@ body {
 .subscribe-desc { font-size: 0.82rem; margin-bottom: 12px; }
 .subscribe-form { flex-direction: column; gap: 8px; }
 .subscribe-input { padding: 8px 16px; font-size: 0.92rem; }
-.subscribe-submit { padding: 8px 16px; font-size: 0.86rem; }
+.subscribe-submit { padding: 8px 16px; font-size: 0.86rem; min-height: 44px; }
 .subscribe-hint { font-size: 0.8rem; }
 .subscribe-status { font-size: 0.78rem; min-height: 1.2em; margin-top: 8px; }
 
@@ -52,7 +52,11 @@ body {
 .weekly-teaser-label { font-size: 0.66rem; margin-bottom: 4px; }
 .weekly-teaser-headline { font-size: 1.02rem; line-height: 1.4; }
 
-.insight { margin: 16px 0 12px; padding: 16px; }
+/* 간판 콘텐츠인데 화면에서 **가장 좁은** 글이었다. 375px 기준으로 재보니 본문
+   요약은 343px인데 인사이트는 308px(한 줄 23자 vs 19자) — .content의 좌우 여백
+   위에 이 블록의 패딩이 또 얹혀서다. 좌우 여백만큼 밖으로 빼서 글 폭을 본문과
+   같게 만든다. 블록이 화면 끝까지 닿아 구역 구분도 오히려 또렷해진다. */
+.insight { margin: 16px -16px 12px; padding: 16px; }
 .insight-label { font-size: 0.66rem; margin-bottom: 8px; }
 .insight-headline { font-size: 1.15rem; line-height: 1.45; margin: 0 0 12px; }
 .insight-body { font-size: 1.06rem; line-height: 1.7; }
@@ -60,7 +64,12 @@ body {
 
 .toc { margin: 16px 0 8px; padding: 16px 0; }
 .toc-title { font-size: 0.75rem; margin: 0 0 8px; }
-.toc-list { grid-template-columns: 1fr; gap: 8px; font-size: 0.92rem; line-height: 1.4; }
+/* 목차는 기사로 가는 주 통로인데 링크 높이가 21px였다(iOS 권장 44). 세로 여백을
+   줘서 손가락으로 정확히 누를 수 있게 한다. 항목이 늘어난 만큼 페이지가 길어지지만,
+   못 누르는 링크보다는 낫다. 본문 속 용어 링크(.term-link)는 문장 안에 있는
+   인라인 타깃이라 이 기준의 예외이므로 건드리지 않는다. */
+.toc-list { grid-template-columns: 1fr; gap: 0; font-size: 0.92rem; line-height: 1.4; }
+.toc-list a { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 0; }
 .toc-num { font-size: 0.8rem; width: 22px; }
 
 .article-card { padding: 24px 0; }
@@ -149,7 +158,7 @@ body {
    모바일에서는 링크를 서랍으로 보내고 햄버거만 남긴다(→ 약 250px). 서랍 안의
    복제본은 .nav-drawer 하위라 이 규칙에 걸리지 않는다. */
 .utility-bar .site-nav-group { display: none; }
-.nav-toggle { display: inline-flex; width: 40px; height: 36px; margin-right: auto; }
+.nav-toggle { display: inline-flex; width: 44px; height: 44px; margin-right: auto; }
 
 .nav-drawer { width: 78vw; max-width: 300px; padding: 56px 0 24px; }
 .nav-drawer-title { font-size: 0.66rem; padding: 0 20px; margin-bottom: 12px; }
