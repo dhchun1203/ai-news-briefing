@@ -51,6 +51,7 @@ body {
 .subscribe-form { max-width: 420px; gap: 8px; }
 .subscribe-input { padding: 8px 16px; font-size: 0.95rem; }
 .subscribe-submit { padding: 8px 20px; font-size: 0.9rem; }
+.subscribe-hint { font-size: 0.82rem; }
 .subscribe-status { font-size: 0.82rem; min-height: 1.2em; margin-top: 8px; }
 
 .content {
@@ -73,7 +74,11 @@ body {
 .insight { margin: 24px 0 16px; padding: 24px; }
 .insight-label { font-size: 0.72rem; margin-bottom: 8px; }
 .insight-headline { font-size: 1.4rem; line-height: 1.4; margin: 0 0 16px; }
-.insight-body { font-size: 1.05rem; line-height: 1.7; }
+/* 이 사이트의 간판 콘텐츠인데 본문 기본값(19px)보다도, 기사 요약(1.12rem)보다도
+   작았다 — 회색 블록은 "중요하다"고 말하는데 활자는 반대로 말하던 셈이다.
+   페이지에서 가장 큰 본문 활자가 되도록 올린다. 드롭캡은 이 값에 비례하므로
+   함께 커진다. 행간은 기사 요약과 같은 1.75로 맞춘다. */
+.insight-body { font-size: 1.2rem; line-height: 1.75; }
 .insight-watch { font-size: 0.9rem; line-height: 1.6; margin-top: 16px; padding-top: 16px; }
 
 .toc { margin: 24px 0 8px; padding: 24px 0; }

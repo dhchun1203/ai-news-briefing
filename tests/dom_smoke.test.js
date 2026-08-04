@@ -322,6 +322,47 @@ function finishPage(label, doc, window, opts) {
   if (fs.existsSync(path.join(DOCS, "en", "glossary.html"))) {
     checkCleanUrlLinks("en/glossary.html", "https://www.dailyaithread.com/en/glossary", "en/glossary (clean URL)");
   }
+  // --- 구독 이메일 검증 (오타 도메인 제안 + 형식 검사) ---
+  // ...@gmail.om 으로 구독을 시도한 사람이 확인 메일을 영영 못 받고 유실된 적이 있다.
+  // 오타는 눈에 잘 안 띄고, 메일이 안 오는 이유도 알 길이 없다.
+  [["index.html", "https://www.dailyaithread.com/", "ko"],
+   ["en/index.html", "https://www.dailyaithread.com/en/", "en"]].forEach(([f, url, lang]) => {
+    if (!fs.existsSync(path.join(DOCS, f))) return;
+    const { window, doc } = load(f, url);
+    const input = doc.querySelector('#subscribe-form input[name="email"]');
+    const hintEl = doc.getElementById("subscribe-hint");
+    const statusEl = doc.getElementById("subscribe-status");
+    if (!input || !hintEl) {
+      check(f, "구독 폼과 제안 요소가 있음", false);
+      return;
+    }
+    const hintAfter = (value) => {
+      input.value = value;
+      input.dispatchEvent(new window.Event("input", { bubbles: true }));
+      input.dispatchEvent(new window.Event("blur", { bubbles: true }));
+      return hintEl.hidden ? "" : (hintEl.textContent || "").trim();
+    };
+
+    // 오타는 제안이 뜬다 — 단 **막지는 않는다**(.om은 오만의 실존 TLD다).
+    const typo = hintAfter("kim@gmail.om");
+    check(`${f} (${lang})`, "gmail.om에 제안이 뜸", typo.includes("kim@gmail.com"), typo);
+    const typo2 = hintAfter("kim@gmial.com");
+    check(`${f} (${lang})`, "gmial.com에 제안이 뜸", typo2.includes("kim@gmail.com"), typo2);
+
+    // 정상 주소는 방해받지 않는다 — 흔한 도메인도, 회사 도메인도.
+    check(`${f} (${lang})`, "gmail.com은 조용함", hintAfter("kim@gmail.com") === "");
+    check(`${f} (${lang})`, "회사 도메인은 조용함", hintAfter("kim@mycompany.co.kr") === "");
+
+    // 형식이 아닌 값은 전송을 막는다.
+    input.value = "plain-text";
+    doc.getElementById("subscribe-form").dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }));
+    const msg = (statusEl.textContent || "").trim();
+    check(`${f} (${lang})`, "형식 오류는 전송을 막고 안내함", msg.length > 0, msg);
+    check(`${f} (${lang})`, "안내 문구가 해당 언어임",
+      lang === "ko" ? /형식/.test(msg) : /format/i.test(msg), msg);
+  });
+
   // 영어판에 한국어가 남지 않는지 — 기사 카드만 고치고 목차를 빠뜨린 적이 있다
   // (2026-08-03). 한 군데만 놓쳐도 그 목록 전체가 읽을 수 없는 글자로 남는다.
   if (fs.existsSync(path.join(DOCS, "en", "index.html"))) {

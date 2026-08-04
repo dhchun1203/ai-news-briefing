@@ -223,14 +223,107 @@
       error: { ko: "문제가 발생했어요. 잠시 후 다시 시도해주세요.", en: "Something went wrong. Please try again." },
       network: { ko: "네트워크 오류가 발생했어요. 다시 시도해주세요.", en: "Network error. Please try again." }
     };
+    messages.invalid = {
+      ko: "이메일 주소 형식을 확인해주세요.",
+      en: "Please check the email address format."
+    };
     var setStatus = function (key) {
       subscribeStatus.textContent = messages[key][currentLang()];
     };
+
+    /* ---- 오타 도메인 제안 ----
+       실제로 ...@gmail.om 으로 구독을 시도한 사람이 확인 메일을 영영 못 받고
+       유실됐다. 흔한 오타는 눈에 잘 안 띄고, 확인 메일이 안 오는 이유도 알 수 없다.
+
+       **제안만 하고 막지는 않는다.** .om은 오만의 실존 국가 TLD이고 .co도 마찬가지라,
+       하드 차단하면 정상 주소를 거절하게 된다. 사람이 보고 판단할 기회만 준다.
+
+       MX 조회 같은 외부 호출은 하지 않는다 — 정적 사이트 구조를 유지하고, 무인
+       운영 원칙상 외부 의존을 늘리지 않는다. 아래 표는 그래서 순수 문자열 비교다. */
+    var COMMON_DOMAINS = [
+      "gmail.com", "naver.com", "daum.net", "hanmail.net", "kakao.com",
+      "outlook.com", "hotmail.com", "yahoo.com"
+    ];
+    // 로컬 파트(@ 앞)가 아니라 도메인만 본다.
+    var TYPO_MAP = {
+      // TLD 오타 — 맨 끝 글자가 빠지거나 뒤바뀌는 경우
+      "gmail.om": "gmail.com", "gmail.con": "gmail.com", "gmail.cmo": "gmail.com",
+      "gmail.co": "gmail.com", "gmail.comm": "gmail.com", "gmail.cm": "gmail.com",
+      "naver.om": "naver.com", "naver.con": "naver.com", "naver.cmo": "naver.com",
+      "daum.ne": "daum.net", "daum.nt": "daum.net", "daum.com": "daum.net",
+      "hanmail.ne": "hanmail.net", "hanmail.nt": "hanmail.net",
+      "kakao.om": "kakao.com", "kakao.con": "kakao.com",
+      "outlook.om": "outlook.com", "outlook.con": "outlook.com",
+      "hotmail.om": "hotmail.com", "hotmail.con": "hotmail.com",
+      "yahoo.om": "yahoo.com", "yahoo.con": "yahoo.com",
+      // 도메인 이름 자체의 오타
+      "gmial.com": "gmail.com", "gamil.com": "gmail.com", "gmaill.com": "gmail.com",
+      "gmai.com": "gmail.com", "gnail.com": "gmail.com",
+      "navr.com": "naver.com", "nave.com": "naver.com", "naber.com": "naver.com",
+      "hanmial.net": "hanmail.net", "hotmial.com": "hotmail.com",
+      "outlok.com": "outlook.com", "yaho.com": "yahoo.com"
+    };
+    var suggestDomain = function (email) {
+      var at = email.lastIndexOf("@");
+      if (at < 0) return null;
+      var domain = email.slice(at + 1).toLowerCase();
+      if (!domain || COMMON_DOMAINS.indexOf(domain) >= 0) return null;
+      return TYPO_MAP[domain] || null;
+    };
+
+    var hint = document.getElementById("subscribe-hint");
+    var clearHint = function () {
+      if (hint) { hint.textContent = ""; hint.hidden = true; }
+    };
+    var showSuggestion = function (email, fixedDomain, input) {
+      if (!hint) return;
+      var fixed = email.slice(0, email.lastIndexOf("@") + 1) + fixedDomain;
+      var ko = currentLang() === "ko";
+      hint.hidden = false;
+      hint.textContent = ko ? "혹시 " : "Did you mean ";
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "subscribe-hint-fix";
+      btn.textContent = fixed;
+      btn.addEventListener("click", function () {
+        input.value = fixed;
+        clearHint();
+        input.focus();
+      });
+      hint.appendChild(btn);
+      hint.appendChild(document.createTextNode(ko ? " 아닌가요?" : "?"));
+    };
+
+    var emailInput = subscribeForm.querySelector('input[name="email"]');
+    if (emailInput) {
+      // 입력 중에는 방해하지 않고, 필드를 벗어날 때 한 번만 본다.
+      emailInput.addEventListener("blur", function () {
+        var v = emailInput.value.trim();
+        clearHint();
+        var fix = suggestDomain(v);
+        if (fix) showSuggestion(v, fix, emailInput);
+      });
+      emailInput.addEventListener("input", clearHint);
+    }
+
     subscribeForm.addEventListener("submit", function (e) {
       e.preventDefault();
       var input = subscribeForm.querySelector('input[name="email"]');
       var submitBtn = subscribeForm.querySelector(".subscribe-submit");
       var email = input.value.trim();
+
+      // ① 형식 검사. type="email"이 브라우저 단에서 거르지만, 폼을 JS로 가로채므로
+      //    여기서도 한 번 본다(구형 브라우저·자동완성 우회 대비). 최소한만 본다 —
+      //    이메일 형식을 정규식으로 완전히 검증하려는 시도는 늘 정상 주소를 거절한다.
+      if (!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(email)) {
+        setStatus("invalid");
+        input.focus();
+        return;
+      }
+      // ② 오타 도메인이면 제안만 띄우고 전송은 그대로 진행한다.
+      var fix = suggestDomain(email);
+      if (fix) showSuggestion(email, fix, input);
+
       submitBtn.disabled = true;
       setStatus("sending");
       fetch("/api/subscribe", {
@@ -248,6 +341,7 @@
           if (result.ok) {
             setStatus("confirm");
             subscribeForm.reset();
+            clearHint();
           } else {
             setStatus("error");
           }

@@ -22,5 +22,9 @@
       {% if lang == 'ko' %}구독하기{% else %}Subscribe{% endif %}
     </button>
   </form>
+  {# 오타 도메인 제안 자리. 전송 결과(subscribe-status)와 분리해 둔다 — 한 요소를
+     공유하면 제안이 상태 메시지를 덮어쓰거나 그 반대가 된다. 비어 있을 때는 hidden이라
+     스크린리더가 빈 줄을 읽지 않는다. #}
+  <p class="subscribe-hint" id="subscribe-hint" role="status" aria-live="polite" hidden></p>
   <p class="subscribe-status" id="subscribe-status" role="status" aria-live="polite"></p>
 </section>

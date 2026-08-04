@@ -293,6 +293,26 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .subscribe-submit:hover { opacity: 0.85; }
 .subscribe-submit:disabled { opacity: 0.5; cursor: default; }
 
+/* 오타 도메인 제안. 오류가 아니라 확인 요청이므로 빨간 경고색을 쓰지 않고,
+   고칠 주소를 눌러서 바로 적용할 수 있게 한다. */
+.subscribe-hint {
+  font-family: var(--sans);
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+.subscribe-hint[hidden] { display: none; }
+.subscribe-hint-fix {
+  font: inherit;
+  font-weight: 700;
+  color: var(--accent);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  padding: 0;
+  cursor: pointer;
+}
+.subscribe-hint-fix:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .subscribe-status {
   font-family: var(--sans);
   color: var(--text-muted);
