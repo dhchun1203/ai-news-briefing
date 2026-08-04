@@ -322,6 +322,25 @@ function finishPage(label, doc, window, opts) {
   if (fs.existsSync(path.join(DOCS, "en", "glossary.html"))) {
     checkCleanUrlLinks("en/glossary.html", "https://www.dailyaithread.com/en/glossary", "en/glossary (clean URL)");
   }
+  // --- 구독폼 영문 문구가 도착 시각을 사실대로 말하는지 ---
+  // 08:00 KST는 미국 동부 기준 전날 19시다(방문자 국가 1위가 미국). 시각을 밝히지
+  // 않고 "every morning"만 쓰면 아침에 올 거라 기대하고 구독한 사람이 전날 저녁에
+  // 받는다. 한국어는 실제로 아침이므로 그대로 둔다.
+  [["index.html", "https://www.dailyaithread.com/", "ko"],
+   ["en/index.html", "https://www.dailyaithread.com/en/", "en"]].forEach(([f, url, lang]) => {
+    if (!fs.existsSync(path.join(DOCS, f))) return;
+    const { doc } = load(f, url);
+    const title = (doc.querySelector(".subscribe-title") || {}).textContent || "";
+    const desc = (doc.querySelector(".subscribe-desc") || {}).textContent || "";
+    if (lang === "en") {
+      check("en/index", "구독폼이 시각 없이 아침을 주장하지 않음",
+        !/every morning/i.test(title + desc), (title + desc).trim().slice(0, 60));
+      check("en/index", "구독폼이 발송 시각을 밝힘", /KST/.test(desc), desc.trim().slice(0, 80));
+    } else {
+      check("index", "한국어 구독폼은 아침 문구를 유지", /아침/.test(title), title.trim());
+    }
+  });
+
   // --- 구독 이메일 검증 (오타 도메인 제안 + 형식 검사) ---
   // ...@gmail.om 으로 구독을 시도한 사람이 확인 메일을 영영 못 받고 유실된 적이 있다.
   // 오타는 눈에 잘 안 띄고, 메일이 안 오는 이유도 알 길이 없다.

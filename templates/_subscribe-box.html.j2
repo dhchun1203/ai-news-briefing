@@ -5,16 +5,20 @@
   /glossary, 개별 URL 47개 색인 중) 정작 구독 유도가 하나도 없어 읽고 나가면 끝나는
   막다른 길이었다(2026-08-02 점검).
 
+  **영문 문구만 발송 시각을 명시한다.** 08:00 KST는 미국 동부 기준 전날 19시,
+  서부는 전날 16시라 "every morning"이 사실과 다르다(방문자 국가 1위가 미국).
+  한국어 독자에게는 실제로 아침이므로 한국어 문구는 그대로 둔다.
+
   id는 문서당 하나여야 한다 — site.js가 `#subscribe-form`/`#subscribe-status`로 찾으므로
   한 페이지에 두 번 넣으면 뒤엣것이 동작하지 않는다. 지금은 홈과 용어 페이지가 서로 다른
   문서라 겹치지 않지만, 한 페이지에 두 번 놓지 않도록 주의한다.
 #}
 <section class="subscribe-box" aria-label="이메일 구독" data-aria-ko="이메일 구독" data-aria-en="Email subscription">
   <p class="subscribe-title">
-    {% if lang == 'ko' %}매일 아침 이메일로 받아보기{% else %}Get it in your inbox every morning{% endif %}
+    {% if lang == 'ko' %}매일 아침 이메일로 받아보기{% else %}Get it in your inbox every day{% endif %}
   </p>
   <p class="subscribe-desc">
-    {% if lang == 'ko' %}헤드라인과 한 줄 요약을 매일, 한 주를 정리하는 종합 회고를 매주 일요일에 보내드려요.{% else %}Daily headlines and summaries, plus a synthesis of the week every Sunday.{% endif %}
+    {% if lang == 'ko' %}헤드라인과 한 줄 요약을 매일, 한 주를 정리하는 종합 회고를 매주 일요일에 보내드려요.{% else %}Daily headlines and summaries, plus a synthesis of the week every Sunday. Sent at 8AM KST — that's the evening before in the US.{% endif %}
   </p>
   <form class="subscribe-form" id="subscribe-form">
     <input type="email" name="email" required class="subscribe-input" placeholder="you@example.com" aria-label="이메일 주소" data-aria-ko="이메일 주소" data-aria-en="Email address">
