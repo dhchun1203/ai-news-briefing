@@ -294,6 +294,14 @@
       hint.appendChild(document.createTextNode(ko ? " 아닌가요?" : "?"));
     };
 
+    var browserTimezone = function () {
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+      } catch (e) {
+        return null;
+      }
+    };
+
     var emailInput = subscribeForm.querySelector('input[name="email"]');
     if (emailInput) {
       // 입력 중에는 방해하지 않고, 필드를 벗어날 때 한 번만 본다.
@@ -329,7 +337,10 @@
       fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email })
+        // 시간대를 함께 보낸다(기록 전용 — 발송 시각은 아직 08:00 KST 고정).
+        // 브라우저가 직접 알려주는 IANA 이름이라 IP 조회가 필요 없다. 구형 브라우저나
+        // 차단 환경에서 실패하면 그냥 빼고 보낸다 — 이 값 때문에 구독이 막히면 안 된다.
+        body: JSON.stringify({ email: email, timezone: browserTimezone() })
       })
         .then(function (r) {
           return r.json().then(function (data) {

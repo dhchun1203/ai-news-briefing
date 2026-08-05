@@ -18,6 +18,19 @@ create table if not exists subscribers (
 -- 이미 테이블을 만든 뒤라면 아래로 컬럼만 추가한다 (재실행해도 안전).
 alter table subscribers add column if not exists last_confirm_sent_at timestamptz;
 
+-- 구독 시점 브라우저의 IANA 시간대(예: "America/New_York"). 지금은 **기록만** 하고
+-- 발송 방식은 바꾸지 않는다.
+--
+-- 왜 필요한가: 발송은 08:00 KST 한 번인데 이건 미국 동부 기준 전날 19시다. 방문자
+-- 국가 1위가 미국이라, 언젠가 구독자별 현지 아침에 보내는 선택을 하게 될 수 있다
+-- (Resend 배치가 항목마다 다른 scheduled_at을 받으므로 새 인프라는 필요 없다).
+-- 그 판단을 하려면 "구독자가 실제로 어느 시간대에 있는가"라는 데이터가 있어야 하는데,
+-- 안 모으면 나중에 소급해서 얻을 방법이 없다. 기록은 되돌릴 수 있고 발송은 아니다.
+--
+-- IP 조회가 아니라 브라우저가 알려주는 값을 쓴다(Intl.DateTimeFormat). 외부 호출이
+-- 없고, IP 추정보다 정확하며, 무인 운영 원칙과도 부딪히지 않는다.
+alter table subscribers add column if not exists timezone text;
+
 -- 서버리스 함수(Vercel)와 배포 파이프라인(scripts/send_broadcast.py)은 모두
 -- service_role 키로 접근하므로 RLS 정책을 별도로 만들 필요는 없지만, anon/public 키로는
 -- 아무 것도 접근하지 못하도록 RLS를 켜 둔다 (정책을 하나도 추가하지 않으면 기본이 전체 차단).

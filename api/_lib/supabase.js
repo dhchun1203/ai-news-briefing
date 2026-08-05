@@ -26,12 +26,15 @@ async function assertOk(res, label) {
 }
 
 // 이미 존재하는 이메일이면 조용히 무시하고(ignore-duplicates), 없으면 새로 만든다.
-async function upsertPendingSubscriber(email) {
+async function upsertPendingSubscriber(email, timezone) {
   const { url } = config();
+  // timezone은 선택 필드다. 값이 없거나 형식이 이상하면 그냥 빼고 넣는다 —
+  // 기록용 부가 정보 때문에 구독 자체가 실패하면 안 된다.
+  const row = timezone ? { email, timezone } : { email };
   const res = await fetch(`${url}/rest/v1/subscribers?on_conflict=email`, {
     method: "POST",
     headers: headers({ Prefer: "resolution=ignore-duplicates,return=minimal" }),
-    body: JSON.stringify([{ email }]),
+    body: JSON.stringify([row]),
   });
   await assertOk(res, "insert");
 }

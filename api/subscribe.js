@@ -31,6 +31,16 @@ module.exports = async function handler(req, res) {
     .trim()
     .toLowerCase();
 
+  // 구독 시점 브라우저 시간대(선택). 지금은 기록만 하고 발송에는 쓰지 않는다.
+  // 클라이언트가 보내는 값이므로 그대로 믿지 않고 IANA 이름 형태만 통과시킨다
+  // ("Asia/Seoul", "America/Indiana/Indianapolis", "UTC"). 형식이 아니면 버리고
+  // 구독은 그대로 진행한다 — 부가 정보 때문에 구독이 막히면 안 된다.
+  const rawTz = String((body && body.timezone) || "").trim();
+  const timezone =
+    rawTz.length > 0 && rawTz.length <= 64 && /^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)*$/.test(rawTz)
+      ? rawTz
+      : null;
+
   if (!isValidEmail(email)) {
     res.status(400).json({ error: "invalid_email" });
     return;
@@ -56,7 +66,7 @@ module.exports = async function handler(req, res) {
   try {
     existing = await getSubscriber(email);
     if (!existing) {
-      await upsertPendingSubscriber(email);
+      await upsertPendingSubscriber(email, timezone);
     }
   } catch (err) {
     console.error("subscribe: database error", err);

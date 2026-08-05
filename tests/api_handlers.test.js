@@ -10,7 +10,9 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = "svc_test";
 const path = require("path");
 const ROOT = path.join(__dirname, "..");
 
-let state = { row: null, resendCalls: 0, patches: [], rpcCalls: [], rpcFails: false };
+const freshState = (over = {}) =>
+  ({ row: null, resendCalls: 0, patches: [], rpcCalls: [], rpcFails: false, inserts: [], ...over });
+let state = freshState();
 
 global.fetch = async (url, opts = {}) => {
   const u = String(url);
@@ -36,6 +38,7 @@ global.fetch = async (url, opts = {}) => {
       return { ok: true, status: 200, text: async () => "", json: async () => (state.row ? [state.row] : []) };
     }
     if (method === "POST") {
+      state.inserts.push(JSON.parse(opts.body)[0]);
       state.row = { email: "u@x.com", confirmed_at: null, unsubscribed_at: null, last_confirm_sent_at: null };
       return { ok: true, status: 201, text: async () => "", json: async () => ({}) };
     }
@@ -70,7 +73,7 @@ function check(name, cond, extra = "") {
 
 (async () => {
   // --- subscribe: rate limiting ---
-  state = { row: null, resendCalls: 0, patches: [] };
+  state = freshState();
   let res = mockRes();
   await subscribe({ method: "POST", body: { email: "u@x.com" } }, res);
   check("subscribe #1 succeeds", res._status === 200 && state.resendCalls === 1);
@@ -97,7 +100,7 @@ function check(name, cond, extra = "") {
   // --- subscribe: no internal detail leak ---
   const brokenFetch = global.fetch;
   global.fetch = async () => { throw new Error("supabase insert failed: 500 host=proj.supabase.co table=subscribers"); };
-  state = { row: null, resendCalls: 0, patches: [] };
+  state = freshState();
   res = mockRes();
   await subscribe({ method: "POST", body: { email: "u@x.com" } }, res);
   check("db error -> 502", res._status === 502);
@@ -105,7 +108,7 @@ function check(name, cond, extra = "") {
   global.fetch = brokenFetch;
 
   // --- unsubscribe: GET must NOT mutate ---
-  state = { row: { email: "u@x.com", confirmed_at: "t", unsubscribed_at: null, last_confirm_sent_at: null }, resendCalls: 0, patches: [] };
+  state = freshState({ row: { email: "u@x.com", confirmed_at: "t", unsubscribed_at: null, last_confirm_sent_at: null } });
   const tok = tokens.makeUnsubscribeToken("u@x.com");
   res = mockRes();
   await unsubscribe({ method: "GET", query: { email: "u@x.com", token: tok } }, res);
@@ -174,6 +177,39 @@ function check(name, cond, extra = "") {
   check("db failure leaks no host/table name",
     !errBody.includes("supabase.co") && !errBody.includes("search_articles"), errBody);
   state.rpcFails = false;
+
+  // --- subscribe: 구독 시점 시간대 기록 (기록 전용, 발송에는 아직 안 쓴다) ---
+  // 이 필드가 조용히 유실되면 되돌릴 방법이 없다 — 지난 구독자의 시간대는
+  // 나중에 복구할 수 없으므로 저장 경로를 테스트로 고정한다.
+  const freshSubscribe = async (body) => {
+    state = freshState();
+    const r = mockRes();
+    await subscribe({ method: "POST", body }, r);
+    return r;
+  };
+
+  await freshSubscribe({ email: "tz@x.com", timezone: "America/New_York" });
+  check("subscribe stores browser timezone",
+    state.inserts[0] && state.inserts[0].timezone === "America/New_York",
+    JSON.stringify(state.inserts[0]));
+
+  await freshSubscribe({ email: "tz2@x.com", timezone: "America/Indiana/Indianapolis" });
+  check("3-segment IANA name accepted",
+    state.inserts[0] && state.inserts[0].timezone === "America/Indiana/Indianapolis",
+    JSON.stringify(state.inserts[0]));
+
+  // 시간대는 부가 정보다. 없거나 이상해도 구독 자체는 반드시 성공해야 한다.
+  let r0 = await freshSubscribe({ email: "notz@x.com" });
+  check("missing timezone still subscribes",
+    r0._status === 200 && state.inserts[0] && !("timezone" in state.inserts[0]),
+    `status=${r0._status} row=${JSON.stringify(state.inserts[0])}`);
+
+  for (const bad of ["../../etc/passwd", "<script>", "Asia/Seoul; DROP TABLE x", "x".repeat(80)]) {
+    r0 = await freshSubscribe({ email: "bad@x.com", timezone: bad });
+    check(`rejects junk timezone (${bad.slice(0, 18)}) but still subscribes`,
+      r0._status === 200 && state.inserts[0] && !("timezone" in state.inserts[0]),
+      `status=${r0._status} row=${JSON.stringify(state.inserts[0])}`);
+  }
 
   let pass = 0;
   for (const r of results) {
