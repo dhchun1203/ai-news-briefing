@@ -1,5 +1,8 @@
-// Python(scripts/send_broadcast.py)과 Node(api/_lib/tokens.js)가 같은 구독취소 토큰을
-// 만들어내는지 확인한다.
+// Python과 Node(api/_lib/tokens.js)가 같은 토큰을 만들어내는지 확인한다.
+//
+// 두 가지 계약이 걸려 있다:
+//   - 구독취소 토큰: scripts/send_broadcast.py가 서명 -> Node가 검증
+//   - 확인 토큰:     scripts/remind_unconfirmed.py가 서명 -> Node가 검증
 //
 // 왜 이게 중요한가: 구독취소 링크는 **파이썬이 서명해서** 매일 메일에 넣고, 그 링크를
 // 검증하는 건 **Node 서버리스 함수**다. 두 구현이 어긋나면 모든 구독자의 구독취소
@@ -55,5 +58,56 @@ for (const email of cases) {
   if (ok) pass++;
 }
 
-console.log(`\n${pass}/${cases.length} passed`);
-process.exit(pass === cases.length ? 0 : 1);
+// --- 확인 토큰: 리마인더 링크를 파이썬이 만들고 Node가 검증한다 ---
+// 어긋나면 리마인더의 링크만 전부 죽는데, 사람이 눌러보기 전까지 아무도 모른다.
+let total = cases.length;
+const EXPIRY = 2000000000;
+for (const email of cases) {
+  const fromNode = require("crypto")
+    .createHmac("sha256", SECRET)
+    .update(`confirm|${email}|${EXPIRY}`)
+    .digest("base64url");
+  const fromPython = python([
+    "-c",
+    [
+      "import sys",
+      "sys.path.insert(0, 'scripts')",
+      "from remind_unconfirmed import sign",
+      `print(sign(${JSON.stringify(SECRET)}, 'confirm|' + ${JSON.stringify(email)} + '|${EXPIRY}'))`,
+    ].join("; "),
+  ]);
+  const ok = fromNode === fromPython;
+  console.log((ok ? "PASS " : "FAIL ") + `confirm token parity: ${email}`);
+  if (ok) pass++;
+  total++;
+}
+
+// 파이썬이 만든 링크를 Node가 실제로 통과시키는지 — 서명뿐 아니라 유효기간까지 맞아야 한다.
+{
+  const url = python([
+    "-c",
+    [
+      "import sys",
+      "sys.path.insert(0, 'scripts')",
+      "from remind_unconfirmed import confirm_url",
+      `print(confirm_url('https://x.test', ${JSON.stringify(SECRET)}, 'u@x.com'))`,
+    ].join("; "),
+  ]);
+  const q = new URL(url).searchParams;
+  const verdict = tokens.verifyConfirmToken(q.get("email"), q.get("expiry"), q.get("token"));
+  console.log((verdict.ok ? "PASS " : "FAIL ") + "python confirm link verifies in Node");
+  if (!verdict.ok) console.log("   reason=" + verdict.reason + " url=" + url);
+  if (verdict.ok) pass++;
+  total++;
+
+  // TTL이 어긋나면 리마인더 링크만 예고 없이 일찍 만료된다.
+  const ttl = Number(q.get("expiry")) - Math.floor(Date.now() / 1000);
+  const same = Math.abs(ttl - tokens.CONFIRM_TTL_SECONDS) <= 5;
+  console.log((same ? "PASS " : "FAIL ") + "confirm TTL matches between Python and Node");
+  if (!same) console.log(`   py=${ttl}s node=${tokens.CONFIRM_TTL_SECONDS}s`);
+  if (same) pass++;
+  total++;
+}
+
+console.log(`\n${pass}/${total} passed`);
+process.exit(pass === total ? 0 : 1);

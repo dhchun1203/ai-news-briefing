@@ -31,6 +31,23 @@ alter table subscribers add column if not exists last_confirm_sent_at timestampt
 -- 없고, IP 추정보다 정확하며, 무인 운영 원칙과도 부딪히지 않는다.
 alter table subscribers add column if not exists timezone text;
 
+-- 미확정 리마인더를 보낸 시각. 사람당 정확히 한 번만 보내기 위한 표시다.
+--
+-- 이 컬럼이 없으면 "아직 확인 안 함"이라는 조건이 그 사람이 확정하기 전까지 매일 참이라
+-- 같은 사람에게 매일 리마인더가 나간다. 그건 스팸 신고를 부르고 발신 도메인 평판을 깎아,
+-- 결국 이미 확정한 구독자에게 가는 브리핑까지 스팸함으로 보낸다 — 더블 옵트인을 유지하는
+-- 이유를 스스로 무너뜨리는 셈이다.
+--
+-- scripts/remind_unconfirmed.py는 **발송 전에** 이 값을 원자적으로 선점한다
+-- (update ... where reminded_at is null). 중간에 죽거나 다시 돌려도 두 번 나가지 않는다.
+-- 반대 방향(선점 후 발송 실패)은 열어둔다 — 두 번 보내는 것보다 한 번도 안 보내는 쪽이 낫다.
+alter table subscribers add column if not exists reminded_at timestamptz;
+
+-- 매일 도는 선점 질의가 쓰는 인덱스.
+create index if not exists subscribers_reminder_pending_idx
+  on subscribers (created_at)
+  where reminded_at is null and confirmed_at is null and unsubscribed_at is null;
+
 -- 서버리스 함수(Vercel)와 배포 파이프라인(scripts/send_broadcast.py)은 모두
 -- service_role 키로 접근하므로 RLS 정책을 별도로 만들 필요는 없지만, anon/public 키로는
 -- 아무 것도 접근하지 못하도록 RLS를 켜 둔다 (정책을 하나도 추가하지 않으면 기본이 전체 차단).
