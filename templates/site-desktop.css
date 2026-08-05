@@ -24,6 +24,8 @@ body {
    위나 아래로 어긋난다. */
 .utility-bar { padding: 8px 0 9px; --nav-tab-drop: 9px; }
 .utility-bar-inner { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+/* 안내 배너도 같은 칼럼에 줄을 맞춘다 — 안 맞추면 넓은 화면에서 혼자 왼쪽 끝에 붙는다. */
+.lang-suggest-inner { max-width: 720px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
 .share-button { width: 34px; height: 34px; font-size: 1rem; }
 .lang-switch { height: 34px; padding: 0 12px; font-size: 0.82rem; }
 .share-tooltip { font-size: 0.78rem; padding: 8px 12px; }

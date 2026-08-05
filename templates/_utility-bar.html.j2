@@ -25,6 +25,28 @@
   ('archive',  nav_p ~ 'archive/index.html', '아카이브', 'Archive',  nav_counts.days if nav_counts else 0),
   ('about',    nav_p ~ 'about.html',         '소개',     'About',    0),
 ] %}
+{# 다른 언어판이 있다는 안내. 브라우저 언어가 이 페이지와 다를 때만 site.js가 보여준다.
+
+   **리다이렉트가 아니라 제안인 이유**: 감지된 언어로 자동 이동시키면 크롤러와 사람이
+   한쪽 언어판을 영영 못 보게 된다. 구글이 명시적으로 경고하는 패턴이고, 이 저장소는
+   검색 유입이 핵심이라 그 위험을 질 수 없다. 사용자가 직접 /를 열었을 때 매번
+   튕겨내는 것도 성가시다.
+
+   기본이 hidden이라 JS가 없으면 아무것도 안 뜬다. 크롤러가 보더라도 hreflang과 같은
+   내용의 링크 하나라 해가 없다. #}
+<div class="lang-suggest" id="lang-suggest" hidden>
+  <div class="lang-suggest-inner">
+    <span class="lang-suggest-text">
+      {% if lang == 'ko' %}This page is in Korean.{% else %}이 페이지는 영어로 되어 있어요.{% endif %}
+    </span>
+    <a class="lang-suggest-link" id="lang-suggest-link" href="{{ lang_alt_url }}"
+       hreflang="{{ 'en' if lang == 'ko' else 'ko' }}" rel="alternate">
+      {% if lang == 'ko' %}Read in English →{% else %}한국어로 보기 →{% endif %}
+    </a>
+    <button type="button" class="lang-suggest-close" id="lang-suggest-close"
+            aria-label="{{ 'Dismiss' if lang == 'ko' else '닫기' }}">&times;</button>
+  </div>
+</div>
 <div class="utility-bar">
   <div class="utility-bar-inner">
     {# 하나의 알약 안에서 칸막이로 나뉜 세그먼트 그룹. 링크마다 테두리를 두르면

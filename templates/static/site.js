@@ -476,6 +476,126 @@
     });
   }
 
+  /* ---------- 맨 위로 ----------
+   * 아카이브·용어사전 페이지는 스크롤이 길어서 상단 내비로 돌아가는 비용이 크다.
+   * 햄버거와 같은 이유로 여기서 만들어 붙인다 — 템플릿 7곳에 같은 마크업을 넣지
+   * 않으려는 것이고, 이 블록이 통째로 실패해도 페이지는 그대로 동작한다. */
+  var scrollTopBtn = document.createElement("button");
+  scrollTopBtn.type = "button";
+  scrollTopBtn.className = "scroll-top";
+  scrollTopBtn.id = "scroll-top";
+  // 화면에 글자가 없는 아이콘 버튼이라 라벨이 없으면 스크린리더가 "버튼"이라고만 읽는다.
+  scrollTopBtn.setAttribute("data-aria-ko", "맨 위로");
+  scrollTopBtn.setAttribute("data-aria-en", "Back to top");
+  scrollTopBtn.setAttribute("aria-label", currentLang() === "en" ? "Back to top" : "맨 위로");
+  scrollTopBtn.innerHTML =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<line x1="12" y1="19" x2="12" y2="5"></line>' +
+    '<polyline points="5 12 12 5 19 12"></polyline></svg>';
+  document.body.appendChild(scrollTopBtn);
+
+  // 한 화면 반쯤 내려갔을 때부터 띄운다. 너무 일찍 뜨면 첫 화면부터 방해가 된다.
+  var SCROLL_TOP_THRESHOLD = 600;
+  var scrollTicking = false;
+  var syncScrollTop = function () {
+    var y = window.pageYOffset || root.scrollTop || 0;
+    scrollTopBtn.classList.toggle("visible", y > SCROLL_TOP_THRESHOLD);
+    scrollTicking = false;
+  };
+  // 스크롤 이벤트는 초당 수십 번 온다. rAF로 프레임당 한 번으로 묶는다.
+  window.addEventListener("scroll", function () {
+    if (scrollTicking) return;
+    scrollTicking = true;
+    window.requestAnimationFrame(syncScrollTop);
+  }, { passive: true });
+  syncScrollTop();
+
+  scrollTopBtn.addEventListener("click", function () {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    // 화면만 올라가고 포커스는 페이지 아래에 남으면, 키보드 사용자는 다음 탭에서
+    // 다시 아래로 끌려간다. 포커스도 맨 위로 옮긴다.
+    var heading = document.querySelector(".site-header h1");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+    }
+  });
+
+  /* ---------- 다른 언어판 안내 ----------
+   * 영어권 방문자가 dailyaithread.com으로 들어오면 전부 한국어인 페이지를 보고,
+   * EN 스위치를 직접 찾아야 했다. 방문자 국가 1위가 미국이라 조용한 손실이었다.
+   *
+   * **리다이렉트하지 않는다.** 감지된 언어로 자동 이동시키면 크롤러와 사람이 한쪽
+   * 언어판을 영영 못 보게 된다(구글이 명시적으로 경고하는 패턴이고, 이 사이트는
+   * 검색 유입이 핵심이다). 직접 /를 연 사람을 매번 튕겨내는 것도 성가시다.
+   * 그래서 링크 하나를 제안하고, 선택은 사람이 한다.
+   *
+   * 한 번 고르거나 닫으면 다시 묻지 않는다 — 매 방문마다 뜨면 그게 곧 광고다. */
+  var LANG_PREF_KEY = "lang-pref";
+
+  function readLangPref() {
+    // localStorage는 사파리 프라이빗 모드나 서드파티 차단 환경에서 접근만 해도
+    // 예외를 던진다. 안내 배너 하나 때문에 아래 스크립트가 통째로 죽으면 안 된다.
+    try {
+      return window.localStorage.getItem(LANG_PREF_KEY);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeLangPref(value) {
+    try {
+      window.localStorage.setItem(LANG_PREF_KEY, value);
+    } catch (e) {
+      /* 저장이 안 되면 다음 방문에 한 번 더 뜬다. 그 정도는 감수한다. */
+    }
+  }
+
+  function prefersKorean() {
+    var list = navigator.languages && navigator.languages.length
+      ? navigator.languages
+      : [navigator.language || ""];
+    // "ko", "ko-KR" 은 맞고 "kok"(콘칸어) 같은 건 아니다. 접두사만 보면 안 된다.
+    return /^ko(-|$)/i.test(String(list[0] || ""));
+  }
+
+  var langSuggest = document.getElementById("lang-suggest");
+  if (langSuggest) {
+    var pageLang = currentLang();
+    var wantsKo = prefersKorean();
+    // 이 페이지 언어가 브라우저가 원하는 언어와 다를 때만 안내한다.
+    var mismatched = pageLang === "ko" ? !wantsKo : wantsKo;
+
+    if (mismatched && !readLangPref()) {
+      langSuggest.hidden = false;
+    }
+
+    var suggestLink = document.getElementById("lang-suggest-link");
+    if (suggestLink) {
+      suggestLink.addEventListener("click", function () {
+        // 건너간 쪽이 이 사람의 선택이다. 그쪽 페이지에서 반대 방향으로 다시 묻지 않는다.
+        writeLangPref(pageLang === "ko" ? "en" : "ko");
+      });
+    }
+    var suggestClose = document.getElementById("lang-suggest-close");
+    if (suggestClose) {
+      suggestClose.addEventListener("click", function () {
+        writeLangPref(pageLang);
+        langSuggest.hidden = true;
+      });
+    }
+  }
+
+  // 상단 EN/한국어 스위치를 직접 누른 것도 명시적인 선택이다 — 그 뒤로는 안내하지 않는다.
+  var langSwitch = document.querySelector(".lang-switch");
+  if (langSwitch) {
+    langSwitch.addEventListener("click", function () {
+      writeLangPref(currentLang() === "ko" ? "en" : "ko");
+    });
+  }
+
   /* ---------- 용어사전: 목록 검색 ---------- */
   var glossarySearch = document.getElementById("glossary-search-input");
   var glossaryList = document.getElementById("glossary-list");

@@ -32,6 +32,7 @@
    #19191a, 라이트에선 그대로 --bg 유지)로 배경을 한 단계 올린다. */
 :root[data-theme="dark"] .term-panel,
 :root[data-theme="dark"] .lang-select-list,
+:root[data-theme="dark"] .scroll-top,
 :root[data-theme="dark"] .archive-search-results {
   background: var(--implication-bg);
 }
@@ -107,6 +108,87 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 
 /* ---------- 헤더 / 마스트헤드 ---------- */
 .site-header { background: var(--bg); }
+
+/* 다른 언어판 안내 — 브라우저 언어가 이 페이지와 다를 때만 site.js가 hidden을 푼다.
+   자동 리다이렉트 대신 제안을 쓴다(이유는 _utility-bar.html.j2 주석 참고).
+   유틸리티 바 위에 얹히므로 sticky가 아니다 — 스크롤하면 그냥 올라가 사라진다. */
+.lang-suggest {
+  background: var(--implication-bg);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--sans);
+  font-size: 13px;
+}
+.lang-suggest[hidden] { display: none; }
+.lang-suggest-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+}
+.lang-suggest-text { color: var(--text-muted); }
+.lang-suggest-link {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+  /* 모바일 최소 터치 영역을 문구 높이가 아니라 여백으로 확보한다. */
+  padding: 6px 0;
+}
+.lang-suggest-link:hover { text-decoration: underline; }
+.lang-suggest-close {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  /* 44px 터치 타깃 — 작은 × 는 모바일에서 못 누른다. */
+  min-width: 44px;
+  min-height: 44px;
+}
+.lang-suggest-close:hover { color: var(--text); }
+
+/* 맨 위로 — site.js가 만들어 body에 붙인다(템플릿 7곳을 고치지 않기 위해, 햄버거와 같은 방식).
+   아카이브·용어 페이지는 스크롤이 길어 상단 내비까지 되돌아가는 비용이 크다.
+
+   z-index를 25로 두는 이유: 유틸리티 바(30)·백드롭(40)·서랍/용어패널(50)보다 아래여야
+   패널이 열렸을 때 그 위로 삐져나오지 않는다.
+
+   bottom에 safe-area를 더하는 이유: 아이폰 홈 인디케이터 영역에 걸리면 누르려다
+   앱 전환 제스처가 먼저 잡힌다. */
+.scroll-top {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index: 25;
+  /* 44px는 모바일 최소 터치 타깃. 이보다 작으면 엄지로 못 맞춘다. */
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  /* visibility까지 함께 끄지 않으면 투명한 채로 남아 탭 포커스를 가져간다. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+.scroll-top.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+.scroll-top:hover { color: var(--text); border-color: var(--rule); }
+.scroll-top:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .scroll-top { transition: none; }
+}
 
 .utility-bar {
   position: sticky;

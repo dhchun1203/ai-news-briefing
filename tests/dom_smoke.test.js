@@ -21,6 +21,8 @@ const DOCS = process.argv[2] || path.join(__dirname, "..", "docs");
 const SITE_JS = fs.readFileSync(path.join(DOCS, "site.js"), "utf-8");
 
 const results = [];
+// finishPage 안에서 만든 비동기 검사들. main()이 끝나기 전에 모두 기다린다.
+const scrollTopChecks = [];
 function check(page, name, cond, extra = "") {
   results.push({ page, name, ok: !!cond, extra });
 }
@@ -162,16 +164,16 @@ function exercise(relPath, label, opts = {}) {
       setTimeout(() => {
         check(label, "복사 후 툴팁 텍스트가 채워짐(스크린리더가 읽음)", tooltip.textContent.trim().length > 0, JSON.stringify(tooltip.textContent));
         check(label, "복사 후 visible 클래스", tooltip.classList.contains("visible"));
-        finishPage(label, doc, window, opts);
+        finishPage(label, doc, window, opts, relPath);
         resolve();
       }, 20);
     });
   }
-  finishPage(label, doc, window, opts);
+  finishPage(label, doc, window, opts, relPath);
   return Promise.resolve();
 }
 
-function finishPage(label, doc, window, opts) {
+function finishPage(label, doc, window, opts, relPath) {
   // --- 용어 패널 ---
   const panel = doc.getElementById("term-panel");
   if (panel) {
@@ -257,6 +259,86 @@ function finishPage(label, doc, window, opts) {
       langSwitch.getAttribute("hreflang") !== pageLang,
       `page=${pageLang} link=${langSwitch.getAttribute("hreflang")}`);
   }
+  // --- 맨 위로 버튼 ---
+  // 스크롤 위치에 따라 나타나야 한다. 항상 떠 있으면 첫 화면부터 본문을 가리고,
+  // 안 나타나면 긴 아카이브 페이지에서 상단으로 돌아갈 방법이 없다.
+  const topBtn = doc.getElementById("scroll-top");
+  check(label, "맨 위로 버튼 존재", !!topBtn);
+  if (topBtn) {
+    check(label, "맨 위로 버튼에 접근성 라벨",
+      (topBtn.getAttribute("aria-label") || "").length > 0, topBtn.getAttribute("aria-label"));
+    check(label, "맨 위로 버튼이 문서 최상단에서는 숨김",
+      !topBtn.classList.contains("visible"));
+
+    // jsdom은 실제로 스크롤하지 않는다. 핸들러가 읽는 값을 직접 세우고 이벤트를 흘린다.
+    const setScroll = (y) => {
+      Object.defineProperty(window, "pageYOffset", { value: y, configurable: true });
+      window.dispatchEvent(new window.Event("scroll"));
+    };
+    // rAF로 묶여 있으므로 한 프레임 흘려보내야 클래스가 반영된다.
+    const frame = () => new Promise((r) => window.requestAnimationFrame(() => r()));
+
+    scrollTopChecks.push(
+      (async () => {
+        setScroll(1200);
+        await frame();
+        check(label, "충분히 내려가면 맨 위로 버튼이 나타남",
+          topBtn.classList.contains("visible"), topBtn.className);
+        setScroll(100);
+        await frame();
+        check(label, "다시 위로 오면 맨 위로 버튼이 사라짐",
+          !topBtn.classList.contains("visible"), topBtn.className);
+
+        // 클릭하면 화면만 올라가고 포커스가 아래에 남으면 안 된다 —
+        // 키보드 사용자는 다음 탭에서 다시 아래로 끌려간다.
+        setScroll(1200);
+        await frame();
+        topBtn.click();
+        const heading = doc.querySelector(".site-header h1");
+        check(label, "맨 위로 클릭 시 포커스도 상단으로",
+          !heading || doc.activeElement === heading,
+          doc.activeElement ? doc.activeElement.tagName : "?");
+      })()
+    );
+  }
+
+  // --- 다른 언어판 안내 배너 ---
+  // 영어권 방문자가 한국어 페이지에 떨어졌을 때 EN 스위치를 직접 찾아야 했다.
+  // 배너는 **기본이 숨김**이어야 한다 — JS가 브라우저 언어를 보고서야 푼다.
+  // 처음부터 보이면 한국어 사용자에게 매번 영어 안내가 뜬다.
+  const suggest = doc.getElementById("lang-suggest");
+  check(label, "언어 안내 배너 존재", !!suggest);
+  if (suggest) {
+    // 실행된 DOM이 아니라 **원본 HTML**을 본다 — jsdom의 navigator.language가 en-US라
+    // 한국어 페이지에서는 스크립트가 이미 hidden을 풀어버린 상태다.
+    check(label, "언어 안내 배너가 원본에서 기본 숨김",
+      /<div class="lang-suggest" id="lang-suggest" hidden>/.test(
+        fs.readFileSync(path.join(DOCS, relPath), "utf-8")),
+      "원본에 hidden 없음");
+    const sLink = doc.getElementById("lang-suggest-link");
+    check(label, "언어 안내 링크 존재", !!sLink);
+    if (sLink) {
+      const pageLang = doc.documentElement.getAttribute("lang");
+      const href = sLink.getAttribute("href") || "";
+      check(label, "언어 안내 링크가 절대 URL", /^https?:\/\//.test(href), href);
+      check(label, "언어 안내 링크가 반대 언어를 가리킴",
+        sLink.getAttribute("hreflang") !== pageLang,
+        `page=${pageLang} link=${sLink.getAttribute("hreflang")}`);
+      // 영어 페이지의 안내는 한국어판으로, 한국어 페이지의 안내는 /en/ 으로 가야 한다.
+      const goesToEn = href.replace(/^https?:\/\/[^/]+/, "").startsWith("/en");
+      check(label, "언어 안내 링크 방향이 페이지 언어와 반대",
+        pageLang === "ko" ? goesToEn : !goesToEn, `page=${pageLang} href=${href}`);
+    }
+    check(label, "언어 안내 닫기 버튼 존재", !!doc.getElementById("lang-suggest-close"));
+    // jsdom의 navigator.language는 en-US다. 즉 "영어 브라우저"로 본 것과 같으므로
+    // 한국어 페이지에서는 배너가 떠야 하고 영어 페이지에서는 떠 있으면 안 된다.
+    // 이 한 줄이 브라우저 언어 판정이 실제로 도는지를 확인한다.
+    const shown = !suggest.hasAttribute("hidden");
+    check(label, "영어 브라우저(jsdom)에서 배너 노출이 페이지 언어에 맞음",
+      doc.documentElement.getAttribute("lang") === "ko" ? shown : !shown,
+      `lang=${doc.documentElement.getAttribute("lang")} shown=${shown}`);
+  }
+
   // 한 페이지에 한 언어만 담겨야 한다 — 남은 lang-ko/lang-en 클래스는 분리 누락 신호다.
   check(label, "페이지에 한 언어만 담김",
     doc.querySelectorAll(".lang-ko, .lang-en").length === 0,
@@ -447,6 +529,10 @@ function finishPage(label, doc, window, opts) {
       `topics/${firstTopicSlug} (clean URL)`
     );
   }
+
+  // 맨 위로 버튼 검사는 rAF를 기다리므로 비동기다. 결과를 세기 전에 모두 끝내야 한다 —
+  // 안 기다리면 검사가 통째로 빠진 채 "전부 통과"로 보인다.
+  await Promise.all(scrollTopChecks);
 
   let pass = 0;
   let lastPage = null;
