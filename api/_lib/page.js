@@ -1,4 +1,9 @@
 // /api/confirm, /api/unsubscribe가 공유하는 아주 단순한 결과 안내 페이지.
+//
+// 문구는 전부 _lib/messages.js에 있다. 여기서는 뼈대만 만든다 — 페이지마다 문자열을
+// 직접 들고 있으면 언어 분기를 한 곳 빠뜨려도 눈에 띄지 않는다(/en/ 구독자에게 한국어
+// 페이지가 나가던 게 정확히 그 경우였다).
+const { t, normalizeLang, homePath } = require("./messages");
 
 // 지금 호출부는 신뢰된 상수/환경변수만 넘기지만, 이 함수는 HTML을 문자열로 조립하는
 // 자리라 한 번의 리팩터링이면 곧바로 XSS 싱크가 된다(예: 쿼리 파라미터를 메시지에
@@ -18,46 +23,30 @@ const STYLE = `
   .muted { color: #666; font-size: 14px; }
 `;
 
-function layout(title, bodyHtml, siteUrl) {
+function layout(title, bodyHtml, siteUrl, lang) {
+  const l = normalizeLang(lang);
+  const brand = l === "en" ? "AI News Briefing" : "AI 뉴스 브리핑";
   return `<!doctype html>
-<html lang="ko">
+<html lang="${l}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>${escapeHtml(title)} — AI 뉴스 브리핑</title>
+<title>${escapeHtml(title)} — ${brand}</title>
 <style>${STYLE}</style>
 </head>
 <body>
   <h1>${escapeHtml(title)}</h1>
   ${bodyHtml}
-  <p><a href="${escapeHtml(siteUrl)}/index.html">브리핑으로 돌아가기</a></p>
+  <p><a href="${escapeHtml(siteUrl + homePath(l))}">${escapeHtml(t(l, "back_link").body)}</a></p>
 </body>
 </html>`;
 }
 
-function resultPage(title, message, siteUrl) {
-  return layout(title, `<p>${escapeHtml(message)}</p>`, siteUrl);
-}
-
-// 구독취소 확인 페이지.
-//
-// 왜 링크를 누르자마자 취소하지 않는가: Outlook SafeLinks 같은 메일 보안 스캐너와
-// 브라우저 프리페치는 메일 속 링크를 사용자 대신 **미리 열어본다**. 취소를 GET에서
-// 처리하면 누르지도 않은 구독자가 조용히 해지된다(이 링크는 매일 모든 메일에 실린다).
-// 그래서 GET은 이 확인 페이지만 보여주고, 실제 취소는 사람이 버튼을 눌러 보내는
-// POST에서만 처리한다.
-function unsubscribeConfirmPage(email, token, siteUrl) {
-  const body = `
-  <p>아래 주소의 구독을 취소하시겠어요?</p>
-  <p><strong>${escapeHtml(email)}</strong></p>
-  <form method="POST" action="/api/unsubscribe">
-    <input type="hidden" name="email" value="${escapeHtml(email)}">
-    <input type="hidden" name="token" value="${escapeHtml(token)}">
-    <button type="submit">구독취소</button>
-  </form>
-  <p class="muted">버튼을 누르기 전까지는 취소되지 않습니다.</p>`;
-  return layout("구독취소 확인", body, siteUrl);
+// 단순 결과 안내. key는 messages.js의 항목 이름이다.
+function resultPage(lang, key, siteUrl) {
+  const m = t(lang, key);
+  return layout(m.title, `<p>${escapeHtml(m.body)}</p>`, siteUrl, lang);
 }
 
 // 확인 링크가 만료됐을 때 보여주는 페이지.
@@ -69,17 +58,41 @@ function unsubscribeConfirmPage(email, token, siteUrl) {
 // 왜 GET에서 자동 재발송하지 않고 버튼을 두는가: 구독취소와 같은 이유다. 메일 보안
 // 스캐너와 브라우저 프리페치가 링크를 사용자 대신 미리 열어보기 때문에, GET에서
 // 메일을 보내면 아무도 누르지 않았는데 메일이 나간다.
-function confirmExpiredPage(email, expiry, token, siteUrl) {
+function confirmExpiredPage(email, expiry, token, siteUrl, lang) {
+  const m = t(lang, "confirm_expired");
   const body = `
-  <p>확인 링크가 만료됐어요. 아래 버튼을 누르면 새 링크를 보내드립니다.</p>
+  <p>${escapeHtml(m.body)}</p>
   <p><strong>${escapeHtml(email)}</strong></p>
   <form method="POST" action="/api/confirm">
     <input type="hidden" name="email" value="${escapeHtml(email)}">
     <input type="hidden" name="expiry" value="${escapeHtml(expiry)}">
     <input type="hidden" name="token" value="${escapeHtml(token)}">
-    <button type="submit">확인 메일 다시 받기</button>
+    <input type="hidden" name="lang" value="${escapeHtml(normalizeLang(lang))}">
+    <button type="submit">${escapeHtml(m.button)}</button>
   </form>`;
-  return layout("확인 링크 만료", body, siteUrl);
+  return layout(m.title, body, siteUrl, lang);
+}
+
+// 구독취소 확인 페이지.
+//
+// 왜 링크를 누르자마자 취소하지 않는가: Outlook SafeLinks 같은 메일 보안 스캐너와
+// 브라우저 프리페치는 메일 속 링크를 사용자 대신 **미리 열어본다**. 취소를 GET에서
+// 처리하면 누르지도 않은 구독자가 조용히 해지된다(이 링크는 매일 모든 메일에 실린다).
+// 그래서 GET은 이 확인 페이지만 보여주고, 실제 취소는 사람이 버튼을 눌러 보내는
+// POST에서만 처리한다.
+function unsubscribeConfirmPage(email, token, siteUrl, lang) {
+  const m = t(lang, "unsub_confirm");
+  const body = `
+  <p>${escapeHtml(m.body)}</p>
+  <p><strong>${escapeHtml(email)}</strong></p>
+  <form method="POST" action="/api/unsubscribe">
+    <input type="hidden" name="email" value="${escapeHtml(email)}">
+    <input type="hidden" name="token" value="${escapeHtml(token)}">
+    <input type="hidden" name="lang" value="${escapeHtml(normalizeLang(lang))}">
+    <button type="submit">${escapeHtml(m.button)}</button>
+  </form>
+  <p class="muted">${escapeHtml(m.note)}</p>`;
+  return layout(m.title, body, siteUrl, lang);
 }
 
 module.exports = { resultPage, unsubscribeConfirmPage, confirmExpiredPage, escapeHtml };

@@ -73,16 +73,85 @@ def require_env(*names):
     return values
 
 
+# 언어별 메일 문구. /en/ 에서 구독한 독자에게 한국어 브리핑이 나가던 것을 고친다.
+# api/_lib/messages.js와 같은 역할이고, 두 곳을 함께 손봐야 한다 — 메일은 파이썬이,
+# 클릭 후 뜨는 페이지는 Node가 만든다.
+COPY = {
+    "ko": {
+        "subject": "AI 뉴스 브리핑 — {date} (기사 {n}건)",
+        "catchup_prefix": "[지연 발송] ",
+        "h1": "AI 뉴스 브리핑 — {date}",
+        "cta": "오늘의 전체 브리핑 보기 (요약 + 시사점) →",
+        "lede": "기사 {n}건의 헤드라인과 한 줄 요약입니다. 각 기사가 시사하는 점과 전체 "
+                "인사이트 분석은 위 링크에서 확인하세요.",
+        "insight_label": "오늘의 인사이트",
+        "weekly_label": "이번 주 종합",
+        "weekly_cta": "주간 회고 전체 보기 →",
+        "catchup": "발송 오류로 {date}자 브리핑이 예정보다 늦게 도착했습니다. 불편을 드려 죄송합니다.",
+        "unsub_prefix": "더 이상 받고 싶지 않다면 ",
+        "unsub_link": "구독취소",
+        "unsub_suffix": "를 눌러주세요.",
+    },
+    "en": {
+        "subject": "AI News Briefing — {date} ({n} stories)",
+        "catchup_prefix": "[Delayed] ",
+        "h1": "AI News Briefing — {date}",
+        "cta": "Read the full briefing (summaries + why it matters) →",
+        "lede": "{n} headlines with one-line summaries. What each story means, plus the full "
+                "insight analysis, is at the link above.",
+        "insight_label": "Today's insight",
+        "weekly_label": "This week",
+        "weekly_cta": "Read the full weekly recap →",
+        "catchup": "The {date} briefing arrived later than scheduled because of a delivery error. Sorry about that.",
+        "unsub_prefix": "Don't want these? ",
+        "unsub_link": "Unsubscribe",
+        "unsub_suffix": ".",
+    },
+}
+
+LANGS = ("ko", "en")
+
+
+def normalize_lang(value) -> str:
+    """알 수 없는 값은 한국어로 떨어뜨린다 — 지금까지의 동작과 같아 새 피해가 없다."""
+    lang = str(value or "").strip().lower()
+    return lang if lang in LANGS else "ko"
+
+
+def home_path(lang: str) -> str:
+    """언어별 홈. 영어 독자를 한국어 홈으로 보내면 되돌아올 방법이 없다.
+    cleanUrls가 /en/index.html을 /en으로 308 보내므로 처음부터 /en을 쓴다."""
+    return "/en" if normalize_lang(lang) == "en" else "/index.html"
+
+
+def article_title(article: dict, lang: str) -> str:
+    """영문 메일의 기사 제목.
+
+    `title`은 RSS 원문 헤드라인이라 대개 이미 영어다. `title_en`은 출처가 한국어일 때만
+    채워진다 — 그래서 영어에서는 title_en을 우선하고 없으면 title로 떨어진다
+    (scripts/seo_utils.py의 display_title과 같은 규칙).
+    """
+    if normalize_lang(lang) == "en":
+        return article.get("title_en") or article["title"]
+    return article["title"]
+
+
 def sign(secret: str, payload: str) -> str:
     digest = hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).digest()
     return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
-def unsubscribe_url(site_url: str, secret: str, email: str) -> str:
+def unsubscribe_url(site_url: str, secret: str, email: str, lang: str = "ko") -> str:
+    """구독취소 링크. lang을 함께 실어 보내는 이유: 이 링크를 눌렀을 때 뜨는 확인
+    페이지가 어느 언어여야 하는지 링크 말고는 알 방법이 없다. 조작돼도 화면 언어만
+    바뀌므로 서명에 포함하지 않는다(서명 계약을 바꾸면 기존 링크가 전부 죽는다)."""
     token = sign(secret, f"unsubscribe|{email}")
     from urllib.parse import quote
 
-    return f"{site_url}/api/unsubscribe?email={quote(email)}&token={token}"
+    return (
+        f"{site_url}/api/unsubscribe?email={quote(email)}"
+        f"&token={token}&lang={normalize_lang(lang)}"
+    )
 
 
 def urlopen_with_retry(req: urllib.request.Request) -> bytes:
@@ -111,7 +180,7 @@ def urlopen_with_retry(req: urllib.request.Request) -> bytes:
 def fetch_confirmed_subscribers(supabase_url: str, service_role_key: str) -> list:
     url = (
         f"{supabase_url.rstrip('/')}/rest/v1/subscribers"
-        "?select=email&confirmed_at=not.is.null&unsubscribed_at=is.null"
+        "?select=email,lang&confirmed_at=not.is.null&unsubscribed_at=is.null"
     )
     req = urllib.request.Request(
         url,
@@ -129,77 +198,105 @@ def fetch_confirmed_subscribers(supabase_url: str, service_role_key: str) -> lis
     except urllib.error.URLError as e:
         print(f"[ERROR] Supabase 접속 실패(네트워크/allowlist 문제로 추정): {e.reason}", file=sys.stderr)
         sys.exit(1)
-    return [row["email"] for row in rows if row.get("email")]
+    # lang까지 함께 돌려준다. 이 값이 그 사람이 받을 메일의 언어를 정한다.
+    return [
+        {"email": row["email"], "lang": normalize_lang(row.get("lang"))}
+        for row in rows
+        if row.get("email")
+    ]
 
 
-def build_weekly_teaser_block(weekly: dict, site_url: str) -> str:
+def build_weekly_teaser_block(weekly: dict, site_url: str, lang: str = "ko") -> str:
     """weekly_<주차>.json이 주어졌을 때(일요일 발송) 이메일 최상단에 넣을 주간 회고
     티저 블록을 만든다. headline이 비어있으면(그 주는 회고를 건너뛴 경우) 빈 문자열을
     반환해 아무것도 추가하지 않는다."""
-    headline = (weekly or {}).get("headline_ko", "").strip()
+    lang = normalize_lang(lang)
+    c = COPY[lang]
+    headline = (weekly or {}).get("headline_en" if lang == "en" else "headline_ko", "").strip()
     if not headline:
+        # 영문 헤드라인이 없는 주에는 한국어를 끼워 넣지 않고 블록 자체를 뺀다 —
+        # 영어 메일에 한국어가 섞이는 편이 티저가 없는 것보다 나쁘다.
         return ""
     week_label = weekly.get("week_label", "")
-    link = html.escape(f"{site_url}/weekly/{week_label}.html")
+    prefix = "/en" if lang == "en" else ""
+    link = html.escape(f"{site_url}{prefix}/weekly/{week_label}.html")
     return (
         '<div style="margin:0 0 20px;padding:16px 18px;background:#f5f4f1;'
         'border-left:3px solid #121212;border-radius:0 4px 4px 0;">'
         '<p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.1em;'
-        'text-transform:uppercase;color:#121212;">이번 주 종합</p>'
+        f'text-transform:uppercase;color:#121212;">{html.escape(c["weekly_label"])}</p>'
         f'<p style="margin:0 0 10px;font-size:17px;font-weight:700;line-height:1.5;color:#121212;">'
         f'{html.escape(headline)}</p>'
         f'<a href="{link}" style="font-size:14px;font-weight:700;color:#a2201d;'
-        'text-decoration:none;">주간 회고 전체 보기 →</a>'
+        f'text-decoration:none;">{html.escape(c["weekly_cta"])}</a>'
         "</div>"
     )
 
 
-def build_catchup_notice(date: str) -> str:
+def build_catchup_notice(date: str, lang: str = "ko") -> str:
     """--catchup 발송(발송 오류로 놓친 과거 날짜를 뒤늦게 보정 발송)일 때만 이메일 최상단에
     붙는 투명성 안내 — 왜 평소와 다른 시간에, 혹은 두 통이 한꺼번에 왔는지 설명한다."""
     return (
         '<div style="margin:0 0 16px;padding:10px 14px;background:#fff8e6;'
         'border:1px solid #e8c766;border-radius:4px;font-size:13px;color:#6b5a1e;">'
-        f"발송 오류로 {date}자 브리핑이 예정보다 늦게 도착했습니다. 불편을 드려 죄송합니다."
-        "</div>"
+        + html.escape(COPY[normalize_lang(lang)]["catchup"].format(date=date))
+        + "</div>"
     )
 
 
-def build_html(digest: dict, site_url: str, unsub_url: str, weekly_block: str = "", catchup: bool = False) -> str:
+def build_html(
+    digest: dict,
+    site_url: str,
+    unsub_url: str,
+    weekly_block: str = "",
+    catchup: bool = False,
+    lang: str = "ko",
+) -> str:
+    lang = normalize_lang(lang)
+    c = COPY[lang]
     date = digest["date"]
     articles = digest["articles"]
-    catchup_notice = build_catchup_notice(date) if catchup else ""
+    catchup_notice = build_catchup_notice(date, lang) if catchup else ""
     # 구독취소 URL은 쿼리스트링(...?email=...&token=...)이라 raw `&`를 품고 있다.
     # HTML 속성 안에서는 `&amp;`로 써야 규격에 맞고(브라우저가 다시 &로 복원해 링크는
     # 정상 동작한다), 엄격한 메일 클라이언트 파서에서 링크가 잘리는 것도 막는다.
     unsub_url = html.escape(unsub_url)
+    summary_key = "summary_en" if lang == "en" else "summary_ko"
     rows = []
     for a in articles:
-        title = html.escape(a["title"])
-        summary = html.escape(a["summary_ko"])
+        title = html.escape(article_title(a, lang))
+        # 영문 요약이 비어 있으면 한국어를 끼워 넣지 않고 요약 없이 제목만 낸다 —
+        # 영어 메일에 한국어 문단이 섞이는 편이 더 나쁘다.
+        summary_raw = (a.get(summary_key) or "").strip()
+        summary = html.escape(summary_raw)
         # 기사 링크는 서드파티 RSS에서 그대로 온 값이다. 따옴표가 들어 있으면 href 속성을
         # 탈출해 이 아래 모든 마크업이 깨지므로, 옆의 title/summary와 똑같이 이스케이프한다
         # (html.escape는 기본이 quote=True라 "와 '를 함께 처리한다).
         link = html.escape(a["link"])
+        summary_html = (
+            f'<p style="margin:8px 0 0;color:#444;font-size:14px;line-height:1.6;">{summary}</p>'
+            if summary
+            else ""
+        )
         rows.append(
             '<tr><td style="padding:14px 0;border-bottom:1px solid #e2e2e2;">'
             f'<a href="{link}" style="font-size:16px;font-weight:700;color:#121212;'
             f'text-decoration:none;">{title}</a>'
-            f'<p style="margin:8px 0 0;color:#444;font-size:14px;line-height:1.6;">{summary}</p>'
+            f"{summary_html}"
             "</td></tr>"
         )
-    site_link = html.escape(f"{site_url}/index.html")
+    site_link = html.escape(f"{site_url}{home_path(lang)}")
 
     # 오늘의 인사이트 헤드라인(있는 날만)을 메일 상단에 넣어 열자마자 핵심을 잡게 한다.
     insight = digest.get("daily_insight") or {}
-    insight_headline = insight.get("headline_ko", "").strip()
+    insight_headline = insight.get("headline_en" if lang == "en" else "headline_ko", "").strip()
     insight_block = ""
     if insight_headline:
         insight_block = (
             '<div style="margin:16px 0 24px;padding:14px 18px;background:#f5f4f1;'
             'border-left:3px solid #a2201d;border-radius:0 4px 4px 0;">'
             '<p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.1em;'
-            'text-transform:uppercase;color:#a2201d;">오늘의 인사이트</p>'
+            f'text-transform:uppercase;color:#a2201d;">{html.escape(c["insight_label"])}</p>'
             f'<p style="margin:0;font-size:16px;font-weight:700;line-height:1.5;color:#121212;">'
             f'{html.escape(insight_headline)}</p>'
             "</div>"
@@ -208,21 +305,20 @@ def build_html(digest: dict, site_url: str, unsub_url: str, weekly_block: str = 
     return f"""
     <div style="max-width:600px;margin:0 auto;font-family:-apple-system,Arial,sans-serif;">
       {catchup_notice}
-      <h1 style="font-size:22px;margin-bottom:4px;">AI 뉴스 브리핑 — {date}</h1>
+      <h1 style="font-size:22px;margin-bottom:4px;">{html.escape(c["h1"].format(date=date))}</h1>
       <p style="margin:14px 0 22px;">
         <a href="{site_link}" style="display:inline-block;background-color:#a2201d;
         color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;
-        padding:13px 26px;border-radius:6px;">오늘의 전체 브리핑 보기 (요약 + 시사점) →</a>
+        padding:13px 26px;border-radius:6px;">{html.escape(c["cta"])}</a>
       </p>
       <p style="color:#666;font-size:13px;margin:0 0 20px;">
-        기사 {len(articles)}건의 헤드라인과 한 줄 요약입니다. 각 기사가 시사하는 점과 전체
-        인사이트 분석은 위 링크에서 확인하세요.
+        {html.escape(c["lede"].format(n=len(articles)))}
       </p>
       {weekly_block}
       {insight_block}
       <table style="width:100%;border-collapse:collapse;">{''.join(rows)}</table>
       <p style="margin-top:32px;font-size:12px;color:#999;">
-        더 이상 받고 싶지 않다면 <a href="{unsub_url}" style="color:#999;">구독취소</a>를 눌러주세요.
+        {html.escape(c["unsub_prefix"])}<a href="{unsub_url}" style="color:#999;">{html.escape(c["unsub_link"])}</a>{html.escape(c["unsub_suffix"])}
       </p>
     </div>
     """
@@ -233,9 +329,15 @@ class BatchSendError(Exception):
     마커에 기록한 뒤 종료할 수 있도록, 여기서 곧장 sys.exit 하지 않고 예외로 올린다."""
 
 
-def send_batch(api_key: str, emails: list, subject: str, html_by_email: dict):
+def send_batch(api_key: str, emails: list, subject_by_email: dict, html_by_email: dict):
+    # 제목도 사람마다 다르다 — 한국어 구독자와 영어 구독자가 같은 배치에 섞여 있다.
     payload = [
-        {"from": os.environ["RESEND_SENDER_EMAIL"], "to": [e], "subject": subject, "html": html_by_email[e]}
+        {
+            "from": os.environ["RESEND_SENDER_EMAIL"],
+            "to": [e],
+            "subject": subject_by_email[e],
+            "html": html_by_email[e],
+        }
         for e in emails
     ]
     req = urllib.request.Request(
@@ -306,42 +408,54 @@ def main():
         mark_sent(docs_dir, digest["date"], 0)  # 대상이 없는 것도 "그날 처리는 끝남" 상태다
         return
 
-    weekly_block = ""
+    weekly = None
     if args.weekly_input:
         weekly_path = Path(args.weekly_input)
         if weekly_path.exists():
             weekly = json.loads(weekly_path.read_text(encoding="utf-8"))
-            weekly_block = build_weekly_teaser_block(weekly, site_url)
 
-    subject = f"AI 뉴스 브리핑 — {digest['date']} (기사 {len(digest['articles'])}건)"
-    if args.catchup:
-        subject = f"[지연 발송] {subject}"
+    # 언어별로 한 번씩만 만든다(본문은 수신자와 무관하고, 구독취소 링크만 사람마다 다르다).
+    weekly_block_by_lang = {
+        lang: (build_weekly_teaser_block(weekly, site_url, lang) if weekly else "")
+        for lang in LANGS
+    }
+    subject_by_lang = {}
+    for lang in LANGS:
+        s = COPY[lang]["subject"].format(date=digest["date"], n=len(digest["articles"]))
+        subject_by_lang[lang] = (COPY[lang]["catchup_prefix"] + s) if args.catchup else s
+
+    emails = [s["email"] for s in subscribers]
+    lang_by_email = {s["email"]: s["lang"] for s in subscribers}
+    subject_by_email = {e: subject_by_lang[lang_by_email[e]] for e in emails}
     html_by_email = {
-        email: build_html(
+        e: build_html(
             digest,
             site_url,
-            unsubscribe_url(site_url, env["SUBSCRIBE_TOKEN_SECRET"], email),
-            weekly_block=weekly_block,
+            unsubscribe_url(site_url, env["SUBSCRIBE_TOKEN_SECRET"], e, lang_by_email[e]),
+            weekly_block=weekly_block_by_lang[lang_by_email[e]],
             catchup=args.catchup,
+            lang=lang_by_email[e],
         )
-        for email in subscribers
+        for e in emails
     }
+    lang_counts = {lang: sum(1 for v in lang_by_email.values() if v == lang) for lang in LANGS}
+    print(f"발송 대상 {len(emails)}명 (한국어 {lang_counts['ko']}, 영어 {lang_counts['en']})")
 
     sent_total = 0
-    for i in range(0, len(subscribers), BATCH_SIZE):
-        chunk = subscribers[i : i + BATCH_SIZE]
+    for i in range(0, len(emails), BATCH_SIZE):
+        chunk = emails[i : i + BATCH_SIZE]
         if i:
             time.sleep(BATCH_INTERVAL_SEC)  # Resend 초당 한도(2건)에 걸려 429가 나지 않도록
         try:
-            send_batch(env["RESEND_API_KEY"], chunk, subject, html_by_email)
+            send_batch(env["RESEND_API_KEY"], chunk, subject_by_email, html_by_email)
         except BatchSendError as e:
             # 앞선 배치들은 **이미 발송된 상태**다. 마커를 안 남기고 죽으면 다음 실행의
             # catch-up이 이 날을 미발송으로 보고 전원에게 다시 보내, 이미 받은 사람이
             # 같은 메일을 두 번 받는다. 그래서 진행 상황을 partial 마커로 남긴다.
-            mark_sent(docs_dir, digest["date"], sent_total, total_count=len(subscribers), partial=True)
+            mark_sent(docs_dir, digest["date"], sent_total, total_count=len(emails), partial=True)
             print(f"[ERROR] {e}", file=sys.stderr)
             print(
-                f"[ERROR] 부분 발송 상태로 중단: {len(subscribers)}명 중 {sent_total}명 발송 완료. "
+                f"[ERROR] 부분 발송 상태로 중단: {len(emails)}명 중 {sent_total}명 발송 완료. "
                 f"docs/archive/{digest['date']}.sent.json에 partial 마커를 남겼으니 "
                 f"자동 재발송하지 말고 사람이 확인할 것.",
                 file=sys.stderr,

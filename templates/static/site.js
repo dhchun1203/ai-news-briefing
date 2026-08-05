@@ -337,10 +337,14 @@
       fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // 시간대를 함께 보낸다(기록 전용 — 발송 시각은 아직 08:00 KST 고정).
-        // 브라우저가 직접 알려주는 IANA 이름이라 IP 조회가 필요 없다. 구형 브라우저나
-        // 차단 환경에서 실패하면 그냥 빼고 보낸다 — 이 값 때문에 구독이 막히면 안 된다.
-        body: JSON.stringify({ email: email, timezone: browserTimezone() })
+        // 시간대는 기록 전용이다(발송 시각은 아직 08:00 KST 고정). 브라우저가 직접
+        // 알려주는 IANA 이름이라 IP 조회가 필요 없다. 구형 브라우저나 차단 환경에서
+        // 실패하면 그냥 빼고 보낸다 — 이 값 때문에 구독이 막히면 안 된다.
+        //
+        // lang은 다르다 — 이 값이 앞으로 그 사람이 받을 모든 메일의 언어를 정한다.
+        // 이걸 안 보내던 동안 /en/ 에서 구독한 독자가 한국어 확인 메일과 한국어
+        // 브리핑을 받고 있었다.
+        body: JSON.stringify({ email: email, timezone: browserTimezone(), lang: currentLang() })
       })
         .then(function (r) {
           return r.json().then(function (data) {

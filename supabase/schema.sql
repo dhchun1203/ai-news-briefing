@@ -43,6 +43,27 @@ alter table subscribers add column if not exists timezone text;
 -- 반대 방향(선점 후 발송 실패)은 열어둔다 — 두 번 보내는 것보다 한 번도 안 보내는 쪽이 낫다.
 alter table subscribers add column if not exists reminded_at timestamptz;
 
+-- 구독한 페이지의 언어. 이 값이 그 사람이 받을 모든 메일(확인·브리핑·리마인더)과
+-- 링크를 눌렀을 때 뜨는 페이지의 언어를 정한다.
+--
+-- 이게 없던 동안 /en/ 에서 구독한 독자가 한국어 확인 메일 -> 한국어 확인 페이지 ->
+-- 한국어 브리핑을 받았다. 방문자 국가 1위가 미국이라 조용히 큰 구멍이었다.
+--
+-- 기본값 'ko': 이 컬럼이 생기기 전 구독자의 언어는 알 수 없다. 대부분 한국어 페이지에서
+-- 가입했고 주소도 국내 도메인이 많아 안전한 추정이며, 틀렸더라도 지금까지 받던 것과
+-- 같은 메일을 계속 받을 뿐이라 새 피해가 없다.
+--
+-- 체크 제약을 두는 이유: 이 값이 그대로 메일 본문 분기에 쓰인다. 예상 못 한 값이
+-- 들어오면 조용히 한쪽 언어로 흘러가므로 들어올 때 막는다.
+alter table subscribers add column if not exists lang text not null default 'ko';
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'subscribers_lang_check') then
+    alter table subscribers add constraint subscribers_lang_check check (lang in ('ko', 'en'));
+  end if;
+end $$;
+
 -- 매일 도는 선점 질의가 쓰는 인덱스.
 create index if not exists subscribers_reminder_pending_idx
   on subscribers (created_at)

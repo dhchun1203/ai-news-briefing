@@ -11,13 +11,14 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..");
 
 const freshState = (over = {}) =>
-  ({ row: null, resendCalls: 0, patches: [], rpcCalls: [], rpcFails: false, inserts: [], ...over });
+  ({ row: null, resendCalls: 0, patches: [], rpcCalls: [], rpcFails: false, inserts: [], mails: [], ...over });
 let state = freshState();
 
 global.fetch = async (url, opts = {}) => {
   const u = String(url);
   if (u.startsWith("https://api.resend.com")) {
     state.resendCalls++;
+    state.mails.push(JSON.parse(opts.body));
     return { ok: true, status: 200, text: async () => "", json: async () => ({ id: "x" }) };
   }
   if (u.includes("/rest/v1/rpc/search_archive")) {
@@ -64,6 +65,9 @@ function mockRes() {
 const subscribe = require(ROOT + "/api/subscribe.js");
 const unsubscribe = require(ROOT + "/api/unsubscribe.js");
 const confirm = require(ROOT + "/api/confirm.js");
+const { MESSAGES, LANGS, normalizeLang, homePath } = require(ROOT + "/api/_lib/messages.js");
+const { COPY } = require(ROOT + "/api/_lib/confirm-mail.js");
+const page = require(ROOT + "/api/_lib/page.js");
 const search = require(ROOT + "/api/search.js");
 const tokens = require(ROOT + "/api/_lib/tokens.js");
 
@@ -284,6 +288,132 @@ function check(name, cond, extra = "") {
   // 확인 링크 유효기간이 7일인지 — 만료 페이지 문구("7일 이내")와 맞아야 한다.
   const ttl = makeConfirmToken("u@x.com").expiry - Math.floor(Date.now() / 1000);
   check("confirm token TTL is 7 days", Math.abs(ttl - 7 * 24 * 3600) <= 5, `ttl=${ttl}s`);
+
+  // --- 언어: /en/ 구독자에게 한국어가 새면 안 된다 ---
+  // 영어 화면·메일에 한글이 한 글자라도 있으면 분기를 빠뜨린 것이다. 한국어 사용자는
+  // 영어 화면을 볼 일이 없어 사람 눈으로는 절대 안 잡힌다.
+  const HANGUL = /[가-힣]/g;
+  const noKorean = (s) => (String(s).match(HANGUL) || []).join("");
+
+  // 1) 메시지 표 자체 — 두 언어가 다 있고, 영어에 한글이 없어야 한다.
+  {
+    let bad = [];
+    for (const [key, entry] of Object.entries(MESSAGES)) {
+      for (const lang of LANGS) {
+        if (!entry[lang]) bad.push(`${key}.${lang} 없음`);
+      }
+      const koKeys = Object.keys(entry.ko || {}).sort().join(",");
+      const enKeys = Object.keys(entry.en || {}).sort().join(",");
+      if (koKeys !== enKeys) bad.push(`${key} 필드 불일치 ko(${koKeys}) en(${enKeys})`);
+      for (const [f, v] of Object.entries(entry.en || {})) {
+        if (noKorean(v)) bad.push(`${key}.en.${f}에 한글`);
+        if (!String(v).trim()) bad.push(`${key}.en.${f} 비어 있음`);
+      }
+      for (const [f, v] of Object.entries(entry.ko || {})) {
+        if (!String(v).trim()) bad.push(`${key}.ko.${f} 비어 있음`);
+      }
+    }
+    check("every message key has both languages, English has no Korean", bad.length === 0, bad.join(" | "));
+  }
+
+  // 2) 확인 메일 문구
+  {
+    let bad = [];
+    if (Object.keys(COPY.ko).sort().join() !== Object.keys(COPY.en).sort().join()) bad.push("키 불일치");
+    for (const [k, v] of Object.entries(COPY.en)) if (noKorean(v)) bad.push(`confirm mail en.${k}`);
+    check("confirm mail copy: English has no Korean", bad.length === 0, bad.join(" | "));
+  }
+
+  // 3) 렌더된 페이지 전수 검사 — 모든 메시지 키를 영어로 그려 한글이 없는지 본다.
+  {
+    let bad = [];
+    for (const key of Object.keys(MESSAGES)) {
+      if (key === "back_link") continue; // 페이지가 아니라 링크 문구
+      if (key === "confirm_expired" || key === "unsub_confirm") continue; // 아래에서 폼째로 검사
+      const html = page.resultPage("en", key, "https://x.test");
+      if (noKorean(html)) bad.push(`${key}: ${noKorean(html)}`);
+      if (!html.includes('<html lang="en">')) bad.push(`${key}: lang 속성 틀림`);
+    }
+    const expired = page.confirmExpiredPage("u@x.com", "1", "t", "https://x.test", "en");
+    if (noKorean(expired)) bad.push(`confirm_expired: ${noKorean(expired)}`);
+    const unsub = page.unsubscribeConfirmPage("u@x.com", "t", "https://x.test", "en");
+    if (noKorean(unsub)) bad.push(`unsub_confirm: ${noKorean(unsub)}`);
+    check("every English page renders without Korean", bad.length === 0, bad.join(" | "));
+  }
+
+  // 4) 한국어 페이지는 그대로 한국어여야 한다 (영문화가 한국어를 깨뜨리지 않았는지)
+  check("Korean pages are still Korean",
+    /[가-힣]/.test(page.resultPage("ko", "confirm_ok", "https://x.test")) &&
+    page.resultPage("ko", "confirm_ok", "https://x.test").includes('<html lang="ko">'));
+
+  // 5) 영어 페이지의 "돌아가기" 링크는 /en 으로 가야 한다 — 한국어 홈으로 보내면 길을 잃는다.
+  check("English pages link back to /en",
+    page.resultPage("en", "confirm_ok", "https://x.test").includes('href="https://x.test/en"'),
+    page.resultPage("en", "confirm_ok", "https://x.test"));
+  check("Korean pages link back to /", homePath("ko") === "/" && homePath("en") === "/en");
+
+  // 6) 알 수 없는 언어는 한국어로 떨어진다 (요청을 실패시키지 않는다)
+  check("unknown lang falls back to ko",
+    ["fr", "", null, undefined, "EN-US", 5].every((v) => LANGS.includes(normalizeLang(v))) &&
+    normalizeLang("fr") === "ko" && normalizeLang(" EN ") === "en");
+
+  // 7) 구독 시 언어가 저장되고, 그 언어로 확인 메일이 나간다
+  state = freshState();
+  res = mockRes();
+  await subscribe({ method: "POST", body: { email: "en@x.com", lang: "en" } }, res);
+  check("subscribe stores lang", state.inserts[0] && state.inserts[0].lang === "en",
+    JSON.stringify(state.inserts[0]));
+  check("English signup gets English confirm mail",
+    state.mails[0] && !noKorean(state.mails[0].subject) && !noKorean(state.mails[0].html),
+    state.mails[0] ? noKorean(state.mails[0].subject + state.mails[0].html) : "메일 없음");
+  check("English confirm link carries lang=en",
+    state.mails[0] && state.mails[0].html.includes("lang=en"), state.mails[0] && state.mails[0].html);
+
+  state = freshState();
+  res = mockRes();
+  await subscribe({ method: "POST", body: { email: "ko@x.com" } }, res);
+  check("subscribe defaults lang to ko", state.inserts[0] && state.inserts[0].lang === "ko",
+    JSON.stringify(state.inserts[0]));
+  check("Korean signup gets Korean confirm mail",
+    state.mails[0] && /[가-힣]/.test(state.mails[0].subject));
+
+  state = freshState();
+  res = mockRes();
+  await subscribe({ method: "POST", body: { email: "x@x.com", lang: "klingon" } }, res);
+  check("junk lang falls back to ko without failing signup",
+    res._status === 200 && state.inserts[0].lang === "ko", `status=${res._status}`);
+
+  // 8) 이미 있는 구독자는 처음 등록한 언어를 유지한다
+  state = freshState({ row: { email: "u@x.com", confirmed_at: null, unsubscribed_at: null, last_confirm_sent_at: null, lang: "en" } });
+  res = mockRes();
+  await subscribe({ method: "POST", body: { email: "u@x.com", lang: "ko" } }, res);
+  check("existing subscriber keeps their original language",
+    state.mails[0] && !noKorean(state.mails[0].subject),
+    state.mails[0] ? state.mails[0].subject : "메일 없음");
+
+  // 9) 만료 재발송도 영어로
+  state = freshState({ row: pendingRow() });
+  res = mockRes();
+  await confirm({ method: "POST", body: { ...expiredLink("u@x.com"), lang: "en" } }, res);
+  check("expired resend uses the page language",
+    state.mails[0] && !noKorean(state.mails[0].subject + state.mails[0].html) && !noKorean(res._body),
+    state.mails[0] ? noKorean(state.mails[0].subject + state.mails[0].html) : "메일 없음");
+
+  // 10) 구독취소 페이지 언어
+  {
+    const { makeUnsubscribeToken: mk } = require(ROOT + "/api/_lib/tokens.js");
+    state = freshState({ row: pendingRow() });
+    res = mockRes();
+    await unsubscribe({ method: "GET", query: { email: "u@x.com", token: mk("u@x.com"), lang: "en" } }, res);
+    check("English unsubscribe page has no Korean", !noKorean(res._body), noKorean(res._body));
+    res = mockRes();
+    await unsubscribe({ method: "POST", body: { email: "u@x.com", token: mk("u@x.com"), lang: "en" } }, res);
+    check("English unsubscribe result has no Korean",
+      res._status === 200 && !noKorean(res._body), noKorean(res._body));
+    res = mockRes();
+    await unsubscribe({ method: "GET", query: { email: "u@x.com", token: mk("u@x.com") } }, res);
+    check("Korean unsubscribe page is still Korean", /[가-힣]/.test(res._body));
+  }
 
   let pass = 0;
   for (const r of results) {

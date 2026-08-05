@@ -78,12 +78,22 @@ def sign(secret: str, payload: str) -> str:
     return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
-def confirm_url(site_url: str, secret: str, email: str, now: float | None = None) -> str:
+LANGS = ("ko", "en")
+
+
+def normalize_lang(value) -> str:
+    lang = str(value or "").strip().lower()
+    return lang if lang in LANGS else "ko"
+
+
+def confirm_url(site_url: str, secret: str, email: str, now: float | None = None, lang: str = "ko") -> str:
+    """확인 링크. lang을 실어 보내야 클릭 후 뜨는 결과 페이지가 같은 언어로 나온다."""
     expiry = int(now if now is not None else time.time()) + CONFIRM_TTL_SECONDS
     token = sign(secret, f"confirm|{email}|{expiry}")
     return (
         f"{site_url.rstrip('/')}/api/confirm"
         f"?email={urllib.parse.quote(email)}&expiry={expiry}&token={token}"
+        f"&lang={normalize_lang(lang)}"
     )
 
 
@@ -103,7 +113,7 @@ def build_candidate_query(after_days: int, now: datetime | None = None, limit: i
             "confirmed_at": "is.null",
             "unsubscribed_at": "is.null",
             "created_at": f"lt.{cutoff.isoformat()}",
-            "select": "email,created_at",
+            "select": "email,created_at,lang",
             "order": "created_at.asc",
             "limit": str(limit),
         }
@@ -144,27 +154,50 @@ def _request(url: str, key: str, method: str, payload=None, prefer: str | None =
     return json.loads(body) if body.strip() else []
 
 
-def reminder_html(confirm_link: str) -> str:
+REMINDER_COPY = {
+    "ko": {
+        "subject": "[AI 뉴스 브리핑] 구독 확인이 아직 남아 있어요",
+        "hello": "안녕하세요. AI 뉴스 브리핑입니다.",
+        "body": "구독 신청은 해주셨는데 확인 절차가 아직 남아 있어서 브리핑을 보내드리지 "
+                "못하고 있어요. 아래 링크를 눌러주시면 다음 날 아침부터 받아보실 수 "
+                "있습니다 (7일 이내 유효).",
+        "cta": "구독 확인하기",
+        "note": "이 안내는 한 번만 보내드립니다. 확인하지 않으시면 더 이상 메일을 보내지 "
+                "않으니 그냥 두셔도 괜찮아요. 본인이 신청하지 않았다면 무시하셔도 됩니다.",
+    },
+    "en": {
+        "subject": "[AI News Briefing] Your subscription still needs confirming",
+        "hello": "Hello from the AI News Briefing.",
+        "body": "You signed up, but the confirmation step is still outstanding, so we haven't "
+                "been able to send you anything. Press the link below and you'll start "
+                "receiving it from the next issue. The link is valid for 7 days.",
+        "cta": "Confirm subscription",
+        "note": "This is the only reminder we'll send. If you don't confirm, we won't email "
+                "you again — you can simply ignore this. If you didn't sign up, ignore it too.",
+    },
+}
+
+
+def reminder_html(confirm_link: str, lang: str = "ko") -> str:
+    c = REMINDER_COPY[normalize_lang(lang)]
     return f"""
-      <p>안녕하세요. AI 뉴스 브리핑입니다.</p>
-      <p>구독 신청은 해주셨는데 확인 절차가 아직 남아 있어서 브리핑을 보내드리지
-         못하고 있어요. 아래 링크를 눌러주시면 다음 날 아침부터 받아보실 수 있습니다
-         (7일 이내 유효).</p>
-      <p><a href="{confirm_link}">구독 확인하기</a></p>
-      <p style="color:#888;font-size:12px;">이 안내는 한 번만 보내드립니다. 확인하지
-         않으시면 더 이상 메일을 보내지 않으니 그냥 두셔도 괜찮아요. 본인이 신청하지
-         않았다면 무시하셔도 됩니다.</p>
+      <p>{c["hello"]}</p>
+      <p>{c["body"]}</p>
+      <p><a href="{confirm_link}">{c["cta"]}</a></p>
+      <p style="color:#888;font-size:12px;">{c["note"]}</p>
     """
 
 
-def send_reminder(email: str, site_url: str, secret: str, sender: str, api_key: str) -> bool:
+def send_reminder(email: str, site_url: str, secret: str, sender: str, api_key: str,
+                  lang: str = "ko") -> bool:
+    lang = normalize_lang(lang)
     payload = {
         "from": sender,
         # 수신자는 언제나 이 한 주소뿐이다. 배열이나 bcc를 쓰지 않는다 — 리마인더가
         # 여러 명에게 나갈 수 있는 형태가 되면 사고가 조용히 커진다.
         "to": email,
-        "subject": "[AI 뉴스 브리핑] 구독 확인이 아직 남아 있어요",
-        "html": reminder_html(confirm_url(site_url, secret, email)),
+        "subject": REMINDER_COPY[lang]["subject"],
+        "html": reminder_html(confirm_url(site_url, secret, email, lang=lang), lang),
     }
     req = urllib.request.Request(
         "https://api.resend.com/emails",
@@ -193,12 +226,13 @@ def remind_all(candidates, claim, send, log=print) -> dict:
     sent, skipped = [], []
     for row in candidates:
         email = row["email"]
+        lang = normalize_lang(row.get("lang"))
         if not claim(email):
             # 조회와 선점 사이에 상태가 바뀌었다. 보내지 않는 게 정답이다.
             skipped.append(email)
             log(f"  건너뜀(이미 처리됨): {email}")
             continue
-        if not send(email):
+        if not send(email, lang):
             # 선점은 이미 됐으므로 이 사람은 리마인더를 못 받고 끝난다. 되돌리지
             # 않는다 — 되돌리면 다음 실행에서 다시 시도하다가 "발송은 됐는데 응답만
             # 실패한" 경우에 두 번 보내게 된다.
@@ -278,7 +312,7 @@ def main() -> int:
     result = remind_all(
         rows,
         claim,
-        lambda email: send_reminder(email, site_url, secret, sender, api_key),
+        lambda email, lang: send_reminder(email, site_url, secret, sender, api_key, lang),
     )
     print(f"\n발송 {len(result['sent'])}건, 건너뜀 {len(result['skipped'])}건"
           + (" (발송 실패로 중단)" if result["aborted"] else ""))

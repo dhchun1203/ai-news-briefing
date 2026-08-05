@@ -9,6 +9,7 @@
 const { isValidEmail, verifyUnsubscribeToken } = require("./_lib/tokens");
 const { markUnsubscribed } = require("./_lib/supabase");
 const { resultPage, unsubscribeConfirmPage } = require("./_lib/page");
+const { normalizeLang } = require("./_lib/messages");
 
 function readParams(req) {
   if (req.method === "POST") {
@@ -31,8 +32,12 @@ module.exports = async function handler(req, res) {
   // 결과 페이지는 사용자별 상태를 담으므로 중간 캐시에 남으면 안 된다.
   res.setHeader("Cache-Control", "no-store");
 
+  // 구독취소 링크는 매일 발송되는 메일 하단에 실린다. 그 메일을 만들 때
+  // 구독자의 언어를 붙여 보내므로, 여기서 그대로 읽어 페이지 언어를 맞춘다.
+  const lang = normalizeLang(readParams(req).lang);
+
   if (req.method !== "GET" && req.method !== "POST") {
-    res.status(405).send(resultPage("처리 실패", "지원하지 않는 요청입니다.", siteUrl));
+    res.status(405).send(resultPage(lang, "method_not_allowed", siteUrl));
     return;
   }
 
@@ -41,13 +46,13 @@ module.exports = async function handler(req, res) {
   const tokenStr = String(token || "");
 
   if (!email || !token || !isValidEmail(emailStr) || !verifyUnsubscribeToken(emailStr, tokenStr)) {
-    res.status(400).send(resultPage("처리 실패", "유효하지 않은 구독취소 링크입니다.", siteUrl));
+    res.status(400).send(resultPage(lang, "unsub_invalid", siteUrl));
     return;
   }
 
   // GET은 확인만 받고 끝낸다 — 여기서 DB를 바꾸면 스캐너가 대신 눌러버린다.
   if (req.method === "GET") {
-    res.status(200).send(unsubscribeConfirmPage(emailStr, tokenStr, siteUrl));
+    res.status(200).send(unsubscribeConfirmPage(emailStr, tokenStr, siteUrl, lang));
     return;
   }
 
@@ -55,9 +60,9 @@ module.exports = async function handler(req, res) {
     await markUnsubscribed(emailStr);
   } catch (err) {
     console.error("unsubscribe: database error", err);
-    res.status(502).send(resultPage("오류", "구독취소 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.", siteUrl));
+    res.status(502).send(resultPage(lang, "db_error", siteUrl));
     return;
   }
 
-  res.status(200).send(resultPage("구독취소 완료", "더 이상 이메일이 발송되지 않습니다. 언제든 다시 구독하실 수 있어요.", siteUrl));
+  res.status(200).send(resultPage(lang, "unsub_ok", siteUrl));
 };

@@ -15,6 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from remind_unconfirmed import (  # noqa: E402
     MAX_PER_RUN,
+    REMINDER_COPY,
+    normalize_lang,
+    reminder_html,
     build_candidate_query,
     build_claim_query,
     confirm_url,
@@ -29,6 +32,7 @@ class FakeDb:
         self.rows = {r["email"]: dict(r) for r in rows}
         self.claim_calls = []
         self.sent = []
+        self.sent_langs = []
         self.send_fails_for = set()
 
     def claim(self, email):
@@ -41,23 +45,31 @@ class FakeDb:
         row["reminded_at"] = "now"
         return True
 
-    def send(self, email):
+    def send(self, email, lang="ko"):
         if email in self.send_fails_for:
             return False
         self.sent.append(email)
+        self.sent_langs.append(lang)
         return True
 
     def candidates(self):
         """실제 질의가 고르는 것과 같은 조건으로 후보를 뽑는다."""
         return [
-            {"email": e, "created_at": "x"}
+            {"email": e, "created_at": "x", "lang": r.get("lang", "ko")}
             for e, r in sorted(self.rows.items())
             if not r.get("reminded_at") and not r.get("confirmed_at") and not r.get("unsubscribed_at")
         ]
 
 
 def pending(email, **over):
-    return {"email": email, "reminded_at": None, "confirmed_at": None, "unsubscribed_at": None, **over}
+    return {
+        "email": email,
+        "reminded_at": None,
+        "confirmed_at": None,
+        "unsubscribed_at": None,
+        "lang": "ko",
+        **over,
+    }
 
 
 class TestExactlyOnce(unittest.TestCase):
@@ -97,7 +109,7 @@ class TestExactlyOnce(unittest.TestCase):
             order.append("claim")
             return True
 
-        def send(email):
+        def send(email, lang="ko"):
             order.append("send")
             return True
 
@@ -123,6 +135,43 @@ class TestExactlyOnce(unittest.TestCase):
         self.assertTrue(result["aborted"])
         self.assertIsNone(db.rows["b@x.com"]["reminded_at"])
         self.assertIsNone(db.rows["c@x.com"]["reminded_at"])
+
+
+class TestLanguage(unittest.TestCase):
+    """/en/ 에서 구독한 사람에게 한국어 리마인더가 가면 안 된다."""
+
+    def test_sends_in_subscriber_language(self):
+        db = FakeDb([pending("ko@x.com"), pending("en@x.com", lang="en")])
+        remind_all(db.candidates(), db.claim, db.send, log=lambda *_: None)
+        self.assertEqual(dict(zip(db.sent, db.sent_langs)), {"ko@x.com": "ko", "en@x.com": "en"})
+
+    def test_unknown_lang_falls_back_to_korean(self):
+        db = FakeDb([pending("x@x.com", lang="fr")])
+        remind_all(db.candidates(), db.claim, db.send, log=lambda *_: None)
+        self.assertEqual(db.sent_langs, ["ko"])
+        self.assertEqual(normalize_lang(None), "ko")
+
+    def test_english_reminder_has_no_korean(self):
+        """영어 본문에 한글이 한 글자라도 있으면 분기를 빠뜨린 것이다."""
+        body = reminder_html("https://x.test/confirm", "en") + REMINDER_COPY["en"]["subject"]
+        hangul = [ch for ch in body if "가" <= ch <= "힣"]
+        self.assertEqual(hangul, [], f"영어 리마인더에 한글: {hangul}")
+
+    def test_korean_reminder_is_korean(self):
+        body = reminder_html("https://x.test/confirm", "ko")
+        self.assertTrue(any("가" <= ch <= "힣" for ch in body))
+
+    def test_confirm_link_carries_lang(self):
+        from remind_unconfirmed import confirm_url
+
+        self.assertIn("lang=en", confirm_url("https://x.test", "s", "a@x.com", lang="en"))
+        self.assertIn("lang=ko", confirm_url("https://x.test", "s", "a@x.com", lang="ko"))
+
+    def test_every_copy_key_exists_in_both_languages(self):
+        self.assertEqual(set(REMINDER_COPY["ko"]), set(REMINDER_COPY["en"]))
+        for lang, copy in REMINDER_COPY.items():
+            for key, value in copy.items():
+                self.assertTrue(value.strip(), f"{lang}.{key} 비어 있음")
 
 
 class TestTargetSelection(unittest.TestCase):

@@ -8,6 +8,7 @@ const {
 } = require("./_lib/supabase");
 // 발송 본문·토큰 수명·쿨다운은 /api/confirm의 재발송 경로와 공유한다.
 const { sendConfirmEmail, withinConfirmCooldown, missingEnv } = require("./_lib/confirm-mail");
+const { normalizeLang } = require("./_lib/messages");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -37,6 +38,10 @@ module.exports = async function handler(req, res) {
       ? rawTz
       : null;
 
+  // 구독한 페이지의 언어. 이 값이 앞으로 그 사람이 받을 모든 메일의 언어를 정한다.
+  // 알 수 없으면 한국어로 떨어진다 — 지금까지의 동작과 같으므로 새 피해가 없다.
+  const lang = normalizeLang(body && body.lang);
+
   if (!isValidEmail(email)) {
     res.status(400).json({ error: "invalid_email" });
     return;
@@ -58,7 +63,7 @@ module.exports = async function handler(req, res) {
   try {
     existing = await getSubscriber(email);
     if (!existing) {
-      await upsertPendingSubscriber(email, timezone);
+      await upsertPendingSubscriber(email, timezone, lang);
     }
   } catch (err) {
     console.error("subscribe: database error", err);
@@ -75,7 +80,10 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  if (!(await sendConfirmEmail(email)).ok) {
+  // 이미 있는 구독자면 그 사람이 처음 등록한 언어를 따른다 — 다른 언어 페이지에서
+  // 재신청했다고 해서 이미 정해진 발송 언어를 갈아엎지 않는다.
+  const mailLang = existing && existing.lang ? normalizeLang(existing.lang) : lang;
+  if (!(await sendConfirmEmail(email, mailLang)).ok) {
     res.status(502).json({ error: "email_send_failed" });
     return;
   }
