@@ -28,7 +28,16 @@ function isValidEmail(email) {
   );
 }
 
-function makeConfirmToken(email, ttlSeconds = 60 * 60 * 24) {
+// 확인 링크 유효기간. 24시간이었을 때 실제로 놓치는 사람이 나왔다 — 가입 45시간 뒤까지
+// 확정을 못 한 구독자의 링크가 이미 죽어 있었고, 만료 페이지는 "다시 신청하세요"라는
+// 막다른 안내뿐이었다. 이메일 확인 토큰에 7일은 업계 관례 범위이고, 확정 자체가
+// 되돌리기 쉬우므로(모든 발송 메일 하단에 구독취소 링크) 늘려도 위험이 낮다.
+//
+// 이 값은 확인 메일 본문의 "7일 이내 유효" 문구와 반드시 맞아야 한다. 그래서 기본값을
+// 여기 한 곳에만 두고 호출부에서 따로 정하지 않는다.
+const CONFIRM_TTL_SECONDS = 60 * 60 * 24 * 7;
+
+function makeConfirmToken(email, ttlSeconds = CONFIRM_TTL_SECONDS) {
   const expiry = Math.floor(Date.now() / 1000) + ttlSeconds;
   const token = sign(`confirm|${email}|${expiry}`);
   return { token, expiry };
@@ -61,6 +70,7 @@ function verifyUnsubscribeToken(email, token) {
 }
 
 module.exports = {
+  CONFIRM_TTL_SECONDS,
   isValidEmail,
   makeConfirmToken,
   verifyConfirmToken,

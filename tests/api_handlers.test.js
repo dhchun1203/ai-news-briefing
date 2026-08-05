@@ -63,6 +63,7 @@ function mockRes() {
 
 const subscribe = require(ROOT + "/api/subscribe.js");
 const unsubscribe = require(ROOT + "/api/unsubscribe.js");
+const confirm = require(ROOT + "/api/confirm.js");
 const search = require(ROOT + "/api/search.js");
 const tokens = require(ROOT + "/api/_lib/tokens.js");
 
@@ -210,6 +211,79 @@ function check(name, cond, extra = "") {
       r0._status === 200 && state.inserts[0] && !("timezone" in state.inserts[0]),
       `status=${r0._status} row=${JSON.stringify(state.inserts[0])}`);
   }
+
+  // --- confirm: 만료된 링크에서 새 확인 메일 받기 ---
+  // 24시간 만료 때문에 실제로 확정을 못 한 구독자가 나왔다. 만료 페이지가 다시
+  // 막다른 길로 돌아가지 않도록 재발송 경로를 고정한다.
+  const { makeConfirmToken, makeUnsubscribeToken } = require(ROOT + "/api/_lib/tokens.js");
+  const expiredLink = (email) => {
+    const t = makeConfirmToken(email, -60); // 이미 만료된 토큰
+    return { email, expiry: String(t.expiry), token: t.token };
+  };
+  const pendingRow = (over = {}) =>
+    ({ email: "u@x.com", confirmed_at: null, unsubscribed_at: null, last_confirm_sent_at: null, ...over });
+
+  // GET은 메일을 보내지 않는다 — 메일 스캐너가 링크를 미리 열기 때문이다.
+  state = freshState({ row: pendingRow() });
+  res = mockRes();
+  await confirm({ method: "GET", query: expiredLink("u@x.com") }, res);
+  check("expired GET sends no mail, shows resend button",
+    state.resendCalls === 0 && res._body.includes("확인 메일 다시 받기"), `calls=${state.resendCalls}`);
+
+  // 버튼을 눌러 POST 하면 그때 보낸다.
+  state = freshState({ row: pendingRow() });
+  res = mockRes();
+  await confirm({ method: "POST", body: expiredLink("u@x.com") }, res);
+  check("expired POST resends confirm mail",
+    res._status === 200 && state.resendCalls === 1, `status=${res._status} calls=${state.resendCalls}`);
+  check("resend records last_confirm_sent_at",
+    state.patches.some((p) => p.last_confirm_sent_at), JSON.stringify(state.patches));
+
+  // 폼 전송(urlencoded 문자열)로 와도 동작해야 한다.
+  state = freshState({ row: pendingRow() });
+  res = mockRes();
+  await confirm({ method: "POST", body: new URLSearchParams(expiredLink("u@x.com")).toString() }, res);
+  check("expired POST accepts urlencoded form body", state.resendCalls === 1, `calls=${state.resendCalls}`);
+
+  // 쿨다운 중이면 보내지 않는다 — 이 버튼이 메일 폭탄 증폭기가 되면 안 된다.
+  state = freshState({ row: pendingRow({ last_confirm_sent_at: new Date().toISOString() }) });
+  res = mockRes();
+  await confirm({ method: "POST", body: expiredLink("u@x.com") }, res);
+  check("resend within cooldown sends NO mail", state.resendCalls === 0, `calls=${state.resendCalls}`);
+
+  // 서명이 틀리면 만료 페이지조차 보여주지 않는다.
+  state = freshState({ row: pendingRow() });
+  res = mockRes();
+  await confirm({ method: "POST", body: { email: "u@x.com", expiry: "1", token: "forged" } }, res);
+  check("forged token: no mail, no resend page",
+    state.resendCalls === 0 && res._status === 400 && !res._body.includes("다시 받기"), res._status);
+
+  // 남의 주소로 서명을 재사용할 수 없다 — 토큰은 주소마다 다르다.
+  state = freshState({ row: pendingRow() });
+  res = mockRes();
+  const stolen = expiredLink("u@x.com");
+  res = mockRes();
+  await confirm({ method: "POST", body: { ...stolen, email: "victim@x.com" } }, res);
+  check("token cannot be replayed for another address",
+    state.resendCalls === 0 && res._status === 400, `calls=${state.resendCalls} status=${res._status}`);
+
+  // 해지한 주소에는 다시 보내지 않는다.
+  state = freshState({ row: pendingRow({ unsubscribed_at: new Date().toISOString() }) });
+  res = mockRes();
+  await confirm({ method: "POST", body: expiredLink("u@x.com") }, res);
+  check("unsubscribed address is not re-mailed", state.resendCalls === 0, `calls=${state.resendCalls}`);
+
+  // 유효한 링크는 예전처럼 바로 확정된다 (회귀 방지).
+  state = freshState({ row: pendingRow() });
+  res = mockRes();
+  const live = makeConfirmToken("u@x.com");
+  await confirm({ method: "GET", query: { email: "u@x.com", expiry: String(live.expiry), token: live.token } }, res);
+  check("valid link still confirms directly",
+    res._status === 200 && res._body.includes("구독 확인 완료"), res._status);
+
+  // 확인 링크 유효기간이 7일인지 — 만료 페이지 문구("7일 이내")와 맞아야 한다.
+  const ttl = makeConfirmToken("u@x.com").expiry - Math.floor(Date.now() / 1000);
+  check("confirm token TTL is 7 days", Math.abs(ttl - 7 * 24 * 3600) <= 5, `ttl=${ttl}s`);
 
   let pass = 0;
   for (const r of results) {

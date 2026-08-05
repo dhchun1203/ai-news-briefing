@@ -60,4 +60,26 @@ function unsubscribeConfirmPage(email, token, siteUrl) {
   return layout("구독취소 확인", body, siteUrl);
 }
 
-module.exports = { resultPage, unsubscribeConfirmPage, escapeHtml };
+// 확인 링크가 만료됐을 때 보여주는 페이지.
+//
+// 예전에는 "사이트에서 다시 구독을 신청해주세요"라는 안내문만 띄웠는데, 그건 막다른
+// 길이었다 — 재신청 경로가 실제로 동작하긴 해도 거기까지 되돌아가는 사람은 드물다.
+// 여기서 바로 새 링크를 받을 수 있게 한다.
+//
+// 왜 GET에서 자동 재발송하지 않고 버튼을 두는가: 구독취소와 같은 이유다. 메일 보안
+// 스캐너와 브라우저 프리페치가 링크를 사용자 대신 미리 열어보기 때문에, GET에서
+// 메일을 보내면 아무도 누르지 않았는데 메일이 나간다.
+function confirmExpiredPage(email, expiry, token, siteUrl) {
+  const body = `
+  <p>확인 링크가 만료됐어요. 아래 버튼을 누르면 새 링크를 보내드립니다.</p>
+  <p><strong>${escapeHtml(email)}</strong></p>
+  <form method="POST" action="/api/confirm">
+    <input type="hidden" name="email" value="${escapeHtml(email)}">
+    <input type="hidden" name="expiry" value="${escapeHtml(expiry)}">
+    <input type="hidden" name="token" value="${escapeHtml(token)}">
+    <button type="submit">확인 메일 다시 받기</button>
+  </form>`;
+  return layout("확인 링크 만료", body, siteUrl);
+}
+
+module.exports = { resultPage, unsubscribeConfirmPage, confirmExpiredPage, escapeHtml };
