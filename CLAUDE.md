@@ -68,7 +68,12 @@ Routine 실행이 "당연히 닿아야 할 도메인"에 403이나 connection re
 - **콘솔이 cp949다.** 한국어를 stdout으로 내보내면 깨지거나 `UnicodeEncodeError`가 난다.
   스크립트로 한국어를 확인할 때는 파일에 `encoding="utf-8"`로 쓰고 Read로 읽는다.
 - 파일을 읽고 쓸 때 `encoding="utf-8"`를 **항상 명시**한다. 생략하면 cp949로 열려 실패한다.
-- 런타임 의존성 없음(`package.json` 없음). Node 테스트용 jsdom은 `--no-save`로 설치돼 있다.
+- 런타임 의존성 없음(`package.json` 없음). Node 테스트용 jsdom과 브라우저 확인용
+  playwright-core는 `--no-save`로 설치돼 있다.
+- **`npm install --no-save <새 패키지>`를 단독으로 쓰면 기존 패키지가 지워진다.**
+  `package.json`이 없어서 npm이 "설치돼야 할 목록"을 인자에서만 읽고 나머지를
+  정리해버린다. 실제로 playwright-core를 넣다가 jsdom이 사라져 테스트가 깨졌다.
+  **항상 필요한 것을 전부 나열한다**: `npm install --no-save jsdom playwright-core`
 
 ## 테스트
 
@@ -78,6 +83,22 @@ bash tests/run_all.sh    # Python 문법·단위 + Node 문법·API·HMAC·DOM �
 
 푸시 전 항상 전체를 돌린다. 개별 실행은 `py -m unittest discover -s tests -p "test_*.py"`,
 `node tests/dom_smoke.test.js`.
+
+**UI를 건드렸으면 실제 브라우저로도 본다:**
+
+```bash
+py -m http.server 8970 --directory docs &
+node scripts/tools/browser_check.js http://127.0.0.1:8970
+```
+
+jsdom과 `chrome --headless --dump-dom`으로는 확인할 수 없는 것들이 있다 — 스크롤
+이벤트가 아예 발생하지 않고, `requestAnimationFrame`이 돌지 않아 rAF로 묶은 코드가
+실행되지 않으며, `--window-size`가 485px 아래로 내려가지 않아 진짜 모바일 폭을 볼 수
+없고, `scroll-behavior: smooth` 애니메이션이 끝나지 않는다. 맨 위로 버튼이 "동작하지
+않는 것처럼" 보였던 게 전부 이 때문이었다.
+
+**`run_all.sh`에는 넣지 않는다** — 매일 08:00 무인 파이프라인이 도는 환경에 브라우저
+의존성을 더하면 UI 확인 도구 하나 때문에 발송이 막힐 수 있다. 사람이 손으로 돌린다.
 
 **회귀 테스트를 실제로 실패시켜 확인한다.** 버그를 고치면 고친 코드를 일부러 되돌려
 넣어 테스트가 그 버그를 잡는지 본 뒤 복원한다. 통과만 확인한 테스트는 아무것도 지키지
