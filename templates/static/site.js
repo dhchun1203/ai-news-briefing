@@ -36,6 +36,37 @@
     return root.getAttribute("data-lang") || "ko";
   }
 
+  /* ---------- 배경 스크롤 잠금 ----------
+   * 반투명 백드롭이 덮인 상태(용어 패널·모바일 서랍)는 모달이다. 그런데 뒤의 본문이
+   * 계속 스크롤돼서, 패널을 열어둔 채 휠이나 방향키를 쓰면 읽던 자리를 잃는다.
+   * 닫고 나면 엉뚱한 곳에 와 있다.
+   *
+   * 둘이 동시에 열릴 수 있으므로 카운터로 센다 — 하나가 닫힐 때 무조건 풀어버리면
+   * 다른 하나가 아직 열려 있는데도 배경이 다시 움직인다.
+   *
+   * 스크롤바가 사라지면서 본문이 그 폭만큼 옆으로 튀는 것은 같은 폭의 padding으로 막는다
+   * (스크롤바를 겹쳐 그리는 환경에서는 폭이 0이라 아무것도 하지 않는다). */
+  var scrollLocks = 0;
+  var lockedScrollY = 0;
+  function lockBackgroundScroll() {
+    if (++scrollLocks > 1) return;
+    // 위치를 직접 기억했다가 되돌린다. overflow:hidden을 걸면 문서가 스크롤 불가능해져
+    // 브라우저가 위치를 0으로 정리해버리는 환경이 있다(모바일 폭에서 실측: 잠금 중에는
+    // pageYOffset이 1200으로 보이지만 풀면 0으로 떨어졌다).
+    lockedScrollY = window.pageYOffset || root.scrollTop || 0;
+    var barWidth = window.innerWidth - root.clientWidth;
+    root.style.overflow = "hidden";
+    if (barWidth > 0) root.style.paddingRight = barWidth + "px";
+  }
+  function unlockBackgroundScroll() {
+    if (scrollLocks === 0 || --scrollLocks > 0) return;
+    root.style.overflow = "";
+    root.style.paddingRight = "";
+    // behavior를 명시해야 CSS의 scroll-behavior: smooth를 덮는다 — 안 그러면 복원이
+    // 애니메이션으로 보여서 화면이 출렁인다.
+    window.scrollTo({ top: lockedScrollY, left: 0, behavior: "auto" });
+  }
+
   /* ---------- 언어에 따라 화면에 안 보이는 문구도 교체 ----------
    * 본문은 .lang-ko/.lang-en을 CSS로 숨기고 보여주는 방식이라 알아서 바뀌지만,
    * placeholder와 aria-label은 속성값이라 그 방식이 통하지 않는다. 그대로 두면
@@ -170,6 +201,7 @@
       drawer.setAttribute("aria-hidden", "false");
       drawer.removeAttribute("inert");
       drawerBackdrop.hidden = false;
+      lockBackgroundScroll();
       navToggle.setAttribute("aria-expanded", "true");
       drawerClose.focus();
     };
@@ -181,8 +213,10 @@
       // inert가 없으면 보이지 않는 링크에 탭 포커스가 갇힌다(용어 패널과 같은 이유).
       drawer.setAttribute("inert", "");
       drawerBackdrop.hidden = true;
+      unlockBackgroundScroll();
       navToggle.setAttribute("aria-expanded", "false");
-      if (returnFocus) navToggle.focus();
+      // preventScroll이 없으면 화면 밖에 있는 햄버거로 포커스가 가면서 맨 위로 튄다.
+      if (returnFocus) navToggle.focus({ preventScroll: true });
     };
 
     navToggle.addEventListener("click", openDrawer);
@@ -421,7 +455,10 @@
       termPanel.classList.add("open");
       termPanel.setAttribute("aria-hidden", "false");
       termPanel.removeAttribute("inert");
+      // 이미 열려 있는데 다른 용어를 누른 경우 잠금을 두 번 걸지 않는다.
+      var wasOpen = termBackdrop.hidden === false;
       termBackdrop.hidden = false;
+      if (!wasOpen) lockBackgroundScroll();
       termTrigger = trigger || null;
       if (termClose) termClose.focus();
     };
@@ -434,8 +471,9 @@
       // (게다가 aria-hidden 안에 포커스 가능한 요소가 있는 건 ARIA 위반이다).
       termPanel.setAttribute("inert", "");
       termBackdrop.hidden = true;
+      unlockBackgroundScroll();
       if (termTrigger) {
-        termTrigger.focus();
+        termTrigger.focus({ preventScroll: true });
         termTrigger = null;
       }
     };

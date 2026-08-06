@@ -266,6 +266,124 @@ async function main() {
     await ctx.close();
   }
 
+  // ---------- 1-5. 모달 열림 중 배경 스크롤 잠금 ----------
+  // 반투명 백드롭이 덮인 상태에서 뒤가 계속 스크롤되면, 패널을 닫았을 때 읽던 자리를
+  // 잃는다. 스크롤 잠금 자체가 브라우저에서만 재현되는 동작이라 여기서 확인한다.
+  console.log("\n--- 배경 스크롤 잠금 ---");
+  {
+    const ctx = await browser.newContext({
+      viewport: { width: 1280, height: 800 }, locale: "ko-KR", reducedMotion: "reduce",
+    });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/index.html`, { waitUntil: "load" });
+    const y = () => page.evaluate(() => Math.round(window.pageYOffset));
+    const colWidth = () => page.evaluate(
+      () => Math.round(document.querySelector(".article-list").getBoundingClientRect().width));
+
+    await page.evaluate(() => window.scrollTo(0, 1500));
+    await page.waitForTimeout(150);
+    const y0 = await y();
+    const w0 = await colWidth();
+
+    await page.locator(".term-link").first().click();
+    await page.waitForTimeout(250);
+    check("용어 패널이 열림", await page.locator(".term-panel").isVisible());
+
+    await page.mouse.wheel(0, 600);
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("PageDown");
+    await page.waitForTimeout(250);
+    check("패널 열린 동안 배경이 스크롤되지 않음", (await y()) === y0, `${y0} -> ${await y()}`);
+    // 스크롤바가 사라지며 본문이 옆으로 튀면 그것대로 거슬린다.
+    check("잠금 중 본문 폭이 그대로", (await colWidth()) === w0, `${w0} -> ${await colWidth()}`);
+
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(250);
+    check("닫으면 읽던 위치가 유지됨", (await y()) === y0, `${y0} -> ${await y()}`);
+    await page.mouse.wheel(0, 300);
+    await page.waitForTimeout(250);
+    check("닫은 뒤 스크롤이 다시 동작", (await y()) > y0, String(await y()));
+
+    // 열린 채 다른 용어를 누르면 잠금이 두 번 걸려 영영 안 풀릴 수 있다.
+    await page.evaluate(() => window.scrollTo(0, 1500));
+    await page.waitForTimeout(150);
+    await page.locator(".term-link").first().click();
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const links = document.querySelectorAll(".term-link");
+      if (links[1]) links[1].click();
+    });
+    await page.waitForTimeout(200);
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(250);
+    await page.mouse.wheel(0, 300);
+    await page.waitForTimeout(250);
+    check("용어를 연달아 눌러도 잠금이 남지 않음", (await y()) > 1500, String(await y()));
+    await ctx.close();
+  }
+
+  // 모바일 서랍도 같은 규칙을 따른다.
+  {
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 844 }, locale: "ko-KR", isMobile: true, hasTouch: true,
+      reducedMotion: "reduce",
+    });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/index.html`, { waitUntil: "load" });
+    const y = () => page.evaluate(() => Math.round(window.pageYOffset));
+    await page.evaluate(() => window.scrollTo(0, 1200));
+    await page.waitForTimeout(150);
+    const y0 = await y();
+    // locator.click()은 요소를 화면에 스크롤해 넣고 누른다. 햄버거는 <header> 안에
+    // 있어 아래로 내려가면 화면 밖이라, 그 자동 스크롤이 위치를 맨 위로 되돌려버린다
+    // (실제 사용자는 그 상태에서 햄버거를 누를 수 없다). 검사하려는 건 잠금이지
+    // 클릭 경로가 아니므로 스크롤 없이 직접 연다.
+    await page.evaluate(() => document.querySelector("#nav-toggle").click());
+    await page.waitForTimeout(250);
+    check("모바일 서랍이 열림", await page.locator(".nav-drawer").evaluate(
+      (el) => el.classList.contains("open")));
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(250);
+    check("서랍 열린 동안 배경이 스크롤되지 않음", (await y()) === y0, `${y0} -> ${await y()}`);
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(250);
+    check("서랍 닫으면 읽던 위치가 유지됨", (await y()) === y0, `${y0} -> ${await y()}`);
+    await page.mouse.wheel(0, 300);
+    await page.waitForTimeout(250);
+    check("서랍 닫은 뒤 스크롤이 다시 동작", (await y()) > y0, String(await y()));
+
+    // 서랍이 열린 채로 용어 패널까지 열면 잠금이 두 번 걸린다. 하나를 닫을 때
+    // 무조건 풀어버리면 아직 열려 있는 다른 하나 뒤에서 배경이 다시 움직인다.
+    await page.evaluate(() => window.scrollTo(0, 1200));
+    await page.waitForTimeout(200);
+    const yNest = await y();
+    await page.evaluate(() => document.querySelector("#nav-toggle").click());
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const el = document.querySelector(".term-link");
+      if (el) el.click();
+    });
+    await page.waitForTimeout(200);
+    const bothOpen = await page.evaluate(() =>
+      document.querySelector(".nav-drawer").classList.contains("open") &&
+      document.querySelector(".term-panel").classList.contains("open"));
+    check("서랍과 용어 패널이 함께 열린 상태를 만들 수 있음", bothOpen);
+    if (bothOpen) {
+      // 용어 패널만 닫는다 — 서랍은 아직 열려 있으므로 잠금이 유지돼야 한다.
+      await page.evaluate(() => document.getElementById("term-panel-close").click());
+      await page.waitForTimeout(200);
+      await page.mouse.wheel(0, 600);
+      await page.waitForTimeout(250);
+      check("하나만 닫으면 잠금이 유지됨", (await y()) === yNest, `${yNest} -> ${await y()}`);
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(250);
+      await page.mouse.wheel(0, 300);
+      await page.waitForTimeout(250);
+      check("둘 다 닫으면 잠금이 풀림", (await y()) > yNest, String(await y()));
+    }
+    await ctx.close();
+  }
+
   // ---------- 2. 언어 안내 배너 ----------
   console.log("\n--- 언어 안내 배너 ---");
   for (const [locale, url, shouldShow, label] of [
