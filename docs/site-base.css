@@ -896,11 +896,6 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   flex-direction: column;
   gap: 14px;
 }
-/* 펼쳤을 때 나오는 요약 뒷부분. 앞부분과 같은 본문이므로 같은 서체를 쓴다. */
-.article-summary-rest {
-  font-family: var(--serif);
-  margin: 0;
-}
 @media (prefers-reduced-motion: reduce) {
   .article-more-chevron { transition: none; }
 }

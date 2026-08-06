@@ -346,8 +346,9 @@ function finishPage(label, doc, window, opts, relPath) {
     });
     check(label, "모든 기사에 접힌 시사점이 있고 기본은 접힘", bad.length === 0, bad.slice(0, 3).join(" | "));
 
-    // 요약 앞부분은 항상 보인다 — 접힌 것은 나머지와 시사점뿐이다.
-    check(label, "요약 앞부분은 details 바깥에 있음",
+    // 요약은 전부 보인다 — 접힌 것은 시사점뿐이다. 요약을 잘라 접었더니 펼쳤을 때
+    // 라벨 없는 뒷부분이 "시사점 보기"보다 먼저 나와서 문구와 맞지 않았다.
+    check(label, "요약은 details 바깥에 있음",
       Array.prototype.every.call(cards, (c) => {
         const lede = c.querySelector(".article-summary p");
         return lede && lede.textContent.trim() && !lede.closest("details");
@@ -358,6 +359,9 @@ function finishPage(label, doc, window, opts, relPath) {
       const el = c.querySelector(".article-reading-time");
       return el ? el.textContent.trim() : "";
     });
+    check(label, "접힌 영역에는 시사점만 들어감",
+      !doc.querySelector("details.article-more .article-summary, details.article-more .article-summary-rest"));
+
     check(label, "모든 기사에 읽는 시간 표시", times.every((s) => s.length > 0), JSON.stringify(times.slice(0, 3)));
     // 값이 전부 같으면 표시할 이유가 없다(분 단위로 반올림했을 때가 정확히 그랬다).
     check(label, "읽는 시간이 기사마다 구분됨", new Set(times).size > 1, JSON.stringify(times));

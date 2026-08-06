@@ -105,7 +105,7 @@ body {
 .block-label { font-size: 0.78rem; margin: 0 0 8px; }
 
 .article-summary { margin-bottom: 16px; }
-.article-summary p, .article-implication p, .article-summary-rest { font-size: 1.12rem; }
+.article-summary p, .article-implication p { font-size: 1.12rem; }
 
 .article-related { font-size: 0.82rem; margin-top: 16px; }
 .related-label { font-size: 0.7rem; }

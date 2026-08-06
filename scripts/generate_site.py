@@ -93,47 +93,6 @@ KO_CHARS_PER_MINUTE = 500  # 한국어는 음절 수 기준(띄어쓰기 단위 
 EN_WORDS_PER_MINUTE = 200  # 영어는 공백 기준 단어 수
 
 
-# 요약에서 먼저 보여줄 문장 수. 나머지와 시사점은 접어둔다.
-# GeekNews 런칭 첫 피드백이 "스크롤이 길고 요약·시사점 분량이 많다"였다. 실측하니
-# 기사 하나가 한국어 396자(요약 221 + 시사점 175), 영어는 그 두 배였고 그게 10건
-# 이어졌다. 접어두면 첫 화면에서 훑을 수 있는 기사 수가 늘어난다.
-LEDE_SENTENCES = 2
-
-# 문장 끝처럼 보이지만 아니어서 자르면 안 되는 것들. 영어 요약에 실제로 나온다.
-_ABBREVIATIONS = (
-    "U.S.", "U.K.", "E.U.", "e.g.", "i.e.", "vs.", "Inc.", "Ltd.", "Corp.", "Co.",
-    "Dr.", "Mr.", "Ms.", "Mrs.", "St.", "No.", "Fig.", "approx.", "etc.", "Jr.", "Sr.",
-)
-
-# 문장 경계: 마침표류 뒤에 공백이 오고, 그 다음이 대문자·한글·여는따옴표로 시작할 때.
-# 소수점("$1.5")은 뒤에 공백이 없어 걸리지 않는다.
-_SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+(?=[A-Z가-힣\"“‘'])")
-
-
-def split_sentences(text: str) -> list:
-    """문장 단위로 나눈다. 약어에서 잘린 조각은 앞 문장에 도로 붙인다."""
-    parts = _SENTENCE_BOUNDARY.split(text or "")
-    merged = []
-    for part in parts:
-        if merged and merged[-1].rstrip().endswith(_ABBREVIATIONS):
-            merged[-1] = merged[-1].rstrip() + " " + part
-        else:
-            merged.append(part)
-    return [p for p in merged if p.strip()]
-
-
-def split_lede(text: str, max_sentences: int = LEDE_SENTENCES) -> tuple:
-    """요약을 (먼저 보이는 앞부분, 펼쳐야 보이는 나머지)로 나눈다.
-
-    **반드시 글로서리 링크화 전의 원문에서 나눈다.** 링크화 뒤에는 <button> 마크업이
-    섞여 있어 문장 경계에서 자르면 태그가 열린 채로 끊긴다.
-    """
-    sentences = split_sentences(text)
-    if len(sentences) <= max_sentences:
-        return (text or "").strip(), ""
-    return " ".join(sentences[:max_sentences]).strip(), " ".join(sentences[max_sentences:]).strip()
-
-
 def reading_time(value: int, per_minute: int) -> dict:
     """읽는 시간을 {value, unit}으로 돌려준다.
 
@@ -254,20 +213,12 @@ def apply_glossary(digest):
 
     for article in digest.get("articles", []):
         used_ko, used_en = set(), set()
-        # 링크화 **전에** 나눈다. 나눈 뒤 각각 링크화하되 used 집합은 공유해서,
-        # 접힌 부분에 같은 용어가 또 링크되지 않게 한다(읽는 순서대로 처리).
-        lede_ko, rest_ko = split_lede(article.get("summary_ko", ""))
-        lede_en, rest_en = split_lede(article.get("summary_en", ""))
+        # 읽는 시간은 마크업이 섞이기 전 원문에서 재야 <button> 태그가 글자 수에 안 낀다.
         article["reading_ko"], article["reading_en"] = article_reading_times(article)
-        article["summary_lede_ko"] = linkify_terms(lede_ko, terms_ko, used_ko)
-        article["summary_rest_ko"] = linkify_terms(rest_ko, terms_ko, used_ko)
+        article["summary_ko"] = linkify_terms(article.get("summary_ko", ""), terms_ko, used_ko)
         article["implication_ko"] = linkify_terms(article.get("implication_ko", ""), terms_ko, used_ko)
-        article["summary_lede_en"] = linkify_terms(lede_en, terms_en, used_en)
-        article["summary_rest_en"] = linkify_terms(rest_en, terms_en, used_en)
+        article["summary_en"] = linkify_terms(article.get("summary_en", ""), terms_en, used_en)
         article["implication_en"] = linkify_terms(article.get("implication_en", ""), terms_en, used_en)
-        # 원문 필드는 그대로 링크화해 남겨둔다 — 다른 곳에서 쓰고 있을 수 있다.
-        article["summary_ko"] = linkify_terms(article.get("summary_ko", ""), terms_ko, set())
-        article["summary_en"] = linkify_terms(article.get("summary_en", ""), terms_en, set())
 
     insight = digest.get("daily_insight")
     if insight:
