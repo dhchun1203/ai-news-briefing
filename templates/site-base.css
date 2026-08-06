@@ -816,12 +816,15 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
     top: 0;
     z-index: 25;   /* 유틸리티 바(30) 아래, 맨 위로 버튼(25)과 같은 층 — 서로 안 겹친다 */
     align-items: center;
-    gap: 8px;
-    padding: 6px 16px;
+    gap: 9px;
+    /* 12px/6px으로 시작했는데 실기기에서 너무 작아 잘 안 보였다. 본문(0.98rem)보다는
+       작게 두되 읽을 수 있는 크기로 올린다. 높이는 여전히 한 줄이라 본문을 거의
+       가리지 않는다. */
+    padding: 10px 16px;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
     font-family: var(--sans);
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-muted);
     /* 한 줄을 넘지 않는다 — 본문을 가리면 안 된다. */
     white-space: nowrap;
@@ -839,6 +842,8 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   }
 }
 .reading-progress-count {
+  /* "3/10"이 이 바의 핵심 정보라 제목보다 한 단계 크게 세운다. */
+  font-size: 15px;
   font-weight: 700;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
@@ -846,6 +851,7 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 }
 .reading-progress-sep { flex: none; }
 .reading-progress-title {
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
 }

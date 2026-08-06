@@ -231,7 +231,10 @@ async function main() {
     // 화면 맨 위에 붙고, 한 줄을 넘지 않는다.
     const pbox = await prog.boundingBox();
     check(`${label}: 진행 바가 화면 맨 위에 붙음`, pbox && Math.abs(pbox.y) < 2, JSON.stringify(pbox));
-    check(`${label}: 진행 바가 한 줄 높이`, pbox && pbox.height <= 34, JSON.stringify(pbox));
+    // 한 줄을 유지하되 읽을 수 있는 크기여야 한다. 12px/6px일 때 실기기에서 너무
+    // 작다는 피드백을 받아 14px/10px로 올렸다 — 위아래 경계를 모두 잡아둔다.
+    check(`${label}: 진행 바가 한 줄 높이`, pbox && pbox.height >= 40 && pbox.height <= 56,
+      JSON.stringify(pbox));
     check(`${label}: 진행 바가 화면 폭을 넘지 않음`, pbox && pbox.width <= 390, JSON.stringify(pbox));
     await page.screenshot({ path: path.join(SHOTS, `progress-${label === "한국어" ? "ko" : "en"}.png`) });
 
