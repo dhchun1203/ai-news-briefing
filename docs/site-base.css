@@ -713,6 +713,61 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .article-implication .block-label { color: var(--text); }
 .article-implication p { font-family: var(--serif); margin: 0; }
 
+/* 펼쳐보기 — 요약 뒷부분과 시사점을 접어둔다.
+   시사점은 이 브리핑의 핵심 가치라, 접힌 상태에서도 "여기 뭔가 더 있다"가 분명해야
+   한다. 평범한 텍스트 링크로 두면 아무도 안 누른다. 알약 모양 + accent 색으로 세운다. */
+.article-more {
+  margin-top: 14px;
+}
+.article-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--implication-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  /* 실제 브라우저로 재보니 padding만으로는 42.75px이었다 — 최소 터치 타깃 44px에
+     2px 모자란다. 글꼴 렌더링에 따라 달라지는 값이라 여백이 아니라 높이로 못 박는다. */
+  padding: 9px 16px;
+  min-height: 44px;
+  box-sizing: border-box;
+  cursor: pointer;
+  list-style: none;          /* 기본 삼각형 마커 제거 */
+  user-select: none;
+}
+/* 사파리/구형 웹킷은 list-style로 마커가 안 지워진다. */
+.article-more-toggle::-webkit-details-marker { display: none; }
+.article-more-toggle:hover { border-color: var(--accent); }
+.article-more-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.article-more-chevron {
+  display: inline-flex;
+  transition: transform 0.15s ease;
+}
+.article-more[open] .article-more-chevron { transform: rotate(180deg); }
+
+.article-more-body {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* 펼쳤을 때 나오는 요약 뒷부분. 앞부분과 같은 본문이므로 같은 서체를 쓴다. */
+.article-summary-rest {
+  font-family: var(--serif);
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .article-more-chevron { transition: none; }
+}
+
+/* 기사별 읽는 시간. 메타 줄의 다른 항목과 같은 크기·색이라 튀지 않는다. */
+.article-reading-time { white-space: nowrap; }
+
 /* 같은 사건 다른 매체. 본문이 아니라 참고 정보라 sans + muted로 낮춰 두고,
    시사점 블록 바깥에 둬서 "우리 판단"과 "남의 보도"를 시각적으로 분리한다. */
 .article-related {

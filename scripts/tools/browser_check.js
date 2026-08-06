@@ -76,6 +76,62 @@ async function main() {
     await ctx.close();
   }
 
+  // ---------- 1-2. 기사 카드: 접힌 시사점 + 읽는 시간 ----------
+  console.log("\n--- 기사 카드 (접기/펼치기) ---");
+  for (const [label, url] of [["한국어", "/index.html"], ["영어", "/en/index.html"]]) {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: "ko-KR" });
+    const page = await ctx.newPage();
+    await page.goto(BASE + url, { waitUntil: "load" });
+
+    const card = page.locator(".article-card").first();
+    const details = card.locator("details.article-more");
+    const impl = card.locator(".article-implication p");
+    const toggle = card.locator(".article-more-toggle");
+
+    check(`${label}: 처음엔 시사점이 접혀 있음`, !(await impl.isVisible()));
+    check(`${label}: 토글 라벨이 보임`, await toggle.isVisible());
+    const labelText = (await card.locator(".article-more-label").textContent()).trim();
+    check(`${label}: 토글 라벨에 문구가 있음`, labelText.length > 0, labelText);
+
+    // 토글이 눈에 띄어야 한다 — 배경/테두리가 있는 알약이라 본문과 구분된다.
+    const tbox = await toggle.boundingBox();
+    check(`${label}: 토글 터치 타깃 44px 이상`, tbox && tbox.height >= 44, JSON.stringify(tbox));
+
+    await toggle.click();
+    await page.waitForTimeout(200);
+    check(`${label}: 누르면 시사점이 펼쳐짐`, await impl.isVisible());
+    check(`${label}: 펼친 시사점에 본문이 있음`,
+      (await impl.textContent()).trim().length > 20);
+    await page.screenshot({ path: path.join(SHOTS, `card-open-${label === "한국어" ? "ko" : "en"}.png`) });
+
+    await toggle.click();
+    await page.waitForTimeout(200);
+    check(`${label}: 다시 누르면 접힘`, !(await impl.isVisible()));
+
+    // 키보드만으로도 열려야 한다(<summary>는 기본 포커서블).
+    await toggle.focus();
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(200);
+    check(`${label}: 키보드(Enter)로도 펼쳐짐`, await impl.isVisible());
+
+    // 접힌 상태에서 첫 화면에 보이는 기사 수 — 이번 변경의 목적이다.
+    await page.reload({ waitUntil: "load" });
+    const visibleCards = await page.evaluate(() => {
+      const h = window.innerHeight;
+      return Array.from(document.querySelectorAll(".article-card"))
+        .filter((c) => c.getBoundingClientRect().top < h * 3).length;
+    });
+    console.log(`     (참고) 3화면 안에 들어오는 기사 수: ${visibleCards}`);
+
+    // 읽는 시간
+    const times = await page.locator(".article-reading-time").allTextContents();
+    check(`${label}: 모든 기사에 읽는 시간`, times.length >= 10 && times.every((s) => s.trim()),
+      JSON.stringify(times.slice(0, 3)));
+    check(`${label}: 읽는 시간이 기사마다 다름`, new Set(times.map((s) => s.trim())).size > 1,
+      JSON.stringify(times));
+    await ctx.close();
+  }
+
   // ---------- 2. 언어 안내 배너 ----------
   console.log("\n--- 언어 안내 배너 ---");
   for (const [locale, url, shouldShow, label] of [

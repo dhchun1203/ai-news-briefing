@@ -206,6 +206,19 @@
         {% endif %}
         <span class="dot">·</span>
         <span class="published">{{ article.published_at[:10] }}</span>
+        {# 기사별 읽는 시간. 전부 1분 미만이라 "분"으로 반올림하면 10건이 모두 "1분"이
+           되어 정보가 안 된다 — generate_site.reading_time이 90초 미만은 초로 준다. #}
+        {% set rt = article.reading_ko if lang == 'ko' else article.reading_en %}
+        {% if rt and rt.value %}
+        <span class="dot">·</span>
+        <span class="article-reading-time">
+          {%- if lang == 'ko' -%}
+            약 {{ rt.value }}{% if rt.unit == 'sec' %}초{% else %}분{% endif %}
+          {%- else -%}
+            ~{{ rt.value }}{% if rt.unit == 'sec' %}s{% else %} min{% endif %} read
+          {%- endif -%}
+        </span>
+        {% endif %}
         {% for t in article.topic_chips %}
         <a class="topic-chip" href="{{ topic_link_prefix }}{{ t.slug }}.html">
           {% if lang == 'ko' %}{{ t.label_ko }}{% else %}{{ t.label_en }}{% endif %}
@@ -215,18 +228,46 @@
       <h2 class="article-title">
         <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">{% if lang == 'en' and article.title_en %}{{ article.title_en }}{% else %}{{ article.title }}{% endif %}</a>
       </h2>
+      {# 요약은 앞 문장만 먼저 보여주고, 나머지와 시사점은 접어둔다.
+         GeekNews 런칭 첫 피드백이 "스크롤이 길고 요약·시사점 분량이 많다"였다.
+
+         **접었지만 색인은 그대로다.** 본문이 HTML 소스에 그대로 들어 있고
+         (JS로 나중에 채우지 않는다) 구글은 모바일 우선 색인에서 아코디언에 접힌
+         내용을 색인한다. 이 사이트는 FAQ에서 이미 같은 <details> 구조를 쓰고 있다.
+
+         시사점은 이 브리핑의 핵심 가치라 접힌 상태에서도 눈에 띄어야 한다 —
+         토글을 평범한 링크가 아니라 알약 모양 버튼으로 세운다. #}
       <div class="article-summary">
         <h3 class="block-label">
           {% if lang == 'ko' %}요약{% else %}Summary{% endif %}
         </h3>
-        <p>{% if lang == 'ko' %}{{ article.summary_ko|safe }}{% else %}{{ article.summary_en|safe }}{% endif %}</p>
+        <p>{% if lang == 'ko' %}{{ article.summary_lede_ko|safe }}{% else %}{{ article.summary_lede_en|safe }}{% endif %}</p>
       </div>
-      <div class="article-implication">
-        <h3 class="block-label">
-          {% if lang == 'ko' %}이 기사가 시사하는 점{% else %}Why It Matters{% endif %}
-        </h3>
-        <p>{% if lang == 'ko' %}{{ article.implication_ko|safe }}{% else %}{{ article.implication_en|safe }}{% endif %}</p>
-      </div>
+      {% set rest = article.summary_rest_ko if lang == 'ko' else article.summary_rest_en %}
+      <details class="article-more">
+        <summary class="article-more-toggle">
+          <span class="article-more-label">
+            {% if lang == 'ko' %}시사점 보기{% else %}Why it matters{% endif %}
+          </span>
+          <span class="article-more-chevron" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
+        </summary>
+        <div class="article-more-body">
+          {% if rest %}
+          <p class="article-summary-rest">{{ rest|safe }}</p>
+          {% endif %}
+          <div class="article-implication">
+            <h3 class="block-label">
+              {% if lang == 'ko' %}이 기사가 시사하는 점{% else %}Why It Matters{% endif %}
+            </h3>
+            <p>{% if lang == 'ko' %}{{ article.implication_ko|safe }}{% else %}{{ article.implication_en|safe }}{% endif %}</p>
+          </div>
+        </div>
+      </details>
       {% if article.related %}
       {# 같은 사건을 다룬 다른 매체. "몇 곳이 다뤘나"(커버리지 배지)와 달리
          "어디가 다뤘나"를 보여준다 — 한쪽 매체의 프레임만 읽지 않게 하는 장치다. #}

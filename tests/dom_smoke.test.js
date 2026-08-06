@@ -259,6 +259,61 @@ function finishPage(label, doc, window, opts, relPath) {
       langSwitch.getAttribute("hreflang") !== pageLang,
       `page=${pageLang} link=${langSwitch.getAttribute("hreflang")}`);
   }
+  // --- 기사 카드: 요약 앞부분 + 접힌 시사점 ---
+  // GeekNews 피드백("스크롤이 길다") 대응. 여기서 지켜야 할 것이 둘이다.
+  //   1) 접힌 내용이 **HTML 소스에 그대로** 있어야 한다. JS로 나중에 채우면
+  //      크롤러가 시사점을 못 본다 — 이 사이트의 핵심 가치가 통째로 색인에서 빠진다.
+  //   2) 시사점 토글이 눈에 띄어야 한다. 라벨이 비면 아무도 펼치지 않는다.
+  const cards = doc.querySelectorAll(".article-card");
+  if (cards.length) {
+    // 서버가 내려준 원본 HTML에서 태그를 벗기고 엔티티를 되돌려 평문으로 만든다.
+    // 용어사전 링크(<button>)가 문장 중간에 끼기 때문에, 태그를 안 벗기면 본문이
+    // 들어 있어도 문자열 비교가 어긋난다.
+    const srcText = fs
+      .readFileSync(path.join(DOCS, relPath), "utf-8")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&(#x27|#39|apos);/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&")
+      .replace(/\s+/g, "");
+    let bad = [];
+    cards.forEach((card, i) => {
+      const details = card.querySelector("details.article-more");
+      if (!details) { bad.push(`카드 ${i + 1}: details 없음`); return; }
+      if (details.hasAttribute("open")) bad.push(`카드 ${i + 1}: 기본이 펼침`);
+      const toggleLabel = card.querySelector(".article-more-label");
+      if (!toggleLabel || !toggleLabel.textContent.trim()) bad.push(`카드 ${i + 1}: 토글 라벨 비어 있음`);
+      const impl = card.querySelector(".article-implication p");
+      if (!impl || !impl.textContent.trim()) bad.push(`카드 ${i + 1}: 시사점 본문 없음`);
+      // 접힌 본문이 소스에 실제로 있는지 — 색인의 전제조건이다.
+      if (impl) {
+        const probe = impl.textContent.trim().replace(/\s+/g, "").slice(0, 30);
+        if (probe && !srcText.includes(probe)) {
+          bad.push(`카드 ${i + 1}: 시사점이 HTML 소스에 없음(JS 주입?)`);
+        }
+      }
+    });
+    check(label, "모든 기사에 접힌 시사점이 있고 기본은 접힘", bad.length === 0, bad.slice(0, 3).join(" | "));
+
+    // 요약 앞부분은 항상 보인다 — 접힌 것은 나머지와 시사점뿐이다.
+    check(label, "요약 앞부분은 details 바깥에 있음",
+      Array.prototype.every.call(cards, (c) => {
+        const lede = c.querySelector(".article-summary p");
+        return lede && lede.textContent.trim() && !lede.closest("details");
+      }));
+
+    // 기사별 읽는 시간
+    const times = Array.prototype.map.call(cards, (c) => {
+      const el = c.querySelector(".article-reading-time");
+      return el ? el.textContent.trim() : "";
+    });
+    check(label, "모든 기사에 읽는 시간 표시", times.every((s) => s.length > 0), JSON.stringify(times.slice(0, 3)));
+    // 값이 전부 같으면 표시할 이유가 없다(분 단위로 반올림했을 때가 정확히 그랬다).
+    check(label, "읽는 시간이 기사마다 구분됨", new Set(times).size > 1, JSON.stringify(times));
+  }
+
   // --- 맨 위로 버튼 ---
   // 스크롤 위치에 따라 나타나야 한다. 항상 떠 있으면 첫 화면부터 본문을 가리고,
   // 안 나타나면 긴 아카이브 페이지에서 상단으로 돌아갈 방법이 없다.
