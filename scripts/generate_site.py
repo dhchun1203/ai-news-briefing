@@ -319,6 +319,12 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
     payload = {
         "date": date,
         "generated_at": raw_digest.get("generated_at"),
+        # 그날 후보가 몇 건이었는지. 홈/아카이브의 "N건에서 고른 10건" 문구가 이 값을
+        # 쓴다. fetch_articles.py는 이미 candidates_total을 내는데 digest까지 넘어오지
+        # 않던 값이라, 없는 날(이 필드가 생기기 전 아카이브)은 숫자 없는 문구로 떨어진다.
+        # title_en과 같은 이유로 None이면 아래에서 키째 걷어낸다 — 값을 채워 넣으면
+        # 과거 아카이브가 재생성 때마다 바뀐다.
+        "candidates_total": raw_digest.get("candidates_total") or None,
         "daily_insight": raw_digest.get("daily_insight"),
         "glossary": raw_digest.get("glossary") or [],
         "articles": [
@@ -348,6 +354,8 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
     }
     # 값이 없는 선택 필드는 키째로 뺀다. 이 파일은 영속 원본이라 "재생성해도 안 바뀐다"가
     # 지켜져야 하는데, null 키 하나만 새로 생겨도 매일 전 아카이브에 diff가 난다.
+    if payload.get("candidates_total") is None:
+        payload.pop("candidates_total", None)
     for a in payload["articles"]:
         if a.get("title_en") is None:
             a.pop("title_en", None)
@@ -1042,6 +1050,7 @@ def main():
                 generated_at=generated_at,
                 articles=articles,
                 daily_insight=daily_insight,
+                candidates_total=digest.get("candidates_total"),
                 reading_minutes_ko=reading_minutes_ko,
                 reading_minutes_en=reading_minutes_en,
                 glossary=glossary_lookup,
@@ -1085,6 +1094,7 @@ def main():
                 generated_at=generated_at,
                 articles=articles,
                 daily_insight=daily_insight,
+                candidates_total=digest.get("candidates_total"),
                 reading_minutes_ko=reading_minutes_ko,
                 reading_minutes_en=reading_minutes_en,
                 glossary=glossary_lookup,

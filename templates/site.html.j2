@@ -119,6 +119,21 @@
       </a>
     {% endif %}
   </div>
+  {# 기사 순서가 무작위가 아니라 중요도순이라는 것을 알린다. GeekNews 피드백 2차에서
+     "왜 이 순서인지 모르겠다"는 지적이 있었다.
+
+     후보 수는 그날 실제로 모은 숫자다(fetch_articles.py의 candidates_total).
+     이 값이 없는 날 — 이 필드가 생기기 전 아카이브 — 은 숫자를 지어내지 않고
+     "수십 건"으로 떨어진다. 실측 표본(2026-08-06)이 70건이라 "수백 건"은 과장이다. #}
+  {% if articles %}
+  <p class="selection-note">
+    {% if lang == 'ko' %}
+      {% if candidates_total %}후보 {{ candidates_total }}건에서 고른 {{ articles|length }}건{% else %}수십 건에서 고른 오늘의 {{ articles|length }}건{% endif %} · 중요한 순서로 배열
+    {% else %}
+      {% if candidates_total %}{{ articles|length }} picked from {{ candidates_total }} candidates{% else %}{{ articles|length }} picked from dozens of stories{% endif %} · ordered by significance
+    {% endif %}
+  </p>
+  {% endif %}
 
   {% if show_weekly_banner and weekly_labels %}
   <a class="weekly-teaser" href="{{ weekly_link_prefix }}{{ weekly_labels[0] }}.html">
@@ -182,6 +197,9 @@
     {% for article in articles %}
     <article class="article-card" id="article-{{ loop.index }}">
       <div class="article-meta">
+        {# 중요도 순번. 1~10 전부 같은 무게로 표시한다 — 상위만 강조하면 아래쪽
+           기사가 덤처럼 보이는데, 10건 모두 선별을 통과한 기사다. #}
+        <span class="article-rank" aria-hidden="true">{{ "%02d"|format(loop.index) }}</span>
         <span class="source">{{ article.source }}</span>
         {% if article.source_type == "primary" %}
         <span class="badge source-badge source-badge-primary">

@@ -259,6 +259,55 @@ function finishPage(label, doc, window, opts, relPath) {
       langSwitch.getAttribute("hreflang") !== pageLang,
       `page=${pageLang} link=${langSwitch.getAttribute("hreflang")}`);
   }
+  // --- 중요도순 표시 ---
+  // 순서가 무작위로 보이면 "왜 이 순서인지 모르겠다"는 말이 나온다(GeekNews 2차 피드백).
+  if (opts.expectArticles !== false && doc.querySelector(".article-list")) {
+    const note = doc.querySelector(".selection-note");
+    check(label, "선별 안내 문구 존재", !!note && note.textContent.trim().length > 0,
+      note ? note.textContent.trim() : "없음");
+    // 숫자를 지어내면 안 된다 — candidates_total이 없는 날은 "수십 건"으로 떨어진다.
+    if (note) {
+      const txt = note.textContent;
+      check(label, "선별 안내에 정렬 근거가 있음",
+        /중요한 순서|significance/.test(txt), txt.trim());
+    }
+    const ranks = Array.prototype.map.call(
+      doc.querySelectorAll(".article-card .article-rank"), (el) => el.textContent.trim());
+    const cardCount = doc.querySelectorAll(".article-card").length;
+    check(label, "모든 기사에 순번", ranks.length === cardCount, `${ranks.length}/${cardCount}`);
+    check(label, "순번이 1부터 차례대로",
+      ranks.every((r, i) => Number(r) === i + 1), JSON.stringify(ranks));
+    // 상위만 강조하지 않는다 — 아래쪽 기사가 덤처럼 보이면 안 된다.
+    check(label, "순번에 상위 전용 강조 클래스가 없음",
+      !doc.querySelector(".article-rank.top, .article-rank[data-top]"));
+  }
+
+  // --- 읽는 위치 표시 (레일 + 진행 바) ---
+  // 스크롤 동작 자체는 jsdom으로 검증되지 않는다(browser_check.js가 맡는다).
+  // 여기서는 "만들어지긴 하는가 / 목차와 개수가 맞는가"만 고정한다.
+  if (doc.querySelector(".article-list") && doc.querySelector(".toc-list")) {
+    const rail = doc.getElementById("toc-rail");
+    const cardCount2 = doc.querySelectorAll(".article-card").length;
+    check(label, "좌측 레일 생성됨", !!rail);
+    if (rail) {
+      const railLinks = rail.querySelectorAll("li a");
+      check(label, "레일 항목 수가 기사 수와 같음", railLinks.length === cardCount2,
+        `${railLinks.length}/${cardCount2}`);
+      check(label, "레일 링크가 기사 앵커를 가리킴",
+        Array.prototype.every.call(railLinks, (a) => /#article-\d+$/.test(a.getAttribute("href"))),
+        Array.prototype.map.call(railLinks, (a) => a.getAttribute("href")).slice(0, 3).join(","));
+      check(label, "레일 제목이 한 줄로 잘리게 표시됨",
+        Array.prototype.every.call(rail.querySelectorAll(".rail-text"), (s) => s.textContent.trim()));
+    }
+    const prog = doc.getElementById("reading-progress");
+    check(label, "진행 바 생성됨", !!prog);
+    // 스크롤에 따라 계속 바뀌는 값이라 aria-live를 붙이면 스크린리더가 쉬지 않고 읽는다.
+    check(label, "진행 바는 스크린리더에서 숨김",
+      !prog || prog.getAttribute("aria-hidden") === "true");
+    check(label, "진행 바는 처음엔 감춰져 있음",
+      !prog || !prog.classList.contains("visible"));
+  }
+
   // --- 기사 카드: 요약 앞부분 + 접힌 시사점 ---
   // GeekNews 피드백("스크롤이 길다") 대응. 여기서 지켜야 할 것이 둘이다.
   //   1) 접힌 내용이 **HTML 소스에 그대로** 있어야 한다. JS로 나중에 채우면

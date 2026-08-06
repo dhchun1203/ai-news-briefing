@@ -713,6 +713,146 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .article-implication .block-label { color: var(--text); }
 .article-implication p { font-family: var(--serif); margin: 0; }
 
+/* 선별 안내 — 기사 순서가 무작위가 아니라 중요도순이라는 것을 알린다. */
+.selection-note {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+
+/* 중요도 순번. 1~10 전부 같은 무게다 — 상위만 강조하면 아래쪽 기사가 덤처럼 보인다. */
+.article-rank {
+  /* .article-meta가 gap 없는 flex라 HTML 공백이 사라진다 — 여백을 직접 준다. */
+  margin-right: 8px;
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ---------- 데스크톱 스크롤 목차 (좌측 레일) ----------
+   본문 칼럼이 720px로 가운데 정렬돼 있어 넓은 화면에서는 좌우가 비어 있다. 그 여백에
+   현재 읽는 위치를 띄운다. site.js가 기존 .toc-list를 복제해 만들기 때문에 링크 경로를
+   다시 계산하지 않는다(햄버거 서랍과 같은 방식).
+
+   좁은 화면에서는 아예 만들지 않는다 — 본문을 밀어내면 읽기가 더 나빠진다. */
+.toc-rail {
+  display: none;
+}
+@media (min-width: 1280px) {
+  .toc-rail {
+    display: block;
+    position: fixed;
+    /* 본문 칼럼(720px) 왼쪽 바깥. 오른쪽 끝이 칼럼에서 24px 떨어지도록 놓는다. */
+    left: calc(50% - 360px - 24px - 200px);
+    top: 96px;
+    width: 200px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    z-index: 20;   /* 유틸리티 바(30)보다 아래 — 스크롤해 올라와도 바를 덮지 않는다 */
+    font-family: var(--sans);
+  }
+}
+.toc-rail-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+.toc-rail ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toc-rail li { margin: 0 0 2px; }
+.toc-rail a {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 5px 8px;
+  border-left: 2px solid transparent;
+  border-radius: 0 3px 3px 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.toc-rail a:hover { color: var(--text); background: var(--implication-bg); }
+.toc-rail .rail-num {
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+/* 제목은 한 줄로 자른다 — 레일이 길어지면 본문보다 눈길을 끈다. */
+.toc-rail .rail-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toc-rail li.active a {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  font-weight: 700;
+  background: var(--implication-bg);
+}
+
+/* ---------- 모바일 진행 표시 ----------
+   "지금 몇 번째 기사를 읽고 있는가"만 알려준다. 목차 전체를 띄우면 본문을 가린다.
+
+   top: 0에 붙인다. 유틸리티 바가 CSS상 sticky이긴 하지만 <header> 안에 들어 있어
+   헤더(412px)를 벗어나면 함께 스크롤돼 사라진다 — 기사 목록에 들어올 때쯤이면 화면에
+   없다. 그래서 겹칠 일이 없고, 바 높이를 실측해 offset을 잡을 이유도 없다. */
+.reading-progress {
+  display: none;
+}
+@media (max-width: 1279px) {
+  .reading-progress {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 25;   /* 유틸리티 바(30) 아래, 맨 위로 버튼(25)과 같은 층 — 서로 안 겹친다 */
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--text-muted);
+    /* 한 줄을 넘지 않는다 — 본문을 가리면 안 된다. */
+    white-space: nowrap;
+    transform: translateY(-100%);
+    opacity: 0;
+    /* visibility까지 끄지 않으면 투명한 채로 남아 스크린리더와 탭 포커스에 잡힌다. */
+    visibility: hidden;
+    transition: transform 0.18s ease, opacity 0.18s ease, visibility 0.18s;
+    pointer-events: none;
+  }
+  .reading-progress.visible {
+    transform: none;
+    opacity: 1;
+    visibility: visible;
+  }
+}
+.reading-progress-count {
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.reading-progress-sep { flex: none; }
+.reading-progress-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reading-progress { transition: none; }
+}
+
 /* 펼쳐보기 — 요약 뒷부분과 시사점을 접어둔다.
    시사점은 이 브리핑의 핵심 가치라, 접힌 상태에서도 "여기 뭔가 더 있다"가 분명해야
    한다. 평범한 텍스트 링크로 두면 아무도 안 누른다. 알약 모양 + accent 색으로 세운다. */

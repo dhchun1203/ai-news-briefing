@@ -476,6 +476,150 @@
     });
   }
 
+  /* ---------- 읽는 위치 표시 (데스크톱 좌측 레일 + 모바일 진행 바) ----------
+   * GeekNews 피드백 2차: 기사 10건을 스크롤하는 동안 "지금 어디쯤인지" 알 수 없다.
+   *
+   * 하나의 관찰자가 두 표시를 함께 갱신한다 — 데스크톱은 좌측 레일에서 현재 항목을
+   * 강조하고, 좁은 화면은 상단 한 줄짜리 진행 바에 "3/10 · 제목"을 띄운다.
+   * 어느 쪽을 보여줄지는 CSS가 정한다(JS가 폭을 재서 분기하면 창 크기를 바꿀 때마다
+   * 어긋난다).
+   *
+   * 링크는 기존 목차(.toc-list)를 복제해 만든다. 페이지마다 다른 상대경로를 다시
+   * 계산하지 않으려는 것이고, 이 블록이 통째로 실패해도 본문과 목차는 그대로 남는다. */
+  var articleList = document.querySelector(".article-list");
+  var articleCards = articleList ? articleList.querySelectorAll(".article-card") : [];
+  var tocList = document.querySelector(".toc-list");
+  if (articleList && articleCards.length && tocList) {
+    var isEnglish = currentLang() === "en";
+
+    /* --- 좌측 레일 --- */
+    var rail = document.createElement("nav");
+    rail.className = "toc-rail";
+    rail.id = "toc-rail";
+    rail.setAttribute("aria-label", isEnglish ? "Article navigation" : "기사 목차");
+    var railTitle = document.createElement("p");
+    railTitle.className = "toc-rail-title";
+    railTitle.textContent = isEnglish ? "Contents" : "목차";
+    rail.appendChild(railTitle);
+
+    var railOl = document.createElement("ol");
+    var railItems = [];
+    Array.prototype.forEach.call(tocList.querySelectorAll("li a"), function (a, i) {
+      var li = document.createElement("li");
+      var link = document.createElement("a");
+      link.href = a.getAttribute("href");
+      var num = document.createElement("span");
+      num.className = "rail-num";
+      num.textContent = ("0" + (i + 1)).slice(-2);
+      var text = document.createElement("span");
+      text.className = "rail-text";
+      var src = a.querySelector(".toc-text");
+      text.textContent = src ? src.textContent.trim() : a.textContent.trim();
+      // 잘린 제목은 마우스를 올리면 전체가 보이게 한다.
+      link.title = text.textContent;
+      link.appendChild(num);
+      link.appendChild(text);
+      li.appendChild(link);
+      railOl.appendChild(li);
+      railItems.push(li);
+    });
+    rail.appendChild(railOl);
+    document.body.appendChild(rail);
+
+    /* --- 모바일 진행 바 --- */
+    var progress = document.createElement("div");
+    progress.className = "reading-progress";
+    progress.id = "reading-progress";
+    // 스크롤에 따라 계속 바뀌는 값이라 aria-live를 붙이면 스크린리더가 쉬지 않고 읽는다.
+    progress.setAttribute("aria-hidden", "true");
+    var progressCount = document.createElement("span");
+    progressCount.className = "reading-progress-count";
+    var progressSep = document.createElement("span");
+    progressSep.className = "reading-progress-sep";
+    progressSep.setAttribute("aria-hidden", "true");
+    progressSep.textContent = "·";
+    var progressTitle = document.createElement("span");
+    progressTitle.className = "reading-progress-title";
+    progress.appendChild(progressCount);
+    progress.appendChild(progressSep);
+    progress.appendChild(progressTitle);
+    document.body.appendChild(progress);
+
+    /* --- 현재 기사 판정 --- */
+    var activeIndex = -1;
+    var setActive = function (index) {
+      if (index === activeIndex || index < 0 || index >= articleCards.length) return;
+      activeIndex = index;
+      railItems.forEach(function (li, i) {
+        li.classList.toggle("active", i === index);
+      });
+      progressCount.textContent = index + 1 + "/" + articleCards.length;
+      var titleEl = articleCards[index].querySelector(".article-title");
+      progressTitle.textContent = titleEl ? titleEl.textContent.trim() : "";
+    };
+
+    // 화면 위쪽 1/3 지점을 "읽는 선"으로 삼는다. 그 선을 지나는 기사가 현재 기사다.
+    // 기사를 펼쳐 높이가 늘어나도 이 방식은 그대로 맞는다 — 관찰자가 요소를 보지
+    // 높이를 기억하지 않기 때문이다.
+    if ("IntersectionObserver" in window) {
+      var observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (e) {
+            if (!e.isIntersecting) return;
+            var i = Array.prototype.indexOf.call(articleCards, e.target);
+            if (i >= 0) setActive(i);
+          });
+        },
+        { rootMargin: "-30% 0px -60% 0px", threshold: 0 }
+      );
+      Array.prototype.forEach.call(articleCards, function (c) {
+        observer.observe(c);
+      });
+    }
+
+    // 접힌 기사를 펼치면 아래 기사들이 밀려난다. 관찰자는 교차가 생길 때만 깨어나므로,
+    // 펼침 직후 현재 위치를 한 번 다시 계산해준다.
+    Array.prototype.forEach.call(document.querySelectorAll("details.article-more"), function (d) {
+      d.addEventListener("toggle", function () {
+        window.requestAnimationFrame(syncReadingState);
+      });
+    });
+
+    /* --- 진행 바 표시 여부 --- */
+    // 기사 목록을 읽는 동안에만 띄운다. 인사이트·FAQ 구간에서는 알려줄 위치가 없다.
+    var progressTicking = false;
+    function syncReadingState() {
+      progressTicking = false;
+      var line = 8;   // 진행 바가 top: 0에 붙으므로 그 바로 아래가 기준선이다
+      var rect = articleList.getBoundingClientRect();
+      var inside = rect.top <= line && rect.bottom > line;
+      progress.classList.toggle("visible", inside);
+
+      // 관찰자가 놓친 경우(아주 긴 기사가 읽는 선을 통째로 덮는 등)를 대비해
+      // 스크롤할 때마다 현재 기사를 직접 계산한다.
+      if (!inside) return;
+      var readLine = window.innerHeight * 0.3;
+      var current = -1;
+      for (var i = 0; i < articleCards.length; i++) {
+        if (articleCards[i].getBoundingClientRect().top <= readLine) current = i;
+      }
+      if (current >= 0) setActive(current);
+    }
+    window.addEventListener(
+      "scroll",
+      function () {
+        if (progressTicking) return;
+        progressTicking = true;
+        window.requestAnimationFrame(syncReadingState);
+      },
+      { passive: true }
+    );
+    window.addEventListener("resize", function () {
+      window.requestAnimationFrame(syncReadingState);
+    });
+    syncReadingState();
+  }
+
   /* ---------- 맨 위로 ----------
    * 아카이브·용어사전 페이지는 스크롤이 길어서 상단 내비로 돌아가는 비용이 크다.
    * 햄버거와 같은 이유로 여기서 만들어 붙인다 — 템플릿 7곳에 같은 마크업을 넣지
