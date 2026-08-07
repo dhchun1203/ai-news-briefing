@@ -1209,6 +1209,7 @@ def main():
                 home_link=None,
                 is_archive=False,
                 site_stats=site_stats,
+                site_data=site_data,
                 nav_counts=nav_counts,
                 faq=faq,
                 canonical_url=this_index_url,
@@ -1256,6 +1257,7 @@ def main():
                 home_link=lup_archive + "index.html",
                 is_archive=True,
                 site_stats=site_stats,
+                site_data=site_data,
                 nav_counts=nav_counts,
                 # FAQ는 홈에만 — 아카이브 페이지마다 같은 문답이 반복되면 중복 콘텐츠이고,
                 # 매일 늘어나는 페이지 전부에 FAQPage 마크업이 붙는 것도 바람직하지 않다.

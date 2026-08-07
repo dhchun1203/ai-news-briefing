@@ -56,8 +56,7 @@
    화면 왼쪽 끝에 붙는다(실제로 그렇게 나갔다). #}
 <header class="site-header">
   {% set nav_p = lup %}
-  {# 이 페이지는 내비게이션 항목이 아니라서 현재 위치 강조가 없다. #}
-  {% set nav_current = '' %}
+  {% set nav_current = 'data' %}
   {% include '_utility-bar.html.j2' %}
   <div class="header-inner">
     <h1>

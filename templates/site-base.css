@@ -994,6 +994,71 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   background: var(--implication-bg);
 }
 
+/* 우측 여백 요약 카드 — 데스크톱 전용.
+   왼쪽 레일(.toc-rail)과 대칭으로 오른쪽 빈 공간을 쓴다. 좁은 화면에서는 아예
+   렌더링하지 않는다 — 본문을 밀어내면 읽기가 나빠지고, 그쪽은 내비게이션의
+   "데이터" 메뉴가 진입점이다. */
+.data-card { display: none; }
+@media (min-width: 1280px) {
+  .data-card {
+    display: block;
+    position: fixed;
+    /* 본문 칼럼(720) 오른쪽 바깥. 왼쪽 레일과 같은 방식으로 자리를 잡는다. */
+    left: calc(50% + 360px + 24px);
+    top: 96px;
+    width: 200px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    /* 유틸리티 바(30)보다 아래, 용어 패널(50)·백드롭(40)보다 아래.
+       왼쪽 레일과 같은 층이라 서로 겹칠 일이 없다(좌우로 떨어져 있다). */
+    z-index: 20;
+    font-family: var(--sans);
+    border-left: 2px solid var(--border);
+    padding-left: 14px;
+  }
+}
+.data-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+.data-card-flow { margin: 0 0 12px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+.data-card-big { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.data-card-big-accent { color: var(--accent); }
+.data-card-unit { font-size: 12px; color: var(--text-muted); }
+.data-card-arrow { color: var(--border); }
+.data-card-bars { list-style: none; margin: 0 0 12px; padding: 0; }
+.data-card-bars li {
+  display: grid;
+  /* 값 칸은 고정폭이어야 트랙이 행마다 흔들리지 않는다(/data에서 겪은 문제). */
+  grid-template-columns: minmax(0, 1fr) 44px 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.data-card-label {
+  font-size: 12px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.data-card-track { background: var(--implication-bg); border-radius: 2px; overflow: hidden; min-height: 8px; }
+.data-card-fill { display: block; height: 8px; background: var(--accent); border-radius: 2px; min-width: 2px; }
+.data-card-fill-muted { background: var(--border); }
+.data-card-pct {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.data-card-meta { font-size: 11px; color: var(--text-muted); margin: 0 0 8px; line-height: 1.5; }
+.data-card-link { font-size: 12px; font-weight: 700; color: var(--accent); text-decoration: none; }
+.data-card-link:hover { text-decoration: underline; }
+
 /* ---------- 모바일 진행 표시 ----------
    "지금 몇 번째 기사를 읽고 있는가"만 알려준다. 목차 전체를 띄우면 본문을 가린다.
 

@@ -246,6 +246,14 @@ function finishPage(label, doc, window, opts, relPath) {
     check(label, "FAQ가 없어야 하는 페이지에 없음", doc.querySelectorAll(".faq-item").length === 0);
   }
 
+  // --- 내비게이션에 데이터 메뉴 ---
+  // 통계 줄의 작은 링크 하나로는 이 페이지가 있다는 걸 알기 어려웠다.
+  {
+    const navLinks = [...doc.querySelectorAll(".site-nav-group a")].map((a) => a.getAttribute("href"));
+    check(label, "내비게이션에 데이터 메뉴", navLinks.some((h) => /data\.html$/.test(h || "")),
+      JSON.stringify(navLinks));
+  }
+
   // --- 헤더 뼈대 ---
   // 새 페이지를 만들 때마다 이 구조를 손으로 옮겨 적다 보니 빠뜨린다. /data를 만들면서
   // .header-inner를 빼먹어 제목이 화면 왼쪽 끝에 붙어 나갔다 — 이 래퍼가 max-width와
@@ -383,6 +391,25 @@ function finishPage(label, doc, window, opts, relPath) {
     check(label, "모든 기사에 읽는 시간 표시", times.every((s) => s.length > 0), JSON.stringify(times.slice(0, 3)));
     // 값이 전부 같으면 표시할 이유가 없다(분 단위로 반올림했을 때가 정확히 그랬다).
     check(label, "읽는 시간이 기사마다 구분됨", new Set(times).size > 1, JSON.stringify(times));
+  }
+
+  // --- 우측 요약 카드 ---
+  // 기사 목록이 있는 페이지에만 붙는다. 데이터가 없으면 아예 렌더링하지 않는다.
+  if (doc.querySelector(".article-list")) {
+    const card = doc.querySelector(".data-card");
+    check(label, "우측 요약 카드 존재", !!card);
+    if (card) {
+      check(label, "카드에 /data 링크", !!card.querySelector('a[href$="data.html"]'));
+      const bars = card.querySelectorAll(".data-card-bars li");
+      check(label, "카드에 매체 막대", bars.length >= 1, String(bars.length));
+      // 폭이 표기 비율과 어긋나면 /data와 다른 말을 하게 된다.
+      const bad = [...bars].filter((li) => {
+        const pct = parseFloat(li.querySelector(".data-card-pct").textContent);
+        const w = parseFloat(li.querySelector(".data-card-fill").style.width);
+        return Math.abs(pct - w) > 0.2;
+      });
+      check(label, "카드 막대 폭이 표기 비율과 일치", bad.length === 0, String(bad.length));
+    }
   }
 
   // --- 맨 위로 버튼 ---

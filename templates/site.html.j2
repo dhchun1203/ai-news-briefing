@@ -183,6 +183,49 @@
   </section>
   {% endif %}
 
+  {# ---------- 우측 여백 요약 카드 (데스크톱 전용) ----------
+     본문 칼럼이 720px 가운데 정렬이라 넓은 화면은 좌우가 빈다. 왼쪽은 기사 목차 레일이
+     쓰고 있고, 오른쪽에 "이 브리핑이 어떻게 만들어지나"를 요약해 둔다.
+
+     통계 줄의 작은 링크 하나로는 이 페이지가 있다는 걸 알기 어렵다. 그렇다고 본문
+     흐름을 끊고 배너를 넣을 자리도 아니라, 비어 있는 여백을 쓴다.
+
+     1280px 미만에서는 아예 렌더링하지 않는다(CSS) — 좁은 화면에서 본문을 밀어내면
+     읽기가 나빠진다. 그쪽은 내비게이션의 "데이터" 메뉴가 진입점이다. #}
+  {% if site_data and site_data.article_total %}
+  <aside class="data-card" aria-label="{% if lang == 'ko' %}이 사이트가 무엇을 골랐나{% else %}What this site picked{% endif %}">
+    <p class="data-card-title">
+      {% if lang == 'ko' %}무엇을 골랐나{% else %}What we picked{% endif %}
+    </p>
+    {% if site_data.funnel %}
+    {# 퍼널이 기록된 날에는 그 하루의 좁혀짐을 보여준다 — 이 사이트의 과정을 한 줄로
+       설명하는 가장 강한 숫자다. 기록 전 날짜에는 이 블록이 빠진다. #}
+    <p class="data-card-flow">
+      <span class="data-card-big">{{ "{:,}".format(site_data.funnel.entries_seen) }}</span>
+      <span class="data-card-unit">{% if lang == 'ko' %}건을 훑어{% else %}scanned{% endif %}</span>
+      <span class="data-card-arrow" aria-hidden="true">→</span>
+      <span class="data-card-big data-card-big-accent">{{ site_data.funnel.selected }}</span>
+      <span class="data-card-unit">{% if lang == 'ko' %}건{% else %}published{% endif %}</span>
+    </p>
+    {% endif %}
+    <ul class="data-card-bars">
+      {% for s in site_data.sources[:4] %}
+      <li>
+        <span class="data-card-label">{% if s.is_others %}{% if lang == 'ko' %}기타{% else %}others{% endif %}{% else %}{{ source_label(s.key, lang) }}{% endif %}</span>
+        <span class="data-card-track"><span class="data-card-fill{% if s.is_others %} data-card-fill-muted{% endif %}" style="width: {{ s.percent }}%"></span></span>
+        <span class="data-card-pct">{{ s.percent }}%</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="data-card-meta">
+      {% if lang == 'ko' %}{{ site_data.day_count }}일 · 기사 {{ site_data.article_total }}건 · 용어 {{ site_data.term_total }}개{% else %}{{ site_data.day_count }} days · {{ site_data.article_total }} stories · {{ site_data.term_total }} terms{% endif %}
+    </p>
+    <a class="data-card-link" href="{{ lang_prefix }}data.html">
+      {% if lang == 'ko' %}전체 데이터 보기 →{% else %}See the full data →{% endif %}
+    </a>
+  </aside>
+  {% endif %}
+
   {% include '_subscribe-box.html.j2' %}
 
   {% if articles %}
