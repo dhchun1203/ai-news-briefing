@@ -689,7 +689,11 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 }
 .bar-percent { color: var(--text-muted); margin-left: 6px; }
 
-/* 전체 구성 한 줄 — 순위 막대만 있으면 "전체의 몇 퍼센트인가"가 한눈에 안 들어온다. */
+/* 100% 스택 막대. 퍼널의 "후보가 어디로 갔나"에서만 쓴다.
+   매체별 섹션에도 붙였다가 뺐다 — 9조각이 10px 높이에 라벨 없이 들어가니 어느 조각이
+   어느 매체인지 알 수 없어, "한눈에 구성 파악"이라는 목적을 달성하지 못했다.
+   바로 아래 순위 목록이 같은 데이터를 숫자와 함께 보여주므로 설명 없는 장식만 남았다.
+   퍼널 쪽은 제목과 범례가 붙어 각 조각이 읽히므로 남긴다. */
 .share-bar {
   display: flex;
   width: 100%;
@@ -700,7 +704,6 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   margin: 0 0 16px;
 }
 .share-seg { display: block; background: var(--accent); min-width: 1px; }
-.share-seg-muted { background: var(--border); opacity: 1 !important; }
 
 /* 하루의 흐름 — 숫자 자체가 주인공이다. 1,390과 10을 같은 막대 눈금에 놓으면
    뒤쪽이 3px 선이 되어 안 읽힌다. */

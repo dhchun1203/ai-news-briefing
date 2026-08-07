@@ -438,6 +438,27 @@ async function main() {
       });
       check(`${label}/${vp}: 값이 큰 항목의 막대가 더 김`, bad.length === 0, bad.slice(0, 3).join(" | "));
 
+      // 막대 폭이 곧 표기된 비율이어야 한다. 최댓값을 100%로 늘려 그리면 1위 막대가
+      // 트랙을 꽉 채우는데 옆 숫자는 31.4%라, 막대와 숫자가 서로 다른 말을 한다.
+      // 순위 비교용으로는 흔한 방식이지만 이 페이지는 숫자가 곧 신뢰라 맞지 않는다.
+      const mismatched = await page.evaluate(() =>
+        [...document.querySelectorAll(".bar-row")]
+          .map((e) => {
+            const pct = Number(e.querySelector(".bar-percent").dataset.percent);
+            const fill = e.querySelector(".bar-fill").getBoundingClientRect().width;
+            const track = e.querySelector(".bar-track").getBoundingClientRect().width;
+            return { pct, drawn: Number((fill / track * 100).toFixed(1)) };
+          })
+          .filter((r) => Math.abs(r.pct - r.drawn) > 0.6));
+      check(`${label}/${vp}: 막대 폭이 표기 비율과 일치`, mismatched.length === 0,
+        JSON.stringify(mismatched.slice(0, 3)));
+
+      // 설명 없는 막대를 두지 않는다 — 제목이나 범례가 붙은 것만 남긴다.
+      const unlabeled = await page.evaluate(() =>
+        [...document.querySelectorAll("main .share-bar")]
+          .filter((el) => !el.parentElement.querySelector(".legend")).length);
+      check(`${label}/${vp}: 범례 없는 스택 막대 없음`, unlabeled === 0, String(unlabeled));
+
       const over = await page.evaluate(
         () => document.documentElement.scrollWidth > window.innerWidth + 1);
       check(`${label}/${vp}: 가로 넘침 없음`, !over);

@@ -208,23 +208,17 @@
     <p class="data-note">
       {% if lang == 'ko' %}출처 {{ data.source_kinds }}종. 한 매체가 하루에 최대 3건까지만 실립니다.{% else %}{{ data.source_kinds }} sources in total. No outlet can take more than 3 of the 10 slots in a day.{% endif %}
     </p>
-    {# 전체 구성을 한 줄로 먼저 보여준다 — 순위 막대만 있으면 "이 매체가 전체의
-       몇 퍼센트인가"가 한눈에 안 들어온다. #}
-    <div class="share-bar" role="img" aria-label="{% if lang == 'ko' %}매체별 점유 비율{% else %}Share by outlet{% endif %}">
-      {% for s in data.sources %}
-      <span class="share-seg{% if s.is_others %} share-seg-muted{% endif %}"
-            style="width: {{ s.percent }}%; opacity: {{ (1 - loop.index0 * 0.09)|round(2) }}"
-            title="{% if s.is_others %}{{ s.hidden_count }}{% else %}{{ source_label(s.key, lang) }}{% endif %} {{ s.percent }}%"></span>
-      {% endfor %}
-    </div>
     <ul class="bar-list">
       {% for s in data.sources %}
       <li class="bar-row">
         <span class="bar-label">{% if s.is_others %}{% if lang == 'ko' %}기타 {{ s.hidden_count }}곳{% else %}{{ s.hidden_count }} others{% endif %}{% else %}{{ source_label(s.key, lang) }}{% endif %}</span>
         <span class="bar-track">
-          <span class="bar-fill{% if s.is_others %} bar-fill-muted{% endif %}" style="width: {{ (s.percent / data.sources[0].percent * 100)|round(1) }}%"></span>
+          {# 폭은 **실제 점유율 그대로**다. 최댓값을 100%로 늘려 그리면 1위 막대가
+             트랙을 꽉 채우는데 옆 숫자는 31.4%라, 막대와 숫자가 서로 다른 말을 한다.
+             순위 비교용으로는 흔한 방식이지만 이 페이지는 숫자가 곧 신뢰라 안 맞는다. #}
+          <span class="bar-fill{% if s.is_others %} bar-fill-muted{% endif %}" style="width: {{ s.percent }}%"></span>
         </span>
-        <span class="bar-value" data-count="{{ s.count }}">{{ s.count }}<span class="bar-percent">{{ s.percent }}%</span></span>
+        <span class="bar-value" data-count="{{ s.count }}">{{ s.count }}<span class="bar-percent" data-percent="{{ s.percent }}">{{ s.percent }}%</span></span>
       </li>
       {% endfor %}
     </ul>
@@ -245,9 +239,9 @@
           <a href="{{ lup }}topics/{{ t.key }}.html">{% if lang == 'ko' %}{{ topic_labels[t.key].label_ko if t.key in topic_labels else t.key }}{% else %}{{ topic_labels[t.key].label_en if t.key in topic_labels else t.key }}{% endif %}</a>
         </span>
         <span class="bar-track">
-          <span class="bar-fill" style="width: {{ (t.percent / data.topics[0].percent * 100)|round(1) }}%"></span>
+          <span class="bar-fill" style="width: {{ t.percent }}%"></span>
         </span>
-        <span class="bar-value" data-count="{{ t.count }}">{{ t.count }}<span class="bar-percent">{{ t.percent }}%</span></span>
+        <span class="bar-value" data-count="{{ t.count }}">{{ t.count }}<span class="bar-percent" data-percent="{{ t.percent }}">{{ t.percent }}%</span></span>
       </li>
       {% endfor %}
     </ul>
