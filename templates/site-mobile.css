@@ -199,3 +199,16 @@ body {
 .data-subheading { font-size: 0.92rem; }
 .legend { gap: 5px 14px; }
 .legend-item { font-size: 0.8rem; }
+
+/* 데이터 카드 — 목차 위.
+   좁은 화면에서는 막대가 세로로 쌓여 250px까지 커졌다. 목차 바로 위라 이 블록이
+   길어지면 정작 기사 목록이 화면 밖으로 밀린다. 매체는 3곳만 보여주고 여백을 조인다
+   — 전체는 "전체 데이터 보기"로 넘어가면 된다. */
+.data-card { margin: 18px 0; padding: 14px 0; }
+.data-card-bars li:nth-child(n+4) { display: none; }
+.data-card-bars { margin-bottom: 10px; }
+.data-card-flow { margin-bottom: 10px; }
+.data-card-flow { font-size: 1.1rem; }
+.data-card-unit, .data-card-arrow { font-size: 0.85rem; }
+.data-card-label, .data-card-pct, .data-card-meta, .data-card-link { font-size: 0.82rem; }
+.data-card-bars li { grid-template-columns: minmax(0, 6.5rem) 1fr 2.8rem; gap: 6px; }

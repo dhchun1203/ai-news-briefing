@@ -190,3 +190,11 @@ body {
 .flow-label { font-size: 0.85rem; }
 .data-subheading { font-size: 0.95rem; }
 .legend-item { font-size: 0.85rem; }
+
+/* 데이터 카드 — 목차 위 */
+.data-card { margin: 28px 0; padding: 18px 0; }
+.data-card-flow { font-size: 1.35rem; }
+.data-card-unit, .data-card-arrow { font-size: 0.9rem; }
+.data-card-label, .data-card-pct, .data-card-meta, .data-card-link { font-size: 0.85rem; }
+/* 넓은 화면에서는 막대를 두 칸으로 — 세로로 길어지면 기사 목록이 밀린다. */
+.data-card-bars { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; }

@@ -469,6 +469,39 @@ async function main() {
     }
   }
 
+  // ---------- 1-7. 데이터 요약 카드 ----------
+  // 목차 바로 위라 이 블록이 길어지면 정작 기사 목록이 화면 밖으로 밀린다.
+  // 픽셀 높이는 브라우저에서만 잡힌다.
+  console.log("\n--- 데이터 요약 카드 ---");
+  for (const [vp, w, h, mob] of [["데스크톱", 1440, 900, false], ["모바일", 390, 844, true]]) {
+    const ctx = await browser.newContext({
+      viewport: { width: w, height: h }, locale: "ko-KR", isMobile: mob, hasTouch: mob,
+      reducedMotion: "reduce",
+    });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/index.html`, { waitUntil: "load" });
+    const card = page.locator(".data-card");
+    check(`${vp}: 카드 표시`, await card.isVisible());
+
+    const box = await card.boundingBox();
+    const col = await page.locator("main.content").boundingBox();
+    check(`${vp}: 본문 폭 안에 들어옴`,
+      box && col && box.x >= col.x - 1 && box.x + box.width <= col.x + col.width + 1,
+      JSON.stringify(box));
+    // 화면의 3분의 1을 넘으면 기사 목록이 첫 화면에서 사라진다.
+    check(`${vp}: 높이가 화면의 30%를 넘지 않음`, box && box.height < h * 0.3,
+      `${Math.round(box.height)}px / ${h}`);
+
+    const tocY = await page.locator("nav.toc").boundingBox();
+    check(`${vp}: 목차보다 위에 있음`, box && tocY && box.y < tocY.y,
+      JSON.stringify({ card: Math.round(box.y), toc: Math.round(tocY.y) }));
+
+    const tracks = await page.locator(".data-card-bars li:visible .data-card-track")
+      .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().width)));
+    check(`${vp}: 카드 막대 트랙 폭 일정`, new Set(tracks).size <= 2, JSON.stringify(tracks));
+    await ctx.close();
+  }
+
   // ---------- 2. 언어 안내 배너 ----------
   console.log("\n--- 언어 안내 배너 ---");
   for (const [locale, url, shouldShow, label] of [
