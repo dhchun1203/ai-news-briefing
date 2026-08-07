@@ -128,6 +128,56 @@ class TestSourcedField(unittest.TestCase):
             self.assertEqual((tmp / "2026-08-08.json").read_bytes(), first)
 
 
+class TestSourceDisplayLabel(unittest.TestCase):
+    """매체명은 화면에서만 갈아 끼운다. 저장값은 절대 바뀌면 안 된다."""
+
+    def test_english_pages_use_name_en(self):
+        from generate_site import source_label
+
+        self.assertEqual(source_label("AI타임스", "en"), "AI Times")
+
+    def test_korean_pages_keep_the_original(self):
+        from generate_site import source_label
+
+        self.assertEqual(source_label("AI타임스", "ko"), "AI타임스")
+
+    def test_unknown_source_falls_back_to_itself(self):
+        """feeds.json에 name_en이 없는 매체는 그대로 나온다 — 빈칸이 되면 안 된다."""
+        from generate_site import source_label
+
+        for lang in ("ko", "en"):
+            self.assertEqual(source_label("TechCrunch AI", lang), "TechCrunch AI")
+            self.assertEqual(source_label("듣도 보도 못한 매체", lang), "듣도 보도 못한 매체")
+
+    def test_archive_keeps_the_stored_name(self):
+        """표시용 이름이 아카이브에 새면 과거분과 안 맞아 매체별 집계가 둘로 갈라진다."""
+        from generate_site import save_archive_json
+
+        with tempfile.TemporaryDirectory() as d:
+            arc = Path(d)
+            save_archive_json(arc, {
+                "date": "2026-08-08", "generated_at": "x",
+                "articles": [{"link": "a", "source": "AI타임스"}],
+            })
+            saved = json.loads((arc / "2026-08-08.json").read_text(encoding="utf-8"))
+        self.assertEqual(saved["articles"][0]["source"], "AI타임스")
+
+    def test_aggregation_groups_by_stored_name(self):
+        """집계도 저장값 기준이어야 한 매체가 두 줄로 갈라지지 않는다."""
+        from generate_site import collect_site_data
+
+        with tempfile.TemporaryDirectory() as d:
+            arc = Path(d)
+            (arc / "2026-08-01.json").write_text(json.dumps({
+                "date": "2026-08-01",
+                "articles": [{"source": "AI타임스"}, {"source": "AI타임스"}],
+                "glossary": [],
+            }, ensure_ascii=False), encoding="utf-8")
+            data = collect_site_data(arc)
+        self.assertEqual([s["key"] for s in data["sources"]], ["AI타임스"])
+        self.assertEqual(data["sources"][0]["count"], 2)
+
+
 class TestSiteDataAggregation(unittest.TestCase):
     """/data 페이지 집계. **채택된 기사만** 센다 — 이 페이지의 정직성이 곧 방어선이라
     숫자가 틀리면 페이지의 존재 이유가 무너진다."""

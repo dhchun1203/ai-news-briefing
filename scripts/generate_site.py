@@ -148,6 +148,42 @@ def load_source_types():
     return {f["name"]: f.get("type", "press") for f in data.get("feeds", [])}
 
 
+def load_source_labels() -> dict:
+    """config/feeds.json의 `name` -> `name_en` 매핑.
+
+    **표시용이다.** 아카이브에 저장되는 `source` 값은 절대 바꾸지 않는다 — 그 값이
+    바뀌면 과거 아카이브와 안 맞아 매체별 집계가 두 개로 갈라진다. 영문 페이지에서
+    보여줄 이름만 여기서 갈아 끼운다."""
+    feeds_path = CONFIG_DIR / "feeds.json"
+    if not feeds_path.exists():
+        return {}
+    try:
+        data = json.loads(feeds_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    return {f["name"]: f["name_en"] for f in data.get("feeds", []) if f.get("name_en")}
+
+
+def source_label(name: str, lang: str = "ko") -> str:
+    """화면에 쓸 매체명. 영문 페이지에서 name_en이 있으면 그것을 쓴다."""
+    if lang != "en":
+        return name
+    return load_source_labels().get(name, name)
+
+
+def jinja_env() -> Environment:
+    """모든 페이지가 공유하는 Jinja 환경.
+
+    같은 설정을 7곳에서 따로 만들고 있었는데, 전역 함수 하나를 붙이려면 7곳을 모두
+    고쳐야 했다 — 하나만 빠뜨려도 그 페이지에서만 조용히 동작이 달라진다."""
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html", "j2"]),
+    )
+    env.globals["source_label"] = source_label
+    return env
+
+
 def load_topics():
     """config/topics.json의 고정 taxonomy를 순서 그대로 읽는다. slug/label_ko가
     없는 항목은 URL이나 화면 라벨을 만들 수 없으므로 조용히 건너뛴다."""
@@ -422,10 +458,7 @@ def build_glossary_term_pages(docs_dir: Path, entries: list, site_url: str, veri
     쓰므로 새로 쓰는 콘텐츠는 없다(토픽 페이지와 같은 재집계 패턴)."""
     if not entries:
         return 0
-    env = Environment(
-        loader=FileSystemLoader(str(TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html", "j2"]),
-    )
+    env = jinja_env()
     template = env.get_template("glossary-term.html.j2")
     generated_at = datetime.now().isoformat()
 
@@ -468,10 +501,7 @@ def build_glossary_page(docs_dir: Path, terms: list, site_url: str, verification
     새로 작성하는 콘텐츠가 없다(Claude가 매일 이미 쓰는 glossary를 재활용) —
     generate_weekly_site.py의 '건너뛸 날도 있는' 판단형 단계와 달리, 이건
     search-index.json처럼 매 실행마다 항상 자동으로 다시 만드는 기계적 집계다."""
-    env = Environment(
-        loader=FileSystemLoader(str(TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html", "j2"]),
-    )
+    env = jinja_env()
     template = env.get_template("glossary.html.j2")
     term_lookup = {t["term_ko"]: {"ko": t.get("explanation_ko", ""), "en": t.get("explanation_en", "")} for t in terms}
     ko_url = f"{site_url}/glossary"
@@ -554,10 +584,7 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
         return 0, 0
     by_topic = collect_topic_entries(archive_dir)
 
-    env = Environment(
-        loader=FileSystemLoader(str(TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html", "j2"]),
-    )
+    env = jinja_env()
     template = env.get_template("topic.html.j2")
     generated_at = datetime.now().isoformat()
     summary = [dict(t, count=len(by_topic.get(t["slug"], []))) for t in topics]
@@ -721,10 +748,7 @@ def build_archive_index(docs_dir: Path, archive_dir: Path, site_url: str, verifi
         )
     total_days = sum(len(m["days"]) for m in ordered)
 
-    env = Environment(
-        loader=FileSystemLoader(str(TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html", "j2"]),
-    )
+    env = jinja_env()
     ko_url, en_url = f"{site_url}/archive", f"{site_url}/en/archive"
     for lang in LANGS:
         out_dir = lang_root(docs_dir, lang) / "archive"
@@ -764,10 +788,7 @@ def build_data_page(docs_dir: Path, archive_dir: Path, site_url: str, verificati
         return {}
 
     topic_labels = {t["slug"]: t for t in load_topics()}
-    env = Environment(
-        loader=FileSystemLoader(str(TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html", "j2"]),
-    )
+    env = jinja_env()
     ko_url, en_url = f"{site_url}/data", f"{site_url}/en/data"
     for lang in LANGS:
         root = lang_root(docs_dir, lang)
@@ -813,10 +834,7 @@ def build_about_page(docs_dir: Path, site_url: str, verification: dict, og_image
     about = seo_utils.load_about()
     if not about:
         return False
-    env = Environment(
-        loader=FileSystemLoader(str(TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html", "j2"]),
-    )
+    env = jinja_env()
     ko_url = f"{site_url}/about"
     en_url = f"{site_url}/en/about"
     for lang in LANGS:
@@ -1097,10 +1115,7 @@ def main():
     build_about_page(docs_dir, site_url, verification, generic_og_image_url, site_stats, nav_counts)
     faq = seo_utils.load_faq()
 
-    env = Environment(
-        loader=FileSystemLoader(str(TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html", "j2"]),
-    )
+    env = jinja_env()
     template = env.get_template("site.html.j2")
 
     past_archives = collect_archive_dates(archive_dir, date)

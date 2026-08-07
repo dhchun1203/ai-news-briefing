@@ -97,7 +97,7 @@
     <ul class="bar-list">
       {% for s in data.sources %}
       <li class="bar-row">
-        <span class="bar-label">{% if s.is_others %}{% if lang == 'ko' %}기타 {{ s.hidden_count }}곳{% else %}{{ s.hidden_count }} others{% endif %}{% else %}{{ s.key }}{% endif %}</span>
+        <span class="bar-label">{% if s.is_others %}{% if lang == 'ko' %}기타 {{ s.hidden_count }}곳{% else %}{{ s.hidden_count }} others{% endif %}{% else %}{{ source_label(s.key, lang) }}{% endif %}</span>
         <span class="bar-track">
           <span class="bar-fill{% if s.is_others %} bar-fill-muted{% endif %}" style="width: {{ (s.percent / data.sources[0].percent * 100)|round(1) }}%"></span>
         </span>

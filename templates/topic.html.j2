@@ -144,7 +144,7 @@
     <li class="topic-entry">
       <div class="article-meta">
         <a class="topic-entry-date" href="{{ lup }}archive/{{ e.date }}.html">{{ e.date }}</a>
-        <span class="source">{{ e.source }}</span>
+        <span class="source">{{ source_label(e.source, lang) }}</span>
       </div>
       <h2 class="topic-entry-title"><a href="{{ e.link }}" target="_blank" rel="noopener noreferrer">{% if lang == 'en' and e.title_en %}{{ e.title_en }}{% else %}{{ e.title }}{% endif %}</a></h2>
       <p class="topic-entry-summary">

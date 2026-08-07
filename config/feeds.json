@@ -4,17 +4,79 @@
   "_tz_comment": "tz: 타임존 표기가 없는 pubDate를 어느 지역시로 해석할지. AI타임스는 '2026-07-29 17:26:28'처럼 타임존 없이 KST를 그대로 싣는데, feedparser는 그런 값을 UTC로 가정해서 그대로 두면 발행 시각이 9시간 미래로 잡힌다. 그러면 룩백을 항상 통과하고 신선도 점수가 늘 최대치가 되어 그 매체가 순위를 독식한다. 타임존을 제대로 주는 피드에는 이 필드가 필요 없다(있어도 무시된다).",
   "_weight_comment": "weight: 랭킹 점수에 더해지는 출처 기본 점수(기본값 1.0). 발행량이 많은 매체가 순위를 독점하는 걸 막고, 발행은 뜸하지만 건당 가치가 높은 출처(공식 발표·심층 분석 매체)가 살아남게 하는 장치다. 2026-07-27에 5일치를 점검해보니 MIT Technology Review와 Wired가 한 건도 채택되지 못했는데, 이 매체들이 '남들이 안 쓰는 걸 쓰는' 곳이라 교차 보도 수가 0이 되어 랭킹 최하위로 밀린 탓이었다. 교차 보도 가점의 상한이 3점이므로, 여기 값을 그 근처로 두면 단독 심층 보도가 흔한 속보와 겨룰 수 있다.",
   "feeds": [
-    { "name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/", "type": "press", "weight": 2.5 },
-    { "name": "VentureBeat AI", "url": "https://venturebeat.com/feed/", "type": "press", "weight": 1.5 },
-    { "name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "type": "press", "weight": 2.5 },
-    { "name": "MarkTechPost", "url": "https://www.marktechpost.com/feed/", "type": "press", "weight": 1.5 },
-    { "name": "OpenAI News", "url": "https://openai.com/news/rss.xml", "type": "primary", "weight": 4.0 },
-    { "name": "Google DeepMind Blog", "url": "https://deepmind.google/blog/rss.xml", "type": "primary", "weight": 4.0 },
-    { "name": "Google AI Blog", "url": "https://blog.google/technology/ai/rss/", "type": "primary", "weight": 4.0 },
-    { "name": "Ars Technica AI", "url": "https://arstechnica.com/ai/feed/", "type": "press", "weight": 2.5 },
-    { "name": "Wired AI", "url": "https://www.wired.com/feed/tag/ai/latest/rss", "type": "press", "weight": 3.0 },
-    { "name": "MIT Technology Review AI", "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed", "type": "press", "weight": 4.0 },
-    { "name": "AI타임스", "url": "https://www.aitimes.com/rss/allArticle.xml", "type": "press", "weight": 2.0, "tz": "Asia/Seoul" },
-    { "name": "Hacker News (AI)", "url": "https://hnrss.org/newest?q=AI&points=20", "type": "community", "weight": 1.0 }
+    {
+      "name": "TechCrunch AI",
+      "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+      "type": "press",
+      "weight": 2.5
+    },
+    {
+      "name": "VentureBeat AI",
+      "url": "https://venturebeat.com/feed/",
+      "type": "press",
+      "weight": 1.5
+    },
+    {
+      "name": "The Verge AI",
+      "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+      "type": "press",
+      "weight": 2.5
+    },
+    {
+      "name": "MarkTechPost",
+      "url": "https://www.marktechpost.com/feed/",
+      "type": "press",
+      "weight": 1.5
+    },
+    {
+      "name": "OpenAI News",
+      "url": "https://openai.com/news/rss.xml",
+      "type": "primary",
+      "weight": 4.0
+    },
+    {
+      "name": "Google DeepMind Blog",
+      "url": "https://deepmind.google/blog/rss.xml",
+      "type": "primary",
+      "weight": 4.0
+    },
+    {
+      "name": "Google AI Blog",
+      "url": "https://blog.google/technology/ai/rss/",
+      "type": "primary",
+      "weight": 4.0
+    },
+    {
+      "name": "Ars Technica AI",
+      "url": "https://arstechnica.com/ai/feed/",
+      "type": "press",
+      "weight": 2.5
+    },
+    {
+      "name": "Wired AI",
+      "url": "https://www.wired.com/feed/tag/ai/latest/rss",
+      "type": "press",
+      "weight": 3.0
+    },
+    {
+      "name": "MIT Technology Review AI",
+      "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+      "type": "press",
+      "weight": 4.0
+    },
+    {
+      "name": "AI타임스",
+      "url": "https://www.aitimes.com/rss/allArticle.xml",
+      "type": "press",
+      "weight": 2.0,
+      "tz": "Asia/Seoul",
+      "name_en": "AI Times"
+    },
+    {
+      "name": "Hacker News (AI)",
+      "url": "https://hnrss.org/newest?q=AI&points=20",
+      "type": "community",
+      "weight": 1.0
+    }
   ]
 }

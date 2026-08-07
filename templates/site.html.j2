@@ -205,7 +205,7 @@
         {# 중요도 순번. 1~10 전부 같은 무게로 표시한다 — 상위만 강조하면 아래쪽
            기사가 덤처럼 보이는데, 10건 모두 선별을 통과한 기사다. #}
         <span class="article-rank" aria-hidden="true">{{ "%02d"|format(loop.index) }}</span>
-        <span class="source">{{ article.source }}</span>
+        <span class="source">{{ source_label(article.source, lang) }}</span>
         {% if article.source_type == "primary" %}
         <span class="badge source-badge source-badge-primary">
           {% if lang == 'ko' %}공식 발표{% else %}Official{% endif %}
@@ -299,7 +299,7 @@
         <span class="related-label">
           {% if lang == 'ko' %}같은 사건 다른 매체{% else %}Also covered by{% endif %}
         </span>
-        {% for r in article.related %}<a href="{{ r.link }}" target="_blank" rel="noopener noreferrer">{{ r.source }}</a>{% if not loop.last %}<span class="related-sep" aria-hidden="true">·</span>{% endif %}{% endfor %}
+        {% for r in article.related %}<a href="{{ r.link }}" target="_blank" rel="noopener noreferrer">{{ source_label(r.source, lang) }}</a>{% if not loop.last %}<span class="related-sep" aria-hidden="true">·</span>{% endif %}{% endfor %}
       </p>
       {% endif %}
     </article>
