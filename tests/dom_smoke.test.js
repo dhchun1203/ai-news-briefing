@@ -292,6 +292,25 @@ function finishPage(label, doc, window, opts, relPath) {
       header.querySelector("h1") ? "h1이 래퍼 밖에 있다" : "h1 없음");
     // 유틸리티 바도 헤더 안에 있어야 스크롤 동작이 다른 페이지와 같다.
     check(label, "유틸리티 바가 헤더 안에 있음", !!header.querySelector(".utility-bar"));
+
+    // 홈 마크 — 바가 sticky라 아래로 내려가도 따라온다. 이게 없으면 데스크톱에서
+    // 홈으로 가려면 맨 위까지 스크롤해 h1을 찾아야 한다.
+    const brand = header.querySelector(".utility-bar .brand-mark");
+    check(label, "유틸리티 바 왼쪽에 홈 마크", !!brand);
+    if (brand) {
+      // 이름이 글자로 없으므로 aria-label이 유일한 접근 이름이다 — 빠지면
+      // 스크린리더가 "링크"라고만 읽는다.
+      check(label, "홈 마크에 접근 이름", (brand.getAttribute("aria-label") || "").length > 0);
+      check(label, "홈 마크가 홈을 가리킴",
+        (brand.getAttribute("href") || "").endsWith("index.html"),
+        brand.getAttribute("href"));
+      // 메뉴보다 앞이어야 왼쪽 끝에 선다.
+      const nav = header.querySelector(".utility-bar .site-nav-group");
+      if (nav) {
+        check(label, "홈 마크가 메뉴 앞",
+          Boolean(brand.compareDocumentPosition(nav) & window.Node.DOCUMENT_POSITION_FOLLOWING));
+      }
+    }
   }
   // 키보드 사용자가 매번 내비게이션을 통과하지 않도록.
   check(label, "본문 건너뛰기 링크 존재", !!doc.querySelector("a.skip-link"));

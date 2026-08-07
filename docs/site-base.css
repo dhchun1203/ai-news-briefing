@@ -205,9 +205,24 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .utility-bar-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* space-between이 아니라 flex-start + 오른쪽 묶음의 margin-left: auto다.
+     홈 마크가 들어오면서 자식이 셋이 됐는데, space-between은 셋을 균등하게 벌려
+     메뉴를 한가운데로 밀어버린다. 왼쪽부터 채우고 컨트롤만 끝으로 보낸다. */
+  justify-content: flex-start;
   gap: 8px;
 }
+
+/* 홈 마크. 메뉴 링크보다 살짝 크게 두되 글자가 없어 폭을 거의 먹지 않는다. */
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--text);
+  margin-right: 4px;
+}
+.brand-mark svg { display: block; width: 22px; height: 22px; }
+.brand-mark:hover { color: var(--accent); }
+.brand-mark:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 
 .share-wrap { position: relative; }
 
@@ -1675,6 +1690,7 @@ a.topic-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offse
   display: inline-flex;
   align-items: center;
   gap: 2px;
+  margin-left: auto;   /* 왼쪽 묶음이 몇 개든 컨트롤은 항상 오른쪽 끝 */
 }
 
 /* 언어 전환은 드롭다운을 상대 URL 링크로 바꾸면서 스타일이 통째로 빠져 있었다 —
