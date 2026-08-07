@@ -97,15 +97,126 @@
     {% endif %}
   </p>
 
-  {# ---------- 매체별 ---------- #}
+  {# ---------- 하루의 퍼널 ----------
+     가장 최근 하루만 보여준다. 여러 날 평균을 내면 값이 뭉개져서 "1,390개를 훑어
+     10개를 골랐다"는 이야기가 사라진다. 며칠치가 기록됐는지는 함께 적는다.
+
+     **한 축에 다 그리지 않는다.** 1,390과 10을 같은 선형 눈금에 놓으면 뒤쪽 단계가
+     3px짜리 선이 되어 읽을 수 없다(실제로 그렇게 만들었다가 갈아엎었다). 로그 눈금은
+     설명이 필요해 이 페이지의 목적과 안 맞는다.
+
+     그래서 둘로 나눈다: 좁혀지는 과정은 **숫자**로, 후보가 어디로 갔는지는 합이
+     정확히 맞는 **100% 스택 막대**로. 뒤쪽이 이 페이지에서 진짜 볼거리다. #}
+  {% if data.funnel %}
+  {% set f = data.funnel %}
+  <section class="data-section">
+    <h3 class="data-heading">
+      {% if lang == 'ko' %}하루에 무슨 일이 일어나나{% else %}What happens in a day{% endif %}
+    </h3>
+    <p class="data-note">
+      {% if lang == 'ko' %}{{ data.funnel_date }} 기준 · {{ data.funnel_days }}일 기록됨{% else %}{{ data.funnel_date }} · recorded for {{ data.funnel_days }} day{{ '' if data.funnel_days == 1 else 's' }}{% endif %}
+    </p>
+
+    <ol class="flow">
+      <li class="flow-step">
+        <span class="flow-value">{{ f.feeds_total }}</span>
+        <span class="flow-label">{% if lang == 'ko' %}피드{% else %}feeds{% endif %}</span>
+      </li>
+      <li class="flow-step">
+        <span class="flow-value">{{ "{:,}".format(f.entries_seen) }}</span>
+        <span class="flow-label">{% if lang == 'ko' %}훑은 기사{% else %}items scanned{% endif %}</span>
+      </li>
+      <li class="flow-step">
+        <span class="flow-value">{{ f.candidates_total }}</span>
+        <span class="flow-label">{% if lang == 'ko' %}후보{% else %}candidates{% endif %}</span>
+      </li>
+      <li class="flow-step flow-step-final">
+        <span class="flow-value">{{ f.selected }}</span>
+        <span class="flow-label">{% if lang == 'ko' %}채택{% else %}published{% endif %}</span>
+      </li>
+    </ol>
+    <p class="data-note">
+      {% if lang == 'ko' %}훑은 {{ "{:,}".format(f.entries_seen) }}건 중 최근 하루치는 {{ f.in_lookback }}건이고, 이미 실었던 {{ f.skipped_duplicates }}건과 자기홍보 {{ f.skipped_self_promo }}건을 빼면 후보 {{ f.candidates_total }}건이 남습니다.{% else %}Of the {{ "{:,}".format(f.entries_seen) }} items scanned, {{ f.in_lookback }} were published in the last 24 hours; dropping {{ f.skipped_duplicates }} we had already run and {{ f.skipped_self_promo }} self-promotional posts leaves {{ f.candidates_total }} candidates.{% endif %}
+    </p>
+
+    {# 후보의 행선지. 네 조각의 합이 정확히 후보 수라 검산이 된다. #}
+    {% set parts = [
+      ('selected', f.selected),
+      ('rank', f.dropped_rank),
+      ('same', f.dropped_same_story),
+      ('cap', f.dropped_source_cap),
+    ] %}
+    <p class="data-subheading">
+      {% if lang == 'ko' %}후보 {{ f.candidates_total }}건은 어디로 갔나{% else %}Where the {{ f.candidates_total }} candidates went{% endif %}
+    </p>
+    <div class="share-bar" role="img"
+         aria-label="{% if lang == 'ko' %}후보 {{ f.candidates_total }}건의 행선지{% else %}Outcome for {{ f.candidates_total }} candidates{% endif %}">
+      {% for key, n in parts %}{% if n %}<span class="share-seg share-seg-{{ key }}" style="width: {{ (n / f.candidates_total * 100)|round(2) }}%"></span>{% endif %}{% endfor %}
+    </div>
+    <ul class="legend">
+      {% for key, n in parts %}
+      <li class="legend-item">
+        <span class="legend-dot legend-dot-{{ key }}" aria-hidden="true"></span>
+        <span class="legend-label">
+          {% if lang == 'ko' %}{{ {'selected':'채택','rank':'순위 미달','same':'같은 사건','cap':'한 매체 3건 상한'}[key] }}{% else %}{{ {'selected':'published','rank':'outranked','same':'same story','cap':'3-per-outlet cap'}[key] }}{% endif %}
+        </span>
+        <span class="legend-value">{{ n }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {# ---------- 소스별: 들어온 양 vs 실린 양 ----------
+     "이 매체가 나쁘다"가 아니라 "들어온 양과 실린 양은 다르다"로 읽혀야 한다.
+     라벨을 중립적으로 두고, 채택 0건인 매체도 빼지 않는다 — 그런 매체를 지우면
+     이 그림이 보여주려는 것이 사라진다. #}
+  {% if data.source_compare %}
+  <section class="data-section">
+    <h3 class="data-heading">
+      {% if lang == 'ko' %}들어온 양과 실린 양{% else %}What came in, what ran{% endif %}
+    </h3>
+    <p class="data-note">
+      {% if lang == 'ko' %}후보 기록이 있는 {{ data.compare_days }}일 기준. 위가 후보로 들어온 수, 아래가 실제로 실린 수입니다.{% else %}Across the {{ data.compare_days }} day{{ '' if data.compare_days == 1 else 's' }} with candidate records. Top bar is what came in, bottom is what ran.{% endif %}
+    </p>
+    {% set cmax = data.source_compare[0].candidates %}
+    <ul class="bar-list">
+      {% for s in data.source_compare %}
+      <li class="pair-row">
+        <span class="bar-label">{{ source_label(s.key, lang) }}</span>
+        <span class="pair-bars">
+          <span class="pair-line">
+            <span class="bar-track"><span class="bar-fill bar-fill-in" style="width: {{ (s.candidates / cmax * 100)|round(1) if cmax else 0 }}%"></span></span>
+            <span class="pair-value">{{ s.candidates }}</span>
+          </span>
+          <span class="pair-line">
+            <span class="bar-track"><span class="bar-fill" style="width: {{ (s.published / cmax * 100)|round(1) if cmax else 0 }}%"></span></span>
+            <span class="pair-value">{{ s.published }}</span>
+          </span>
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {# ---------- 매체별 누적 ---------- #}
   <section class="data-section">
     <h3 class="data-heading">
       {% if lang == 'ko' %}어느 매체를 실었나{% else %}Which outlets we ran{% endif %}
     </h3>
     <p class="data-note">
-      {% if lang == 'ko' %}출처 {{ data.source_kinds }}종 중 상위 {{ data.sources|length - 1 if data.sources[-1].is_others else data.sources|length }}개.
-      한 매체가 하루에 최대 3건까지만 실리도록 제한하고 있습니다.{% else %}Top outlets among {{ data.source_kinds }} sources. No single outlet can take more than 3 of the 10 slots on any given day.{% endif %}
+      {% if lang == 'ko' %}출처 {{ data.source_kinds }}종. 한 매체가 하루에 최대 3건까지만 실립니다.{% else %}{{ data.source_kinds }} sources in total. No outlet can take more than 3 of the 10 slots in a day.{% endif %}
     </p>
+    {# 전체 구성을 한 줄로 먼저 보여준다 — 순위 막대만 있으면 "이 매체가 전체의
+       몇 퍼센트인가"가 한눈에 안 들어온다. #}
+    <div class="share-bar" role="img" aria-label="{% if lang == 'ko' %}매체별 점유 비율{% else %}Share by outlet{% endif %}">
+      {% for s in data.sources %}
+      <span class="share-seg{% if s.is_others %} share-seg-muted{% endif %}"
+            style="width: {{ s.percent }}%; opacity: {{ (1 - loop.index0 * 0.09)|round(2) }}"
+            title="{% if s.is_others %}{{ s.hidden_count }}{% else %}{{ source_label(s.key, lang) }}{% endif %} {{ s.percent }}%"></span>
+      {% endfor %}
+    </div>
     <ul class="bar-list">
       {% for s in data.sources %}
       <li class="bar-row">
@@ -113,7 +224,7 @@
         <span class="bar-track">
           <span class="bar-fill{% if s.is_others %} bar-fill-muted{% endif %}" style="width: {{ (s.percent / data.sources[0].percent * 100)|round(1) }}%"></span>
         </span>
-        <span class="bar-value">{{ s.count }}<span class="bar-percent">{{ s.percent }}%</span></span>
+        <span class="bar-value" data-count="{{ s.count }}">{{ s.count }}<span class="bar-percent">{{ s.percent }}%</span></span>
       </li>
       {% endfor %}
     </ul>
@@ -136,7 +247,7 @@
         <span class="bar-track">
           <span class="bar-fill" style="width: {{ (t.percent / data.topics[0].percent * 100)|round(1) }}%"></span>
         </span>
-        <span class="bar-value">{{ t.count }}<span class="bar-percent">{{ t.percent }}%</span></span>
+        <span class="bar-value" data-count="{{ t.count }}">{{ t.count }}<span class="bar-percent">{{ t.percent }}%</span></span>
       </li>
       {% endfor %}
     </ul>

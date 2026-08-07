@@ -643,12 +643,16 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .bar-list { list-style: none; margin: 0; padding: 0; }
 .bar-row {
   display: grid;
-  /* 라벨 / 막대 / 값 — 막대만 남는 공간을 전부 먹는다. */
-  grid-template-columns: minmax(0, 11rem) 1fr auto;
+  /* 라벨 / 막대 / 값.
+     **값 칸은 반드시 고정폭이어야 한다.** auto로 두면 "49 31.4%"와 "5 3.2%"의 글자
+     폭이 달라 행마다 트랙이 415/423/431px로 갈렸고, 같은 비율이 행마다 다른 길이로
+     그려져 비교 자체가 불가능했다. 막대 차트에서 이건 치명적이다. */
+  grid-template-columns: minmax(0, 11rem) 1fr 5.5rem;
   align-items: center;
   gap: 10px;
   padding: 5px 0;
 }
+.bar-row:hover .bar-fill { filter: brightness(1.08); }
 .bar-label {
   font-family: var(--sans);
   color: var(--text);
@@ -681,8 +685,100 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   font-variant-numeric: tabular-nums;
   color: var(--text);
   white-space: nowrap;
+  text-align: right;
 }
 .bar-percent { color: var(--text-muted); margin-left: 6px; }
+
+/* 전체 구성 한 줄 — 순위 막대만 있으면 "전체의 몇 퍼센트인가"가 한눈에 안 들어온다. */
+.share-bar {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--implication-bg);
+  margin: 0 0 16px;
+}
+.share-seg { display: block; background: var(--accent); min-width: 1px; }
+.share-seg-muted { background: var(--border); opacity: 1 !important; }
+
+/* 하루의 흐름 — 숫자 자체가 주인공이다. 1,390과 10을 같은 막대 눈금에 놓으면
+   뒤쪽이 3px 선이 되어 안 읽힌다. */
+.flow {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+}
+.flow-step { display: flex; flex-direction: column; padding-right: 26px; position: relative; }
+/* 단계 사이 화살표. 마지막에는 붙이지 않는다. */
+.flow-step:not(:last-child)::after {
+  content: "→";
+  position: absolute;
+  right: 8px;
+  top: 0.35em;
+  color: var(--border);
+}
+.flow-value {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  line-height: 1.1;
+}
+.flow-step-final .flow-value { color: var(--accent); }
+.flow-label { font-family: var(--sans); color: var(--text-muted); }
+
+.data-subheading {
+  font-family: var(--sans);
+  font-weight: 700;
+  color: var(--text);
+  margin: 22px 0 8px;
+}
+
+/* 범례 — 스택 막대 조각과 색을 맞춘다. */
+.legend { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.legend-item { display: flex; align-items: center; gap: 7px; font-family: var(--sans); }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.legend-label { color: var(--text-muted); }
+.legend-value { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* 후보의 행선지 — 채택만 강조색, 나머지는 단계적으로 낮춘다. */
+.share-seg-selected { background: var(--accent); }
+.share-seg-rank { background: var(--border); }
+.share-seg-same { background: var(--text-muted); }
+.share-seg-cap { background: var(--rule); opacity: 0.45; }
+.legend-dot-selected { background: var(--accent); }
+.legend-dot-rank { background: var(--border); }
+.legend-dot-same { background: var(--text-muted); }
+.legend-dot-cap { background: var(--rule); opacity: 0.45; }
+
+/* 들어온 양 vs 실린 양 — 두 막대를 세로로 붙여 한 매체로 묶어 읽게 한다. */
+.pair-row {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+}
+.pair-bars { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pair-line {
+  display: grid;
+  grid-template-columns: 1fr 2.5rem;
+  align-items: center;
+  gap: 10px;
+}
+.pair-value {
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  text-align: right;
+}
+/* 들어온 양은 "아직 고르기 전"이라 채택 막대와 색으로 구분한다. */
+.bar-fill-in { background: var(--border); }
 
 .data-figures { display: flex; gap: 28px; margin: 0 0 12px; }
 .data-figure { display: flex; flex-direction: column; }

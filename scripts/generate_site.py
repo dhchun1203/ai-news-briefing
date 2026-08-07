@@ -660,20 +660,50 @@ def collect_site_data(archive_dir: Path) -> dict:
     topic_counts = {}
     terms = set()
     article_total = 0
+    latest_funnel = None
+    latest_funnel_date = None
+    funnel_days = 0
+    # 후보 기록이 있는 날만 모은다(그 전 날짜는 후보 풀이 남아 있지 않아 영영 못 채운다).
+    compare_candidates = {}
+    compare_published = {}
+    compare_days = 0
 
     for day, stem in _iter_archive_days(archive_dir):
         date = day.get("date", stem)
         days.append(date)
+        by_source = day.get("candidates_by_source")
+        if by_source:
+            compare_days += 1
+            for name, n in by_source.items():
+                compare_candidates[name] = compare_candidates.get(name, 0) + n
+        funnel = day.get("funnel")
+        if funnel:
+            funnel_days += 1
+            if latest_funnel_date is None or date >= latest_funnel_date:
+                latest_funnel, latest_funnel_date = funnel, date
         for a in day.get("articles", []):
             article_total += 1
             source = a.get("source")
             if source:
                 source_counts[source] = source_counts.get(source, 0) + 1
+                if by_source:
+                    compare_published[source] = compare_published.get(source, 0) + 1
             for slug in a.get("topics") or []:
                 topic_counts[slug] = topic_counts.get(slug, 0) + 1
         for g in day.get("glossary") or []:
             if g.get("term_ko"):
                 terms.add(g["term_ko"])
+
+    # 후보로 들어온 순서대로. 채택 0건인 매체도 빼지 않는다 — "많이 들어와도 안 실린다"가
+    # 이 그림이 보여주려는 것이라, 그런 매체를 지우면 요점이 사라진다.
+    source_compare = [
+        {
+            "key": name,
+            "candidates": n,
+            "published": compare_published.get(name, 0),
+        }
+        for name, n in sorted(compare_candidates.items(), key=lambda kv: (-kv[1], kv[0]))
+    ]
 
     if not days:
         return {}
@@ -702,6 +732,16 @@ def collect_site_data(archive_dir: Path) -> dict:
     return {
         "first_day": days[0],
         "last_day": days[-1],
+        # 퍼널은 **가장 최근 하루**를 보여준다. 여러 날 평균을 내면 값이 뭉개져서
+        # "12개 피드에서 1,390개를 봤고 10개를 골랐다"는 이야기의 힘이 사라진다.
+        # 대신 며칠치가 기록됐는지를 함께 적어 표본 크기를 숨기지 않는다.
+        "funnel": latest_funnel,
+        "funnel_date": latest_funnel_date,
+        "funnel_days": funnel_days,
+        # 소스별 "후보로 들어온 수" vs "채택된 수". 둘 다 **후보 기록이 있는 날만**
+        # 집계한다 — 후보는 1일치인데 채택은 16일치를 나란히 놓으면 거짓 비교가 된다.
+        "source_compare": source_compare,
+        "compare_days": compare_days,
         "day_count": len(days),
         "article_total": article_total,
         "sources": top,

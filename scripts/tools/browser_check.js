@@ -390,6 +390,64 @@ async function main() {
     await ctx.close();
   }
 
+  // ---------- 1-6. /data 막대 정합성 ----------
+  // 값 칸을 auto로 뒀더니 "49 31.4%"와 "5 3.2%"의 글자 폭 차이로 행마다 트랙이
+  // 415/423/431px로 갈렸다. 같은 비율이 행마다 다른 길이로 그려지면 막대 차트의
+  // 존재 이유가 없어진다. 픽셀로만 잡히는 문제라 여기서 본다.
+  console.log("\n--- /data 막대 ---");
+  for (const [label, url] of [["한국어", "/data.html"], ["영어", "/en/data.html"]]) {
+    for (const [vp, w, h, mob] of [["데스크톱", 1280, 900, false], ["모바일", 390, 844, true]]) {
+      const ctx = await browser.newContext({
+        viewport: { width: w, height: h }, locale: "ko-KR", isMobile: mob, hasTouch: mob,
+        reducedMotion: "reduce",
+      });
+      const page = await ctx.newPage();
+      await page.goto(BASE + url, { waitUntil: "load" });
+
+      const tracks = await page.locator(".bar-row .bar-track").evaluateAll((els) =>
+        els.map((e) => {
+          const r = e.getBoundingClientRect();
+          return { x: Math.round(r.x), w: Math.round(r.width) };
+        }));
+      check(`${label}/${vp}: 모든 막대 트랙 폭이 같음`,
+        new Set(tracks.map((t) => t.w)).size === 1,
+        JSON.stringify([...new Set(tracks.map((t) => t.w))]));
+      check(`${label}/${vp}: 모든 막대 시작점이 같음`,
+        new Set(tracks.map((t) => t.x)).size === 1,
+        JSON.stringify([...new Set(tracks.map((t) => t.x))]));
+
+      // 막대 길이가 값에 비례하는지. **섹션마다 따로 본다** — 매체와 토픽은 서로
+      // 다른 기준으로 정규화되므로 섞어서 비교하면 안 된다(처음에 그렇게 짜서 틀렸다).
+      // 값은 textContent가 아니라 data-count로 읽는다("49"와 "31.4%"가 붙어 나온다).
+      const bad = await page.evaluate(() => {
+        const problems = [];
+        document.querySelectorAll(".data-section").forEach((sec, si) => {
+          const rows = [...sec.querySelectorAll(".bar-row")].map((e) => ({
+            value: Number(e.querySelector(".bar-value").dataset.count),
+            fill: Math.round(e.querySelector(".bar-fill").getBoundingClientRect().width),
+          }));
+          if (rows.length < 2) return;
+          const sorted = [...rows].sort((a, b) => b.value - a.value);
+          sorted.forEach((r, i) => {
+            if (i && r.fill > sorted[i - 1].fill + 1) {
+              problems.push(`섹션${si}: ${r.value}(${r.fill}px) > ${sorted[i - 1].value}(${sorted[i - 1].fill}px)`);
+            }
+          });
+        });
+        return problems;
+      });
+      check(`${label}/${vp}: 값이 큰 항목의 막대가 더 김`, bad.length === 0, bad.slice(0, 3).join(" | "));
+
+      const over = await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth + 1);
+      check(`${label}/${vp}: 가로 넘침 없음`, !over);
+      if (vp === "데스크톱") {
+        await page.screenshot({ path: path.join(SHOTS, `data-${label === "한국어" ? "ko" : "en"}.png`), fullPage: true });
+      }
+      await ctx.close();
+    }
+  }
+
   // ---------- 2. 언어 안내 배너 ----------
   console.log("\n--- 언어 안내 배너 ---");
   for (const [locale, url, shouldShow, label] of [

@@ -188,3 +188,14 @@ body {
 .data-figures { gap: 20px; }
 .data-figure-value { font-size: 1.6rem; }
 .data-figure-label { font-size: 0.8rem; }
+.pair-row { grid-template-columns: 1fr; gap: 4px; }
+.pair-line { grid-template-columns: 1fr 2.2rem; }
+.pair-value { font-size: 0.82rem; }
+.share-bar { height: 8px; }
+
+.flow-step { padding-right: 20px; }
+.flow-value { font-size: 1.35rem; }
+.flow-label { font-size: 0.78rem; }
+.data-subheading { font-size: 0.92rem; }
+.legend { gap: 5px 14px; }
+.legend-item { font-size: 0.8rem; }
