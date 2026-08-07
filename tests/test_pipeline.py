@@ -128,6 +128,78 @@ class TestSourcedField(unittest.TestCase):
             self.assertEqual((tmp / "2026-08-08.json").read_bytes(), first)
 
 
+class TestSiteDataAggregation(unittest.TestCase):
+    """/data 페이지 집계. **채택된 기사만** 센다 — 이 페이지의 정직성이 곧 방어선이라
+    숫자가 틀리면 페이지의 존재 이유가 무너진다."""
+
+    def build(self, days):
+        from generate_site import collect_site_data
+
+        with tempfile.TemporaryDirectory() as d:
+            arc = Path(d)
+            for date, payload in days.items():
+                (arc / f"{date}.json").write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            return collect_site_data(arc)
+
+    def sample(self):
+        return {
+            "2026-08-01": {"date": "2026-08-01", "articles": [
+                {"source": "A", "topics": ["x", "y"]},
+                {"source": "A", "topics": ["x"]},
+                {"source": "B", "topics": []},
+            ], "glossary": [{"term_ko": "가"}, {"term_ko": "나"}]},
+            "2026-08-02": {"date": "2026-08-02", "articles": [
+                {"source": "B", "topics": ["y"]},
+            ], "glossary": [{"term_ko": "가"}, {"term_ko": "다"}]},
+        }
+
+    def test_counts_only_published_articles(self):
+        d = self.build(self.sample())
+        self.assertEqual(d["article_total"], 4)
+        self.assertEqual(d["day_count"], 2)
+
+    def test_source_percentages_sum_to_100(self):
+        """비율이 안 맞으면 그래프가 거짓말을 한다."""
+        d = self.build(self.sample())
+        self.assertAlmostEqual(sum(s["percent"] for s in d["sources"]), 100.0, places=1)
+
+    def test_repeated_terms_counted_once(self):
+        """'가'가 이틀 나와도 누적 용어는 하나다 — 아니면 숫자가 부풀려진다."""
+        d = self.build(self.sample())
+        self.assertEqual(d["term_total"], 3)
+        self.assertEqual(d["term_per_day"], round(3 / 2, 1))
+
+    def test_period_bounds_are_actual_days(self):
+        d = self.build(self.sample())
+        self.assertEqual((d["first_day"], d["last_day"]), ("2026-08-01", "2026-08-02"))
+
+    def test_others_bucket_when_more_sources_than_shown(self):
+        from generate_site import DATA_PAGE_TOP_SOURCES
+        n = DATA_PAGE_TOP_SOURCES + 3
+        # 꼬리 매체마다 기사 수를 다르게 준다. 전부 1건이면 "건수 합"과 "매체 수"가
+        # 같아져서, 합계 대신 개수를 세는 실수를 테스트가 못 잡는다(실제로 놓쳤다).
+        articles = []
+        for i in range(n):
+            for _ in range(i + 1):
+                articles.append({"source": f"S{i:02d}", "topics": []})
+        total = sum(i + 1 for i in range(n))
+        d = self.build({"2026-08-01": {"date": "2026-08-01", "articles": articles, "glossary": []}})
+        others = d["sources"][-1]
+        self.assertTrue(others.get("is_others"))
+        self.assertEqual(others["hidden_count"], n - DATA_PAGE_TOP_SOURCES)
+        self.assertEqual(sum(s["count"] for s in d["sources"]), total, "기타로 묶으면서 건수가 샜다")
+        self.assertGreater(others["count"], others["hidden_count"], "기타가 건수가 아니라 매체 수로 세졌다")
+        self.assertEqual(d["source_kinds"], n)
+
+    def test_empty_archive_returns_nothing_to_render(self):
+        self.assertEqual(self.build({}), {})
+
+    def test_multi_topic_articles_counted_per_topic(self):
+        """기사 하나에 주제가 여러 개면 합계가 기사 수보다 크다 — 페이지가 그걸 밝힌다."""
+        d = self.build(self.sample())
+        self.assertEqual(sum(t["count"] for t in d["topics"]), 4)  # x2 + y2
+
+
 class TestFunnelAccounting(unittest.TestCase):
     """퍼널은 **사후 집계**다. 선별 로직에 끼어들면 안 되고, 합이 맞아야 한다."""
 

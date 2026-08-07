@@ -148,6 +148,8 @@ def _lang_urls(docs_dir: Path, site_url: str, today: str) -> list:
             urls.append((f"{site_url}/topics/{f.stem}", today))
     if (docs_dir / "about.html").exists():
         urls.append((f"{site_url}/about", today))
+    if (docs_dir / "data.html").exists():
+        urls.append((f"{site_url}/data", today))
     if (docs_dir / "glossary.html").exists():
         urls.append((f"{site_url}/glossary", today))
     glossary_dir = docs_dir / "glossary"

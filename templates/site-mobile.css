@@ -170,3 +170,21 @@ body {
 .glossary-term { padding: 16px 0; }
 .glossary-term-name { font-size: 1.02rem; margin: 0 0 4px; }
 .glossary-term-desc { font-size: 0.88rem; line-height: 1.6; }
+
+/* /data — 좁은 화면에서는 라벨·막대·값을 세 줄로 쌓는다. 세 칸 그리드를 유지하면
+   라벨이 잘리고 막대가 손톱만 해져서 비교가 불가능해진다. */
+.data-scope { font-size: 0.9rem; }
+.data-caveat { font-size: 0.88rem; line-height: 1.65; padding: 12px 14px; }
+.data-note { font-size: 0.84rem; line-height: 1.55; }
+.bar-row {
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "label value" "track track";
+  gap: 4px 10px;
+  padding: 8px 0;
+}
+.bar-label { grid-area: label; font-size: 0.9rem; }
+.bar-value { grid-area: value; font-size: 0.9rem; }
+.bar-track { grid-area: track; }
+.data-figures { gap: 20px; }
+.data-figure-value { font-size: 1.6rem; }
+.data-figure-label { font-size: 0.8rem; }

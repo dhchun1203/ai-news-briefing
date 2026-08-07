@@ -614,6 +614,78 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
     return page_count, sum(t["count"] for t in summary)
 
 
+# /data 페이지에서 매체를 개별 표시하는 최대 개수. 나머지는 "기타"로 묶는다 —
+# 12종을 다 세우면 꼬리가 길어져 정작 편중이 안 보인다.
+DATA_PAGE_TOP_SOURCES = 8
+
+
+def collect_site_data(archive_dir: Path) -> dict:
+    """`/data` 페이지가 쓰는 집계. **채택된 기사만** 센다.
+
+    이 페이지는 "AI 뉴스 생태계가 이렇다"가 아니라 "우리가 무엇을 골랐나"를 보여준다.
+    집계 대상이 선별을 통과한 기사뿐이므로 선택 편향이 있고, 그 사실을 페이지에
+    먼저 적는다 — 편향된 표본으로 생태계를 말하면 그 자리에서 반박당한다.
+
+    아카이브 전량을 매 실행마다 다시 훑는다(토픽 페이지·용어사전과 같은 멱등 패턴).
+    """
+    days = []
+    source_counts = {}
+    topic_counts = {}
+    terms = set()
+    article_total = 0
+
+    for day, stem in _iter_archive_days(archive_dir):
+        date = day.get("date", stem)
+        days.append(date)
+        for a in day.get("articles", []):
+            article_total += 1
+            source = a.get("source")
+            if source:
+                source_counts[source] = source_counts.get(source, 0) + 1
+            for slug in a.get("topics") or []:
+                topic_counts[slug] = topic_counts.get(slug, 0) + 1
+        for g in day.get("glossary") or []:
+            if g.get("term_ko"):
+                terms.add(g["term_ko"])
+
+    if not days:
+        return {}
+
+    def ranked(counts, total):
+        rows = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        return [
+            {"key": k, "count": v, "percent": round(v / total * 100, 1) if total else 0.0}
+            for k, v in rows
+        ]
+
+    sources = ranked(source_counts, article_total)
+    top = sources[:DATA_PAGE_TOP_SOURCES]
+    rest = sources[DATA_PAGE_TOP_SOURCES:]
+    if rest:
+        others = sum(r["count"] for r in rest)
+        top.append({
+            "key": None,  # 템플릿이 언어별 "기타"/"Others" 라벨을 붙인다
+            "count": others,
+            "percent": round(others / article_total * 100, 1) if article_total else 0.0,
+            "is_others": True,
+            "hidden_count": len(rest),
+        })
+
+    days.sort()
+    return {
+        "first_day": days[0],
+        "last_day": days[-1],
+        "day_count": len(days),
+        "article_total": article_total,
+        "sources": top,
+        "source_kinds": len(source_counts),
+        "topics": ranked(topic_counts, sum(topic_counts.values())),
+        "term_total": len(terms),
+        # 하루 평균은 "새로 등장한 용어" 기준이다. 같은 용어가 여러 날 나와도 한 번만 센다.
+        "term_per_day": round(len(terms) / len(days), 1),
+    }
+
+
 def build_archive_index(docs_dir: Path, archive_dir: Path, site_url: str, verification: dict,
                         og_image_url: str, nav_counts: dict = None) -> int:
     """지난 브리핑 전체를 월별로 묶은 `docs/archive/index.html`을 만든다.
@@ -679,6 +751,58 @@ def build_archive_index(docs_dir: Path, archive_dir: Path, site_url: str, verifi
             encoding="utf-8",
         )
     return total_days
+
+
+def build_data_page(docs_dir: Path, archive_dir: Path, site_url: str, verification: dict,
+                    og_image_url: str, nav_counts: dict = None) -> dict:
+    """`docs/data.html`을 만든다. 아카이브가 비어 있으면 아무것도 만들지 않는다.
+
+    토픽 페이지·용어사전과 같은 "아카이브 전량 재집계" 패턴이라 매 실행마다 다시
+    만든다(멱등). 집계 자체는 collect_site_data가 하고 여기서는 렌더링만 한다."""
+    data = collect_site_data(archive_dir)
+    if not data:
+        return {}
+
+    topic_labels = {t["slug"]: t for t in load_topics()}
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html", "j2"]),
+    )
+    ko_url, en_url = f"{site_url}/data", f"{site_url}/en/data"
+    for lang in LANGS:
+        root = lang_root(docs_dir, lang)
+        root.mkdir(parents=True, exist_ok=True)
+        page_url = en_url if lang == "en" else ko_url
+        (root / "data.html").write_text(
+            env.get_template("data.html.j2").render(
+                lang=lang,
+                lang_alt_url=(ko_url if lang == "en" else en_url),
+                up=up_prefix(lang),
+                lup=lang_up_prefix(lang=lang),
+                data=data,
+                topic_labels=topic_labels,
+                nav_counts=nav_counts,
+                generated_at=datetime.now().isoformat(),
+                canonical_url=page_url,
+                og_image_url=og_image_url,
+                hreflang_ko_url=ko_url,
+                hreflang_en_url=en_url,
+                google_site_verification=verification["google_site_verification"],
+                naver_site_verification=verification["naver_site_verification"],
+                jsonld={
+                    "@context": "https://schema.org",
+                    "@type": "WebPage",
+                    "@id": page_url,
+                    "url": page_url,
+                    "name": ("이 사이트가 무엇을 골랐나" if lang == "ko"
+                             else "What this site actually picked"),
+                    "inLanguage": "ko-KR" if lang == "ko" else "en",
+                    "isPartOf": {"@type": "WebSite", "@id": f"{site_url}/#website"},
+                },
+            ),
+            encoding="utf-8",
+        )
+    return data
 
 
 def build_about_page(docs_dir: Path, site_url: str, verification: dict, og_image_url: str,
@@ -968,6 +1092,7 @@ def main():
     term_page_count = build_glossary_term_pages(docs_dir, glossary_entries, site_url, verification, generic_og_image_url, nav_counts)
     topic_page_count, tagged_count = build_topic_pages(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
     archive_index_days = build_archive_index(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
+    site_data = build_data_page(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
     site_stats = collect_site_stats(archive_dir, glossary_count)
     build_about_page(docs_dir, site_url, verification, generic_og_image_url, site_stats, nav_counts)
     faq = seo_utils.load_faq()

@@ -1,0 +1,172 @@
+{#
+  /data — "이 사이트가 무엇을 골랐나"
+
+  이 페이지는 **AI 뉴스 생태계 통계가 아니다.** 집계 대상이 우리가 선별한 기사뿐이라
+  선택 편향이 있고, 그 사실을 페이지가 먼저 말한다. 편향된 표본으로 생태계를 설명하면
+  그 자리에서 반박당한다 — 정직한 프레이밍 자체가 방어선이다.
+
+  그래서 지켜야 할 것:
+    - 제목부터 "우리가 골랐다"라고 말한다
+    - 집계 기간·총 건수를 맨 위에 둔다
+    - 표본이 작다는 한계를 우리가 먼저 인정한다
+    - 모든 수치에 "채택된 기사 기준"이라는 단서를 붙인다
+
+  막대는 CSS 폭(%)만 쓴다. 외부 차트 라이브러리를 넣지 않는다 — 이 사이트는 런타임
+  의존성이 없고, 지표 하나 때문에 그 성질을 버릴 이유가 없다.
+#}<!doctype html>
+<html lang="{{ lang }}" data-lang="{{ lang }}" data-default-lang="{{ lang }}"
+      data-asset-prefix="{{ up }}" data-archive-prefix="{{ lup }}archive/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% if lang == 'ko' %}이 사이트가 무엇을 골랐나 — AI 뉴스 브리핑{% else %}What this site actually picked — AI News Briefing{% endif %}</title>
+<meta name="description" content="{% if lang == 'ko' %}{{ data.day_count }}일 동안 채택한 기사 {{ data.article_total }}건의 매체·토픽 분포와 용어 누적. 우리가 무엇을 골랐는지 그대로 공개합니다.{% else %}Source and topic distribution across the {{ data.article_total }} stories we picked over {{ data.day_count }} days, plus the glossary we built along the way.{% endif %}">
+<link rel="canonical" href="{{ canonical_url }}">
+<link rel="alternate" hreflang="ko" href="{{ hreflang_ko_url }}">
+<link rel="alternate" hreflang="en" href="{{ hreflang_en_url }}">
+<link rel="alternate" hreflang="x-default" href="{{ hreflang_ko_url }}">
+<meta property="og:title" content="{% if lang == 'ko' %}이 사이트가 무엇을 골랐나{% else %}What this site actually picked{% endif %}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ canonical_url }}">
+<meta property="og:image" content="{{ og_image_url }}">
+<meta name="twitter:card" content="summary_large_image">
+{% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
+{% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
+<link rel="icon" href="{{ up }}favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="AI News Briefing" href="{{ lup }}feed.xml">
+<link rel="stylesheet" href="{{ up }}site-base.css">
+<link rel="stylesheet" href="{{ up }}site-mobile.css" media="(max-width: 719px)">
+<link rel="stylesheet" href="{{ up }}site-desktop.css" media="(min-width: 720px)">
+<script type="application/ld+json">{{ jsonld|tojson }}</script>
+<script>
+(function () {
+  try {
+    var m = document.cookie.match(/(?:^|; )theme=([^;]*)/);
+    if (m && decodeURIComponent(m[1]) === "dark") document.documentElement.setAttribute("data-theme", "dark");
+  } catch (e) {}
+})();
+</script>
+</head>
+<body>
+{% set nav_p = lup %}
+{% set nav_current = '' %}
+{% include '_utility-bar.html.j2' %}
+
+<header class="site-header">
+  <h1><a href="{{ lup }}index.html">{% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}</a></h1>
+</header>
+
+<main class="content" id="main-content">
+  <h2 class="archive-title">
+    {% if lang == 'ko' %}이 사이트가 무엇을 골랐나{% else %}What this site actually picked{% endif %}
+  </h2>
+
+  {# 집계 기간과 총 건수를 맨 위에 둔다. 이 두 숫자가 없으면 아래 비율이 무엇의
+     비율인지 알 수 없고, 표본 크기를 숨긴 것처럼 보인다. #}
+  <p class="data-scope">
+    {% if lang == 'ko' %}
+      {{ data.first_day }} ~ {{ data.last_day }} · {{ data.day_count }}일 · <strong>채택된 기사 {{ data.article_total }}건</strong> 기준
+    {% else %}
+      {{ data.first_day }} to {{ data.last_day }} · {{ data.day_count }} days · based on <strong>{{ data.article_total }} stories we picked</strong>
+    {% endif %}
+  </p>
+
+  <p class="data-caveat">
+    {% if lang == 'ko' %}
+      이 숫자는 <strong>AI 뉴스 전체의 분포가 아닙니다.</strong> 우리가 매일 10건을 고른
+      결과일 뿐이라 선별 기준이 그대로 반영돼 있고, {{ data.day_count }}일·{{ data.article_total }}건은
+      경향을 말하기엔 작은 표본입니다. 생태계를 설명하는 자료가 아니라, 우리가 무엇을
+      골랐는지 그대로 보여드리려는 것입니다.
+    {% else %}
+      These numbers are <strong>not a picture of AI news as a whole.</strong> They only reflect
+      the 10 stories we pick each day, so our selection criteria are baked in, and
+      {{ data.day_count }} days across {{ data.article_total }} stories is a small sample to draw
+      trends from. This page is not an account of the ecosystem — it is an account of what we chose.
+    {% endif %}
+  </p>
+
+  {# ---------- 매체별 ---------- #}
+  <section class="data-section">
+    <h3 class="data-heading">
+      {% if lang == 'ko' %}어느 매체를 실었나{% else %}Which outlets we ran{% endif %}
+    </h3>
+    <p class="data-note">
+      {% if lang == 'ko' %}출처 {{ data.source_kinds }}종 중 상위 {{ data.sources|length - 1 if data.sources[-1].is_others else data.sources|length }}개.
+      한 매체가 하루에 최대 3건까지만 실리도록 제한하고 있습니다.{% else %}Top outlets among {{ data.source_kinds }} sources. No single outlet can take more than 3 of the 10 slots on any given day.{% endif %}
+    </p>
+    <ul class="bar-list">
+      {% for s in data.sources %}
+      <li class="bar-row">
+        <span class="bar-label">{% if s.is_others %}{% if lang == 'ko' %}기타 {{ s.hidden_count }}곳{% else %}{{ s.hidden_count }} others{% endif %}{% else %}{{ s.key }}{% endif %}</span>
+        <span class="bar-track">
+          <span class="bar-fill{% if s.is_others %} bar-fill-muted{% endif %}" style="width: {{ (s.percent / data.sources[0].percent * 100)|round(1) }}%"></span>
+        </span>
+        <span class="bar-value">{{ s.count }}<span class="bar-percent">{{ s.percent }}%</span></span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  {# ---------- 토픽별 ---------- #}
+  <section class="data-section">
+    <h3 class="data-heading">
+      {% if lang == 'ko' %}어떤 주제였나{% else %}What the stories were about{% endif %}
+    </h3>
+    <p class="data-note">
+      {% if lang == 'ko' %}기사 하나에 주제가 여러 개 붙을 수 있어 합계는 기사 수보다 큽니다.{% else %}A story can carry more than one topic, so these add up to more than the story count.{% endif %}
+    </p>
+    <ul class="bar-list">
+      {% for t in data.topics %}
+      <li class="bar-row">
+        <span class="bar-label">
+          <a href="{{ lup }}topics/{{ t.key }}.html">{% if lang == 'ko' %}{{ topic_labels[t.key].label_ko if t.key in topic_labels else t.key }}{% else %}{{ topic_labels[t.key].label_en if t.key in topic_labels else t.key }}{% endif %}</a>
+        </span>
+        <span class="bar-track">
+          <span class="bar-fill" style="width: {{ (t.percent / data.topics[0].percent * 100)|round(1) }}%"></span>
+        </span>
+        <span class="bar-value">{{ t.count }}<span class="bar-percent">{{ t.percent }}%</span></span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  {# ---------- 용어 ---------- #}
+  <section class="data-section">
+    <h3 class="data-heading">
+      {% if lang == 'ko' %}설명한 용어{% else %}Terms we explained{% endif %}
+    </h3>
+    <div class="data-figures">
+      <div class="data-figure">
+        <span class="data-figure-value">{{ data.term_total }}</span>
+        <span class="data-figure-label">{% if lang == 'ko' %}누적 용어{% else %}terms total{% endif %}</span>
+      </div>
+      <div class="data-figure">
+        <span class="data-figure-value">{{ data.term_per_day }}</span>
+        <span class="data-figure-label">{% if lang == 'ko' %}하루 평균 새 용어{% else %}new terms per day{% endif %}</span>
+      </div>
+    </div>
+    <p class="data-note">
+      {% if lang == 'ko' %}그날 브리핑에 실제로 등장한 용어만 그날 설명합니다 — 사전을 따로 쓰지 않습니다.
+      같은 용어가 여러 날 나와도 한 번만 셉니다. <a href="{{ lup }}glossary.html">용어사전 보기 →</a>{% else %}Each term is explained on the day it actually appeared in a briefing — we don't write a dictionary separately. Repeats across days are counted once. <a href="{{ lup }}glossary.html">Browse the glossary →</a>{% endif %}
+    </p>
+  </section>
+
+  <p class="data-note data-footnote">
+    {% if lang == 'ko' %}이 페이지는 매일 브리핑을 만들 때 아카이브 전체를 다시 세어 갱신됩니다.{% else %}This page is recalculated from the full archive every time a briefing is built.{% endif %}
+  </p>
+</main>
+
+<footer class="site-footer">
+  <p>
+    {% if lang == 'ko' %}매일 08:00 KST 자동 갱신 · 마지막 생성: {{ generated_at }}{% else %}Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}{% endif %}
+  </p>
+  <p class="footer-links">
+    <a href="{{ lup }}feed.xml">RSS</a>
+    <span class="footer-sep">·</span>
+    <a href="{{ lup }}about.html">{% if lang == 'ko' %}소개{% else %}About{% endif %}</a>
+  </p>
+</footer>
+
+<script src="{{ up }}site.js" defer></script>
+</body>
+</html>

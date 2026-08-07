@@ -602,6 +602,98 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 }
 .insight-watch-label::after { content: " · "; color: var(--border); }
 
+/* ---------- /data 페이지 ----------
+   막대는 CSS 폭(%)만 쓴다. 외부 차트 라이브러리를 넣지 않는다 — 이 사이트는 런타임
+   의존성이 없고, 지표 하나 때문에 그 성질을 버릴 이유가 없다.
+
+   모바일이 트래픽의 44%라 좁은 화면에서 세로로 무너지는 구조로 만든다(아래
+   site-mobile.css에서 라벨/막대/값을 세 줄로 쌓는다). 색은 전부 변수라 다크모드가
+   자동으로 따라온다. */
+.site-stats .stats-sep { margin: 0 6px; color: var(--border); }
+.site-stats .stats-data-link { color: var(--accent); text-decoration: none; white-space: nowrap; }
+.site-stats .stats-data-link:hover { text-decoration: underline; }
+
+.data-scope {
+  font-family: var(--sans);
+  color: var(--text);
+  margin: 0 0 10px;
+}
+.data-caveat {
+  font-family: var(--sans);
+  color: var(--text-muted);
+  background: var(--implication-bg);
+  border-left: 3px solid var(--border);
+  border-radius: 0 3px 3px 0;
+  margin: 0 0 28px;
+}
+.data-section { margin: 0 0 34px; }
+.data-heading {
+  font-family: var(--sans);
+  font-size: 1rem;
+  margin: 0 0 4px;
+  color: var(--text);
+}
+.data-note {
+  font-family: var(--sans);
+  color: var(--text-muted);
+  margin: 0 0 14px;
+}
+.data-footnote { margin-top: 28px; }
+
+.bar-list { list-style: none; margin: 0; padding: 0; }
+.bar-row {
+  display: grid;
+  /* 라벨 / 막대 / 값 — 막대만 남는 공간을 전부 먹는다. */
+  grid-template-columns: minmax(0, 11rem) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+}
+.bar-label {
+  font-family: var(--sans);
+  color: var(--text);
+  /* 매체명이 길어도 줄을 안 바꾼다 — 행 높이가 들쭉날쭉하면 막대 비교가 어려워진다. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bar-label a { color: inherit; text-decoration: none; }
+.bar-label a:hover { color: var(--accent); text-decoration: underline; }
+.bar-track {
+  background: var(--implication-bg);
+  border-radius: 3px;
+  overflow: hidden;
+  /* 값이 0에 가까워도 막대가 있다는 게 보여야 한다. */
+  min-height: 12px;
+  display: block;
+}
+.bar-fill {
+  display: block;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 3px;
+  min-width: 2px;
+}
+/* "기타"는 개별 매체가 아니라 묶음이라 같은 무게로 그리면 오해를 부른다. */
+.bar-fill-muted { background: var(--border); }
+.bar-value {
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+.bar-percent { color: var(--text-muted); margin-left: 6px; }
+
+.data-figures { display: flex; gap: 28px; margin: 0 0 12px; }
+.data-figure { display: flex; flex-direction: column; }
+.data-figure-value {
+  font-family: var(--sans);
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.data-figure-label { font-family: var(--sans); color: var(--text-muted); }
+
 /* ---------- 목차 ---------- */
 .toc {
   font-family: var(--sans);

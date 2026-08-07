@@ -97,6 +97,11 @@
          거른 뒤에도 문구가 그대로 나가 거짓말이 되므로 unbroken일 때만 붙인다.
          결번이 생겨도 시작일은 사실이므로 그건 남긴다. #}
       {% if lang == 'ko' %}브리핑 {{ site_stats.days }}일 · 기사 {{ site_stats.articles }}건 · 용어 {{ site_stats.terms }}개{% if site_stats.since %} · {{ site_stats.since }}부터{% if site_stats.unbroken %} 하루도 빠짐없이{% endif %}{% endif %}{% else %}{{ site_stats.days }} editions · {{ site_stats.articles }} stories · {{ site_stats.terms }} terms explained{% if site_stats.since %} · {% if site_stats.unbroken %}every day since{% else %}since{% endif %} {{ site_stats.since }}{% endif %}{% endif %}
+      {# 이 숫자들이 무엇을 세는지, 우리가 무엇을 골랐는지 그대로 볼 수 있는 곳.
+         내비게이션에는 넣지 않는다 — 매일 읽는 사람에게 필요한 메뉴가 아니라
+         "이 사이트를 믿어도 되나"를 확인하러 오는 사람이 한 번 보는 페이지다. #}
+      <span class="stats-sep" aria-hidden="true">·</span>
+      <a class="stats-data-link" href="{{ lang_prefix }}data.html">{% if lang == 'ko' %}무엇을 골랐나 →{% else %}what we picked →{% endif %}</a>
     </p>
     {% endif %}
   </div>
