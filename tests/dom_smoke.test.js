@@ -425,8 +425,10 @@ function finishPage(label, doc, window, opts, relPath) {
     // 목차 바로 위여야 한다. 독자가 "무엇을 읽을까"를 정하기 직전에 보여주는 자리다.
     const toc = doc.querySelector("nav.toc");
     if (card && toc) {
+      // `Node`는 jsdom의 window 안에 있는 DOM 전역이다. Node.js 스코프에는 없어서
+      // 그냥 쓰면 ReferenceError로 이 페이지 검사가 통째로 죽는다.
       check(label, "카드가 목차 위에 있음",
-        card.compareDocumentPosition(toc) & Node.DOCUMENT_POSITION_FOLLOWING);
+        Boolean(card.compareDocumentPosition(toc) & window.Node.DOCUMENT_POSITION_FOLLOWING));
     }
     if (card) {
       check(label, "카드에 /data 링크", !!card.querySelector('a[href$="data.html"]'));
