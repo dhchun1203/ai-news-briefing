@@ -16,14 +16,38 @@
     {
       "question_ko": "기사는 어떤 기준으로 고르나요?",
       "question_en": "How are the articles selected?",
-      "answer_ko": "업계 매체, AI 연구소의 공식 발표, 기술 전문 매체, 커뮤니티까지 11개 RSS 피드에서 최근 24시간 기사를 모은 뒤 세 단계로 추립니다. 여러 매체가 동시에 다룬 사건을 우선하고, 그다음 최신순으로 정렬하며, 한 출처가 최대 3건을 넘지 않게 제한합니다. 같은 사건을 다룬 기사는 하나만 남기고, 이미 지난 브리핑에 나간 링크는 제외합니다.",
-      "answer_en": "Articles come from 11 RSS feeds spanning industry press, official lab announcements, technical outlets, and community sources, filtered to the last 24 hours. Stories covered by multiple outlets rank first, then the most recent, with a cap of 3 per source. Duplicate coverage of the same event is collapsed to one, and any link already published in a past briefing is excluded."
+      "answer_ko": "업계 매체, AI 연구소의 공식 발표, 기술 전문 매체, 국내 매체, 커뮤니티까지 12개 RSS 피드에서 최근 24시간에 발행된 기사를 모읍니다. 여기에 출처 가중치·여러 매체의 교차 보도 여부·신선도를 합산한 점수로 순위를 매겨 10건을 뽑고, 한 출처가 3건을 넘지 못하게 제한하며, 공식 발표에는 최소 2자리를 보장합니다. 같은 사건을 다룬 기사는 하나만 싣고 나머지는 그 기사 아래에 다른 매체 링크로 붙입니다. 이미 지난 브리핑에 나간 링크는 다시 뽑지 않습니다.",
+      "answer_en": "Stories come from 12 RSS feeds spanning industry press, official lab announcements, technical outlets, Korean media, and community sources, filtered to the last 24 hours. Candidates are ranked by a combined score of source weight, cross-outlet corroboration, and recency; ten are published, no more than three from any one source, and official announcements are guaranteed at least two slots. When several outlets cover the same event only one runs, with the others linked beneath it. Links already published in a past briefing are never selected again."
+    },
+    {
+      "question_ko": "무엇을 훑었고 무엇을 실었는지 볼 수 있나요?",
+      "question_en": "Can I see what was scanned and what made it in?",
+      "answer_ko": "데이터 페이지에 매일 공개합니다. 피드에서 읽어들인 기사 수부터 실제로 실린 10건까지 어느 단계에서 얼마나 걸러졌는지, 매체별 분포, 주제 분포, 용어 누적을 함께 보여줍니다. 이 분포는 AI 업계 전체의 보도량이 아니라 이 사이트가 무엇을 골랐는지에 대한 기록입니다.",
+      "answer_en": "Yes — the data page publishes it every day: how many entries came in from the feeds, where they were filtered out on the way down to the ten that ran, plus the distribution by outlet, by topic, and the running glossary count. These numbers describe what this site selected, not how much the industry as a whole covered."
+    },
+    {
+      "question_ko": "기사 순서에 의미가 있나요?",
+      "question_en": "Does the order of the articles mean anything?",
+      "answer_ko": "있습니다. 위에서부터 그날 더 중요하다고 판단한 순서이고, 카드마다 붙은 01~10 번호가 그 순위입니다. 다만 순위와 무관하게 10건 모두 같은 비중으로 요약과 시사점을 씁니다. 각 기사에는 읽는 데 걸리는 시간이 표시되고, '시사점 보기'를 누르면 그 기사에 대한 판단이 열립니다.",
+      "answer_en": "Yes. They run in order of how important we judged them that day, and the 01–10 number on each card is that rank. Every story gets the same depth of summary and take regardless of where it sits. Each card also shows how long it takes to read, and 'Why it matters' opens the judgment on that story."
     },
     {
       "question_ko": "무료인가요? 이메일은 어떻게 쓰이나요?",
       "question_en": "Is it free? What happens to my email?",
       "answer_ko": "전부 무료이고 유료 등급이나 광고가 없습니다. 구독하면 확인 메일이 한 통 가고, 그 링크를 눌러야 발송 목록에 등록됩니다. 이메일 주소는 브리핑 발송에만 쓰며 제3자에게 제공하거나 판매하지 않습니다. 모든 메일 하단의 링크로 언제든 즉시 구독을 해지할 수 있습니다.",
       "answer_en": "It's entirely free — no paid tier, no ads. Subscribing sends one confirmation email, and you're only added to the list after clicking the link in it. Your address is used solely to deliver the briefing and is never shared or sold. Every email carries an unsubscribe link that takes effect immediately."
+    },
+    {
+      "question_ko": "확인 메일이 오지 않거나 링크가 만료됐어요.",
+      "question_en": "The confirmation email never arrived, or the link expired.",
+      "answer_ko": "확인 링크는 7일간 유효합니다. 만료된 링크를 눌러도 열리는 페이지에서 바로 새 확인 메일을 받을 수 있습니다. 신청 후 하루가 지나도 확인이 없으면 안내 메일이 한 번 더 가고, 그 이상은 보내지 않습니다. 메일이 보이지 않으면 스팸함을 확인해 주세요.",
+      "answer_en": "The confirmation link stays valid for seven days. If it has expired, the page it opens lets you send yourself a fresh one right there. If a signup is still unconfirmed after a day we send one reminder — only ever one. If nothing arrives, check your spam folder."
+    },
+    {
+      "question_ko": "영어로 받아볼 수 있나요?",
+      "question_en": "Can I get the briefing in English?",
+      "answer_ko": "영어판 페이지에서 구독하면 확인 메일과 매일 브리핑이 영어 본문과 영어 링크로 갑니다. 한국어 페이지에서 구독하면 한국어로 갑니다. 사이트 자체는 어느 쪽에서 보든 모든 기사를 두 언어로 함께 싣습니다.",
+      "answer_en": "Subscribe from the English pages and both the confirmation email and the daily briefing arrive in English, with English links. Subscribe from the Korean pages and they arrive in Korean. The site itself carries every story in both languages either way."
     }
   ]
 }

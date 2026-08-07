@@ -12,8 +12,14 @@
     {
       "heading_ko": "기사를 고르는 방법",
       "heading_en": "How stories are selected",
-      "body_ko": "업계 매체, AI 연구소의 공식 발표, 기술 전문 매체, 국내 매체, 커뮤니티까지 12개 RSS 피드에서 최근 24시간에 발행된 기사를 모읍니다. 여기서 출처 가중치·여러 매체의 교차 보도 여부·신선도를 합산한 점수로 순위를 매기고, 한 출처가 최대 3건을 넘지 않도록 제한해 10건을 뽑습니다. 공식 발표(1차 출처)에는 최소 2자리를 보장합니다. 같은 사건을 다룬 기사는 하나만 남기고 나머지는 그 기사에 '같은 사건 다른 매체'로 함께 표시합니다. 이미 지난 브리핑에 나간 링크는 다시 뽑지 않습니다.",
-      "body_en": "Stories come from 12 RSS feeds spanning industry press, official lab announcements, technical outlets, Korean media, and community sources, filtered to the last 24 hours. Candidates are ranked by a combined score of source weight, cross-outlet corroboration, and recency, with a cap of three per source. Official first-party announcements are guaranteed at least two slots. When several outlets cover the same event, only one is published and the rest appear beneath it as related coverage. Links already published in a past edition are never selected again."
+      "body_ko": "업계 매체, AI 연구소의 공식 발표, 기술 전문 매체, 국내 매체, 커뮤니티까지 12개 RSS 피드에서 최근 24시간에 발행된 기사를 모읍니다. 여기서 출처 가중치·여러 매체의 교차 보도 여부·신선도를 합산한 점수로 순위를 매기고, 한 출처가 최대 3건을 넘지 않도록 제한해 10건을 뽑습니다. 공식 발표(1차 출처)에는 최소 2자리를 보장합니다. 같은 사건을 다룬 기사는 하나만 남기고 나머지는 그 기사에 '같은 사건 다른 매체'로 함께 표시합니다. 이미 지난 브리핑에 나간 링크는 다시 뽑지 않습니다. 그날 무엇을 훑었고 어디에서 얼마나 걸러졌는지는 데이터 페이지에 공개합니다.",
+      "body_en": "Stories come from 12 RSS feeds spanning industry press, official lab announcements, technical outlets, Korean media, and community sources, filtered to the last 24 hours. Candidates are ranked by a combined score of source weight, cross-outlet corroboration, and recency, with a cap of three per source. Official first-party announcements are guaranteed at least two slots. When several outlets cover the same event, only one is published and the rest appear beneath it as related coverage. Links already published in a past edition are never selected again. What came in each day and where it was filtered out is published on the data page."
+    },
+    {
+      "heading_ko": "고른 결과를 공개합니다",
+      "heading_en": "The record of what was picked",
+      "body_ko": "선정 기준을 적어두는 것만으로는 그 기준이 실제로 어떻게 작동했는지 알 수 없습니다. 그래서 데이터 페이지에 피드에서 읽어들인 기사 수부터 실린 10건까지의 경로와, 매체별 분포, 주제 분포, 용어 누적을 매일 공개합니다. 이 숫자는 AI 업계 전체의 보도량이 아니라 이 사이트가 무엇을 골랐는지에 대한 기록이며, 특정 매체가 적게 실렸다는 것이 그 매체의 품질을 뜻하지 않습니다.",
+      "body_en": "Stating the selection rules says nothing about how they actually played out. The data page therefore publishes, every day, the path from the number of entries read out of the feeds down to the ten that ran, along with the distribution by outlet, by topic, and the running glossary count. These numbers record what this site selected, not how much the industry covered — an outlet appearing rarely is not a statement about its quality."
     },
     {
       "heading_ko": "요약과 해석을 나누는 이유",
@@ -30,8 +36,8 @@
     {
       "heading_ko": "발행과 보관",
       "heading_en": "Publishing and archive",
-      "body_ko": "매일 오전 8시(KST)에 발행합니다. 지난 브리핑은 날짜별 고유 주소로 영구 보관되며 삭제하지 않습니다. 일요일에는 그 주를 관통한 흐름을 다시 종합한 주간 회고를 냅니다. 브리핑에 등장한 어려운 용어는 용어사전에 쌓이고, 기사는 12개 주제로 분류돼 주제별로도 모아 볼 수 있습니다. RSS로도 구독할 수 있습니다.",
-      "body_en": "Published daily at 8 AM KST. Past editions keep permanent per-date URLs and are never removed. On Sundays a weekly recap re-synthesizes the through-line of that week. Jargon that appears in a briefing accumulates in the glossary, and stories are classified into twelve topics you can browse separately. An RSS feed is available."
+      "body_ko": "매일 오전 8시(KST)에 발행합니다. 지난 브리핑은 날짜별 고유 주소로 영구 보관되며 삭제하지 않습니다. 일요일에는 그 주를 관통한 흐름을 다시 종합한 주간 회고를 냅니다. 브리핑에 등장한 어려운 용어는 용어사전에 쌓이고, 기사는 12개 주제로 분류돼 주제별로도 모아 볼 수 있습니다. RSS로도 구독할 수 있습니다. 영어판 페이지에서 구독하면 확인 메일과 브리핑이 영어로 갑니다.",
+      "body_en": "Published daily at 8 AM KST. Past editions keep permanent per-date URLs and are never removed. On Sundays a weekly recap re-synthesizes the through-line of that week. Jargon that appears in a briefing accumulates in the glossary, and stories are classified into twelve topics you can browse separately. An RSS feed is available. Subscribe from the English pages and the confirmation email and the briefing itself arrive in English."
     },
     {
       "heading_ko": "독립성",
