@@ -472,6 +472,71 @@ async function main() {
   // ---------- 1-7. 데이터 요약 카드 ----------
   // 목차 바로 위라 이 블록이 길어지면 정작 기사 목록이 화면 밖으로 밀린다.
   // 픽셀 높이는 브라우저에서만 잡힌다.
+  console.log("\n--- 유틸리티 바 정렬 ---");
+  // 1280px 이상: 홈 마크는 왼쪽 여백(기둥 머리), 컨트롤은 그 거울상 자리, 메뉴는 화면 정중앙.
+  // 그 아래: 셋 다 본문 칼럼 안에 인라인으로 줄지어 선다.
+  // 세로는 폭과 무관하게 한 줄 — 메뉴 글자만 4px 내려앉아 있던 적이 있다.
+  for (const [vp, w] of [["1920", 1920], ["1440", 1440], ["1280", 1280], ["1279", 1279], ["1024", 1024]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 900 }, reducedMotion: "reduce" });
+    const page = await ctx.newPage();
+    // 로컬 서버는 캐시 헤더를 주지 않아 크롬이 옛 CSS를 그대로 재사용한다. 실제로
+    // 그 때문에 "영어판만 정렬이 다르다"는 유령 버그를 쫓은 적이 있다.
+    await page.route("**/*.css", async (route) => {
+      const res = await route.fetch();
+      route.fulfill({ response: res, headers: { ...res.headers(), "cache-control": "no-store" } });
+    });
+    await page.goto(`${BASE}/index.html`, { waitUntil: "load" });
+    await page.waitForTimeout(200);
+    const wide = w >= 1280;
+    const m = await page.evaluate(() => {
+      const vw = document.documentElement.clientWidth;
+      const box = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { x: b.x, r: b.x + b.width, cx: b.x + b.width / 2, cy: b.y + b.height / 2 }; };
+      const link = document.querySelector(".site-nav-group > .site-nav-link");
+      const lb = link.getBoundingClientRect(), cs = getComputedStyle(link);
+      // 링크는 밑줄을 바 경계선까지 흘리려고 아래로 삐져나온다 — 상자 중심이 아니라
+      // 글자 중심을 봐야 다른 컨트롤과 비교가 된다.
+      const 글자중심 = lb.y + parseFloat(cs.paddingTop)
+        + (lb.height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 3) / 2;
+      const bar = document.querySelector(".utility-bar").getBoundingClientRect();
+      return {
+        vw, brand: box(".brand-mark"), actions: box(".utility-actions"), nav: box(".site-nav-group"),
+        col: box("main.content"), 제목: box(".header-inner h1"), 메뉴글자중심: 글자중심,
+        theme: box(".theme-toggle").cy, share: box(".share-button").cy, lang: box(".lang-switch").cy,
+        밑줄바닥: lb.y + lb.height, 바바닥: bar.y + bar.height,
+      };
+    });
+    const near = (a, b, t = 1.5) => Math.abs(a - b) <= t;
+
+    check(`${vp}: 메뉴·공유·언어·테마가 같은 높이`,
+      near(m.메뉴글자중심, m.theme) && near(m.메뉴글자중심, m.share) && near(m.메뉴글자중심, m.lang),
+      JSON.stringify({ 메뉴: +m.메뉴글자중심.toFixed(1), 공유: +m.share.toFixed(1), 언어: +m.lang.toFixed(1), 테마: +m.theme.toFixed(1) }));
+    check(`${vp}: 현재 탭 밑줄이 바 경계선 위`, near(m.밑줄바닥, m.바바닥),
+      JSON.stringify({ 밑줄: +m.밑줄바닥.toFixed(1), 바: +m.바바닥.toFixed(1) }));
+
+    if (wide) {
+      check(`${vp}: 메뉴가 화면 정중앙`, near(m.nav.cx, m.vw / 2),
+        JSON.stringify({ 메뉴중심: +m.nav.cx.toFixed(1), 화면중심: m.vw / 2 }));
+      // 마크의 왼쪽 여백과 컨트롤의 오른쪽 여백이 같아야 좌우가 거울상이 된다.
+      check(`${vp}: 마크와 컨트롤이 좌우 대칭`, near(m.brand.x, m.vw - m.actions.r),
+        JSON.stringify({ 왼: +m.brand.x.toFixed(1), 오: +(m.vw - m.actions.r).toFixed(1) }));
+      check(`${vp}: 마크가 본문 칼럼 바깥(왼쪽 여백)`, m.brand.r <= m.col.x + 1);
+      check(`${vp}: 컨트롤이 본문 칼럼 바깥(오른쪽 여백)`, m.actions.x >= m.col.r - 1);
+      check(`${vp}: 메뉴가 마크·컨트롤과 겹치지 않음`, m.nav.x > m.brand.r && m.nav.r < m.actions.x,
+        JSON.stringify({ nav: [+m.nav.x.toFixed(0), +m.nav.r.toFixed(0)], brandR: +m.brand.r.toFixed(0), actionsX: +m.actions.x.toFixed(0) }));
+    } else {
+      // 기준은 칼럼 상자가 아니라 **글자가 시작하는 선**이다 — 칼럼 상자에는 24px
+      // 안쪽 여백이 있어 상자 모서리로 재면 24px씩 어긋난 것으로 나온다.
+      check(`${vp}: 마크가 제목 글자와 같은 선에서 시작`, near(m.brand.x, m.제목.x),
+        JSON.stringify({ 마크: +m.brand.x.toFixed(1), 제목: +m.제목.x.toFixed(1) }));
+      check(`${vp}: 컨트롤이 본문 오른쪽 끝선에 맞음`, near(m.actions.r, m.제목.r),
+        JSON.stringify({ 컨트롤: +m.actions.r.toFixed(1), 본문끝: +m.제목.r.toFixed(1) }));
+    }
+    check(`${vp}: 가로 스크롤 없음`,
+      !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
+    await ctx.close();
+  }
+
+
   console.log("\n--- 데이터 요약 카드 ---");
   // 1280px 이상: 왼쪽 기둥(.side-rail) 안, 목차 레일 위.
   // 그 아래: 기둥이 없으므로 본문 목차 앞에 링크 한 줄만. 막대를 그대로 두면

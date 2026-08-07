@@ -248,6 +248,19 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
     margin: 0;
   }
   .brand-mark svg { width: 34px; height: 34px; }
+
+  /* 컨트롤은 마크의 거울상 자리 — 오른쪽 여백에서 같은 거리만큼 안쪽.
+     둘 다 흐름에서 빼면 바 안에 남는 것은 메뉴뿐이라, 720px 칼럼 안에서
+     가운데 정렬하는 것만으로 화면 정중앙에 온다(칼럼 자체가 가운데니까).
+     메뉴를 왼쪽 끝에 붙여두면 마크·메뉴가 왼쪽에 몰리고 오른쪽이 휑했다. */
+  .utility-actions {
+    position: absolute;
+    right: calc(25% - 280px);
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
+  }
+  .utility-bar-inner { justify-content: center; }
 }
 .brand-mark:hover { color: var(--accent); }
 .brand-mark:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
