@@ -267,6 +267,55 @@ def build_same_story_clusters(candidates: list) -> list:
     return cluster_of
 
 
+def build_funnel(candidates, cluster_ids, selected, max_per_source, counters):
+    """하루치 선별이 각 단계에서 몇 건을 걸러냈는지 **사후에** 집계한다.
+
+    **선별 로직은 건드리지 않는다.** 이미 끝난 결과를 보고 세기만 하므로, 이 함수가
+    틀려도 그날 브리핑은 그대로 나간다. 매일 08:00 무인 실행에 계측을 얹는 이상
+    그 반대(계측이 선별에 끼어드는 것)는 있어선 안 된다.
+
+    채택되지 않은 후보를 "무엇 때문에 못 들어갔나"로 하나씩 분류한다. 선별 루프는
+    자리가 차면 중간에 멈춰서 나머지를 아예 보지도 않으므로, 루프를 흉내 내는 대신
+    **최종 결과를 기준으로** 판정한다 — 정의가 분명하고 합이 정확히 맞는다:
+
+      같은사건  이미 채택된 기사와 같은 클러스터다
+      출처상한  그 출처가 이미 상한만큼 채택됐다
+      순위미달  위 둘 다 아닌데 자리가 없었다
+
+    합계: 후보 = 채택 + 같은사건 + 출처상한 + 순위미달
+    """
+    selected_links = {a["link"] for a in selected}
+    used_clusters = {cid for a, cid in zip(candidates, cluster_ids) if a["link"] in selected_links}
+    per_source = {}
+    for a in selected:
+        per_source[a["source"]] = per_source.get(a["source"], 0) + 1
+
+    same_story = source_cap = rank_short = 0
+    for article, cid in zip(candidates, cluster_ids):
+        if article["link"] in selected_links:
+            continue
+        if cid in used_clusters:
+            same_story += 1
+        elif per_source.get(article["source"], 0) >= max_per_source:
+            source_cap += 1
+        else:
+            rank_short += 1
+
+    return {
+        "feeds_total": counters["feeds_total"],
+        "feeds_failed": counters["feeds_failed"],
+        "entries_seen": counters["entries_seen"],
+        "in_lookback": counters["in_lookback"],
+        "skipped_duplicates": counters["skipped_duplicates"],
+        "skipped_self_promo": counters["skipped_self_promo"],
+        "candidates_total": len(candidates),
+        "dropped_same_story": same_story,
+        "dropped_source_cap": source_cap,
+        "dropped_rank": rank_short,
+        "selected": len(selected),
+    }
+
+
 def entry_published_at(entry, tz_name=None):
     """피드 항목의 발행 시각을 UTC로 돌려준다.
 
@@ -338,6 +387,10 @@ def main():
     stale_feeds = []
     skipped_duplicates = 0
     skipped_self_promo = 0
+    # 퍼널 계측용. 선별에는 쓰이지 않는다 — 세기만 한다.
+    entries_seen = 0
+    in_lookback = 0
+    candidates_by_source = {}
     for feed in feeds:
         name, url = feed["name"], feed["url"]
         try:
@@ -365,10 +418,12 @@ def main():
                 file=sys.stderr,
             )
 
+        entries_seen += len(entries)
         for entry in entries:
             published_at = entry_published_at(entry, feed_tz)
             if published_at is None or published_at < cutoff:
                 continue
+            in_lookback += 1
             link = entry.get("link")
             title = entry.get("title")
             if not link or not title:
@@ -392,6 +447,7 @@ def main():
                     "rss_summary": entry_summary(entry).strip(),
                 }
             )
+            candidates_by_source[name] = candidates_by_source.get(name, 0) + 1
 
     # 출처 가중치·교차 보도·신선도를 합산한 점수로 정렬한 뒤, 출처 다양성을 지키면서
     # top-n을 채운다(점수 구성은 compute_rank_score 주석 참고).
@@ -544,6 +600,23 @@ def main():
         "candidates_total": len(candidates),
         "skipped_duplicates": skipped_duplicates,
         "skipped_self_promo": skipped_self_promo,
+        # 하루의 퍼널. 선별이 끝난 뒤 결과만 보고 센 값이라 선별에 영향을 주지 않는다.
+        "funnel": build_funnel(
+            candidates,
+            cluster_ids,
+            selected,
+            args.max_per_source,
+            {
+                "feeds_total": len(feeds),
+                "feeds_failed": len(failed_feeds),
+                "entries_seen": entries_seen,
+                "in_lookback": in_lookback,
+                "skipped_duplicates": skipped_duplicates,
+                "skipped_self_promo": skipped_self_promo,
+            },
+        ),
+        # 고르기 **전** 소스별 후보 수. 채택 결과와 나란히 놓으면 편중이 보인다.
+        "candidates_by_source": candidates_by_source,
         "articles": selected,
         "reserves": reserves,
     }

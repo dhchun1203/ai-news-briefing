@@ -276,6 +276,11 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
         # title_en과 같은 이유로 None이면 아래에서 키째 걷어낸다 — 값을 채워 넣으면
         # 과거 아카이브가 재생성 때마다 바뀐다.
         "candidates_total": raw_digest.get("candidates_total") or None,
+        # 하루의 퍼널과 소스별 후보 수. /data 페이지가 "무엇을 어떻게 골랐나"를
+        # 보여줄 때 쓴다. candidates_total과 같은 이유로 값이 있을 때만 남긴다 —
+        # None을 써 넣으면 과거 아카이브가 재생성 때마다 바뀐다.
+        "funnel": raw_digest.get("funnel") or None,
+        "candidates_by_source": raw_digest.get("candidates_by_source") or None,
         "daily_insight": raw_digest.get("daily_insight"),
         "glossary": raw_digest.get("glossary") or [],
         "articles": [
@@ -305,8 +310,9 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
     }
     # 값이 없는 선택 필드는 키째로 뺀다. 이 파일은 영속 원본이라 "재생성해도 안 바뀐다"가
     # 지켜져야 하는데, null 키 하나만 새로 생겨도 매일 전 아카이브에 diff가 난다.
-    if payload.get("candidates_total") is None:
-        payload.pop("candidates_total", None)
+    for optional in ("candidates_total", "funnel", "candidates_by_source"):
+        if payload.get(optional) is None:
+            payload.pop(optional, None)
     for a in payload["articles"]:
         if a.get("title_en") is None:
             a.pop("title_en", None)

@@ -163,6 +163,8 @@ python scripts/fetch_articles.py --lookback-days 1 --top-n 10
   "date": "YYYY-MM-DD",
   "generated_at": "ISO8601 타임스탬프",
   "candidates_total": "1단계 articles_<날짜>.json의 candidates_total을 **그대로 옮겨 적는다** (정수)",
+  "funnel": "1단계의 funnel 객체를 **그대로 옮겨 적는다** (수정하지 말 것)",
+  "candidates_by_source": "1단계의 candidates_by_source 객체를 **그대로 옮겨 적는다**",
   "glossary": [
     {
       "term_ko": "본문에 실제로 등장하는 한국어 용어 표기 그대로",
@@ -292,6 +294,11 @@ Georgia Tech GEO 논문, arXiv 2311.09735)로 확인돼 있다. 위 작성 원�
   기반으로 두 언어를 작성하고, 정보가 부족하다는 한계를 감안해 단정적인 표현을 피한다.
   **"원문 접속이 제한돼 확인하지 못했다"는 문구를 요약에 그대로 적는 것은 최후의 수단**
   이다 — 독자에게는 아무 가치가 없는 문장이라, 그런 항목을 실을 바에는 기사를 빼는 편이 낫다.
+
+**`funnel`과 `candidates_by_source`도 그대로 옮긴다.** 1단계가 각 단계에서 몇 건이 왜
+빠졌는지(룩백 밖 / 과거 중복 / 자기홍보 / 같은 사건 병합 / 출처 상한 / 순위 미달)를
+이미 세어 놓는다. 값을 고치거나 다시 계산하지 말고 그대로 복사한다 — 이 숫자가
+`/data` 페이지의 퍼널 그림이 되고, 손으로 만진 숫자는 공개 지표로 쓸 수 없다.
 
 **`candidates_total`을 빠뜨리지 않는다.** 홈과 아카이브 상단의 "후보 N건에서 고른 10건 ·
 중요한 순서로 배열" 문구가 이 값을 쓴다. 1단계가 이미 계산해 `articles_<날짜>.json`에

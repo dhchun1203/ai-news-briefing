@@ -27,6 +27,7 @@ from fetch_articles import (  # noqa: E402
     PRIMARY_MIN_SLOTS,
     RESERVE_COUNT,
     STALE_FEED_THRESHOLD_DAYS,
+    build_funnel,
     build_same_story_clusters,
     compute_rank_score,
     extract_keywords,
@@ -89,6 +90,71 @@ class TestFreshnessDefaults(unittest.TestCase):
         # 값으로 묶여 있으면, 며칠에 한 번 발행하는 정상 피드까지 매번 "죽었다"고
         # 오탐한다 — 실제로 1일로 줄이자마자 이 오탐이 발생해서 분리했다.
         self.assertGreater(STALE_FEED_THRESHOLD_DAYS, 7)
+
+
+class TestFunnelAccounting(unittest.TestCase):
+    """퍼널은 **사후 집계**다. 선별 로직에 끼어들면 안 되고, 합이 맞아야 한다."""
+
+    COUNTERS = {
+        "feeds_total": 12, "feeds_failed": 0, "entries_seen": 1390,
+        "in_lookback": 88, "skipped_duplicates": 8, "skipped_self_promo": 0,
+    }
+
+    def build(self, candidates, cluster_ids, selected, max_per_source=3):
+        return build_funnel(candidates, cluster_ids, selected, max_per_source, dict(self.COUNTERS))
+
+    def cand(self, link, source, ):
+        return {"link": link, "source": source, "title": link}
+
+    def test_counts_add_up_to_candidates(self):
+        """합이 안 맞으면 퍼널 그림이 거짓말을 한다."""
+        c = [self.cand(f"l{i}", "A" if i < 6 else "B") for i in range(10)]
+        ids = list(range(10))
+        sel = [c[0], c[1], c[6]]
+        f = self.build(c, ids, sel)
+        total = f["selected"] + f["dropped_same_story"] + f["dropped_source_cap"] + f["dropped_rank"]
+        self.assertEqual(total, f["candidates_total"], f)
+
+    def test_same_cluster_as_selected_counts_as_same_story(self):
+        c = [self.cand("a", "A"), self.cand("b", "B"), self.cand("c", "C")]
+        ids = [0, 0, 1]           # a와 b가 같은 사건
+        f = self.build(c, ids, [c[0]])
+        self.assertEqual(f["dropped_same_story"], 1)   # b
+        self.assertEqual(f["dropped_rank"], 1)         # c
+
+    def test_source_over_cap_counts_as_source_cap(self):
+        c = [self.cand(f"a{i}", "A") for i in range(5)]
+        ids = list(range(5))
+        f = self.build(c, ids, c[:2], max_per_source=2)
+        self.assertEqual(f["dropped_source_cap"], 3)
+        self.assertEqual(f["dropped_same_story"], 0)
+
+    def test_same_story_takes_precedence_over_source_cap(self):
+        """둘 다 해당하면 먼저 걸린 쪽으로 센다 — 이중 계상이면 합이 깨진다."""
+        c = [self.cand("a", "A"), self.cand("b", "A")]
+        ids = [0, 0]
+        f = self.build(c, ids, [c[0]], max_per_source=1)
+        self.assertEqual(f["dropped_same_story"], 1)
+        self.assertEqual(f["dropped_source_cap"], 0)
+
+    def test_does_not_mutate_inputs(self):
+        """계측이 선별 결과를 건드리면 그날 브리핑이 바뀐다."""
+        c = [self.cand("a", "A"), self.cand("b", "B")]
+        snapshot = [dict(x) for x in c]
+        sel = [c[0]]
+        self.build(c, [0, 1], sel)
+        self.assertEqual(c, snapshot)
+        self.assertEqual([x["link"] for x in sel], ["a"])
+
+    def test_empty_day_does_not_crash(self):
+        f = self.build([], [], [])
+        self.assertEqual(f["candidates_total"], 0)
+        self.assertEqual(f["selected"], 0)
+
+    def test_carries_collection_stage_counters(self):
+        f = self.build([self.cand("a", "A")], [0], [])
+        for k, v in self.COUNTERS.items():
+            self.assertEqual(f[k], v, k)
 
 
 class TestSameStoryClustering(unittest.TestCase):
