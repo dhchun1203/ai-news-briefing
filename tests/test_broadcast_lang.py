@@ -32,7 +32,10 @@ HANGUL = re.compile(r"[가-힣]")
 
 DIGEST = {
     "date": "2026-08-05",
-    "daily_insight": {"headline_ko": "한국어 헤드라인", "headline_en": "English headline"},
+    "daily_insight": {
+        "headline_ko": "한국어 헤드라인", "headline_en": "English headline",
+        "watch_ko": "한국어 지켜볼 신호", "watch_en": "English signal to watch",
+    },
     "articles": [
         {
             "title": "Texas halts data center connections",
@@ -135,6 +138,47 @@ class TestLanguageRouting(unittest.TestCase):
     def test_home_path_per_language(self):
         self.assertEqual(home_path("en"), "/en")
         self.assertEqual(home_path("ko"), "/index.html")
+
+
+class TestWatchSignal(unittest.TestCase):
+    """지켜볼 신호가 메일에도 실리는지.
+
+    이 브리핑에서 유일하게 앞을 내다보는 문장인데 메일에는 빠져 있었다. 사이트에
+    들어와야만 볼 수 있게 둘 이유가 없다.
+    """
+
+    def test_included_in_both_languages(self):
+        self.assertIn("한국어 지켜볼 신호", render("ko"))
+        self.assertIn("English signal to watch", render("en"))
+
+    def test_label_is_localized(self):
+        self.assertIn(COPY["ko"]["watch_label"], render("ko"))
+        self.assertIn(COPY["en"]["watch_label"], render("en"))
+
+    def test_english_mail_with_watch_has_no_korean(self):
+        self.assertEqual(HANGUL.findall(render("en")), [])
+
+    def test_sits_below_the_insight_headline(self):
+        """사이트와 같은 자리여야 한다 — 구조가 다르면 읽는 사람이 매번 다시 찾는다."""
+        html = render("ko")
+        self.assertLess(html.index("한국어 헤드라인"), html.index("한국어 지켜볼 신호"))
+
+    def test_missing_english_watch_drops_only_that_line(self):
+        """영문 신호가 없을 때 한국어를 끼워 넣지 않는다. 인사이트는 그대로 남는다."""
+        digest = dict(DIGEST, daily_insight={
+            "headline_ko": "한국어 헤드라인", "headline_en": "English headline",
+            "watch_ko": "한국어만 있다", "watch_en": "",
+        })
+        html = build_html(digest, SITE, "https://x.test/u", lang="en")
+        self.assertEqual(HANGUL.findall(html), [])
+        self.assertIn("English headline", html)
+        self.assertNotIn(COPY["en"]["watch_label"], html)
+
+    def test_no_insight_means_no_watch(self):
+        """헤드라인이 없으면 인사이트 블록 자체가 안 나온다 — 신호만 떠 있으면 안 된다."""
+        digest = dict(DIGEST, daily_insight={"headline_ko": "", "watch_ko": "신호만 있다"})
+        html = build_html(digest, SITE, "https://x.test/u", lang="ko")
+        self.assertNotIn("신호만 있다", html)
 
 
 class TestMissingTranslations(unittest.TestCase):

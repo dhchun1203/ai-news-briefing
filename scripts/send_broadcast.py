@@ -85,6 +85,7 @@ COPY = {
         "lede": "기사 {n}건의 헤드라인과 한 줄 요약입니다. 각 기사가 시사하는 점과 전체 "
                 "인사이트 분석은 위 링크에서 확인하세요.",
         "insight_label": "오늘의 인사이트",
+        "watch_label": "지켜볼 신호",
         "weekly_label": "이번 주 종합",
         "weekly_cta": "주간 회고 전체 보기 →",
         "catchup": "발송 오류로 {date}자 브리핑이 예정보다 늦게 도착했습니다. 불편을 드려 죄송합니다.",
@@ -100,6 +101,7 @@ COPY = {
         "lede": "{n} headlines with one-line summaries. What each story means, plus the full "
                 "insight analysis, is at the link above.",
         "insight_label": "Today's insight",
+        "watch_label": "Signal to watch",
         "weekly_label": "This week",
         "weekly_cta": "Read the full weekly recap →",
         "catchup": "The {date} briefing arrived later than scheduled because of a delivery error. Sorry about that.",
@@ -290,8 +292,23 @@ def build_html(
     # 오늘의 인사이트 헤드라인(있는 날만)을 메일 상단에 넣어 열자마자 핵심을 잡게 한다.
     insight = digest.get("daily_insight") or {}
     insight_headline = insight.get("headline_en" if lang == "en" else "headline_ko", "").strip()
+    # 지켜볼 신호 — 이 브리핑에서 유일하게 앞을 내다보는 문장이다. 사이트에서는 인사이트
+    # 아래에 있는데 메일에는 빠져 있었다. 매일 채워지는 데다("무슨 일이 있었나"가 아니라
+    # "다음에 뭘 보면 되나") 링크를 눌러야만 볼 수 있게 둘 이유가 없다.
+    # 사이트와 같은 자리에 둔다 — 두 곳의 구조가 다르면 읽는 사람이 매번 다시 찾는다.
+    watch = insight.get("watch_en" if lang == "en" else "watch_ko", "").strip()
     insight_block = ""
     if insight_headline:
+        # 영문 신호가 비어 있으면 한국어를 끼워 넣지 않고 그 줄만 뺀다 — 요약·주간
+        # 티저와 같은 규칙이다.
+        watch_html = (
+            '<p style="margin:10px 0 0;padding-top:10px;border-top:1px solid #e2e2e2;'
+            'font-size:14px;line-height:1.6;color:#121212;">'
+            f'<span style="font-weight:700;color:#a2201d;">{html.escape(c["watch_label"])}</span>'
+            f'<span style="color:#999;"> · </span>{html.escape(watch)}</p>'
+            if watch
+            else ""
+        )
         insight_block = (
             '<div style="margin:16px 0 24px;padding:14px 18px;background:#f5f4f1;'
             'border-left:3px solid #a2201d;border-radius:0 4px 4px 0;">'
@@ -299,6 +316,7 @@ def build_html(
             f'text-transform:uppercase;color:#a2201d;">{html.escape(c["insight_label"])}</p>'
             f'<p style="margin:0;font-size:16px;font-weight:700;line-height:1.5;color:#121212;">'
             f'{html.escape(insight_headline)}</p>'
+            f'{watch_html}'
             "</div>"
         )
 
