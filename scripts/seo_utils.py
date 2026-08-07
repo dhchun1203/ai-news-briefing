@@ -119,7 +119,7 @@ def _weekly_lastmod(label: str, fallback: str) -> str:
         return fallback
 
 
-def _lang_urls(docs_dir: Path, site_url: str, today: str) -> list:
+def _lang_urls(docs_dir: Path, site_url: str, today: str, glossary_slugs=None) -> list:
     """한 언어 트리(docs/ 또는 docs/en/)가 내보내는 URL 목록.
 
     build_sitemap이 한국어와 영어 트리에 각각 이 함수를 적용한다 — 언어별로 URL이
@@ -155,21 +155,26 @@ def _lang_urls(docs_dir: Path, site_url: str, today: str) -> list:
     glossary_dir = docs_dir / "glossary"
     if glossary_dir.exists():
         for f in sorted(glossary_dir.glob("*.html")):
+            # 용어사전이 더 이상 링크하지 않는 낡은 슬러그는 제출하지 않는다. 예전에는
+            # 이 디렉터리를 통째로 훑어서, 표기가 바뀌며 남은 옛 파일이 sitemap에만
+            # 살아 있었다 — 사람은 못 보는데 구글은 그 주소로 찾아왔다.
+            if glossary_slugs is not None and f.stem not in glossary_slugs:
+                continue
             urls.append((f"{site_url}/glossary/{f.stem}", today))
     return urls
 
 
-def build_sitemap(docs_dir: Path, site_url: str, today: str) -> int:
+def build_sitemap(docs_dir: Path, site_url: str, today: str, glossary_slugs=None) -> int:
     """docs/archive/*.html과 docs/weekly/*.html 전체를 매번 다시 스캔해 sitemap.xml을
     재작성한다(전체 재빌드, 멱등적). collect_archive_dates()/collect_weekly_labels()는
     화면 노출용으로 최근 60개까지만 잘라내므로 여기서는 재사용하지 않고 직접 glob한다
     — sitemap은 색인 대상 전체를 담아야 한다."""
     # 한국어(루트)와 영어(/en/) 트리를 각각 훑는다. 언어별 URL이 분리돼 있어
     # 둘 다 sitemap에 있어야 각 언어판이 색인된다.
-    urls = _lang_urls(docs_dir, site_url, today)
+    urls = _lang_urls(docs_dir, site_url, today, glossary_slugs)
     en_dir = docs_dir / "en"
     if en_dir.exists():
-        urls += _lang_urls(en_dir, f"{site_url}/en", today)
+        urls += _lang_urls(en_dir, f"{site_url}/en", today, glossary_slugs)
 
     body = "\n".join(
         f"  <url><loc>{escape(loc)}</loc><lastmod>{lastmod}</lastmod></url>" for loc, lastmod in urls

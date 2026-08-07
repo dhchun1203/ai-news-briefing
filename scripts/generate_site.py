@@ -362,7 +362,22 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
     )
 
 
-def glossary_slug(term_en: str, term_ko: str = "") -> str:
+def load_glossary_aliases() -> dict:
+    """config/glossary_aliases.json의 슬러그 별칭 맵. 파일이 없거나 깨져 있으면 빈
+    맵을 돌려줘서 별칭 없이 예전대로 동작하게 한다 — 부가 설정 하나 때문에 매일 도는
+    사이트 생성이 멈추면 안 된다(load_faq와 같은 태도)."""
+    path = CONFIG_DIR / "glossary_aliases.json"
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    aliases = data.get("aliases", {})
+    return {k: v for k, v in aliases.items() if isinstance(k, str) and isinstance(v, str)}
+
+
+def glossary_slug(term_en: str, term_ko: str = "", aliases: dict = None) -> str:
     """용어 개별 페이지(`/glossary/<slug>`)의 URL 조각을 만든다.
 
     영어 표기를 쓴다 — 한국어를 그대로 넣으면 URL이 퍼센트 인코딩으로 뭉개져
@@ -370,10 +385,13 @@ def glossary_slug(term_en: str, term_ko: str = "") -> str:
     본명과 함께 남겨 `digital-markets-act-dma`가 되게 한다.
 
     한 번 정한 슬러그는 URL이므로 바꾸지 않는다 — 용어 설명이 나중에 다듬어져도
-    `term_en` 표기만 그대로면 주소가 유지된다."""
+    `term_en` 표기만 그대로면 주소가 유지된다.
+
+    다만 표기가 흔들리면(open weight / open weights / open weight model) 같은 개념이
+    서로 다른 URL로 갈라진다. 그건 별칭 맵(config/glossary_aliases.json)으로 접는다."""
     base = (term_en or term_ko or "").strip().lower()
     base = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
-    return base
+    return (aliases or {}).get(base, base)
 
 
 def collect_glossary_terms(archive_dir: Path) -> list:
@@ -413,7 +431,7 @@ def collect_glossary_terms(archive_dir: Path) -> list:
     return sorted(terms.values(), key=lambda t: t["term_ko"])
 
 
-def group_glossary_by_slug(terms: list) -> list:
+def group_glossary_by_slug(terms: list, aliases: dict = None) -> list:
     """용어를 개별 페이지 단위(슬러그)로 묶는다.
 
     영어 표기가 같으면 같은 개념이다. 실제로 "정렬"과 "정렬(얼라인먼트)"가 한국어
@@ -424,9 +442,11 @@ def group_glossary_by_slug(terms: list) -> list:
 
     대표 설명은 가장 최근에 등장한 것을 쓴다(collect_glossary_terms와 같은 방침 —
     설명은 시간이 지나며 다듬어질 수 있다)."""
+    if aliases is None:
+        aliases = load_glossary_aliases()
     by_slug = {}
     for t in terms:
-        slug = glossary_slug(t.get("term_en", ""), t.get("term_ko", ""))
+        slug = glossary_slug(t.get("term_en", ""), t.get("term_ko", ""), aliases)
         if not slug:
             continue
         entry = by_slug.get(slug)
@@ -446,6 +466,30 @@ def group_glossary_by_slug(terms: list) -> list:
         entry["first_seen"] = merged_dates[0] if merged_dates else entry.get("first_seen")
         entry["last_seen"] = merged_dates[-1] if merged_dates else entry.get("last_seen")
     return sorted(by_slug.values(), key=lambda t: t["term_ko"])
+
+
+def prune_stale_glossary_pages(docs_dir: Path, slugs: set) -> list:
+    """지금 용어사전에 없는 `docs/**/glossary/<슬러그>.html`을 지운다.
+
+    슬러그는 term_en에서 나오므로 표기가 바뀌면 새 파일이 생기는데, 옛 파일은 그대로
+    디스크에 남았다. 용어사전 인덱스는 더 이상 링크하지 않으니 사람 눈에는 안 보이는데,
+    sitemap은 이 디렉터리를 통째로 훑어 만들기 때문에 **검색엔진에는 계속 제출됐다** —
+    구글이 sitemap을 보고 찾아가 몇 달 전 헤더의 낡은 페이지를 보고 있었다. 실제로
+    오픈웨이트 하나가 4개 URL로 흩어져 넷 다 near-duplicate가 됐다.
+
+    지우는 대상은 이 디렉터리의 `.html`뿐이고 아카이브·다른 디렉터리는 건드리지 않는다.
+    은퇴시킨 슬러그는 vercel.json에서 301로 대표 URL에 보낸다(그냥 지우면 이미 색인된
+    주소가 404가 된다)."""
+    removed = []
+    for lang in LANGS:
+        gdir = lang_root(docs_dir, lang) / "glossary"
+        if not gdir.exists():
+            continue
+        for f in sorted(gdir.glob("*.html")):
+            if f.stem not in slugs:
+                f.unlink()
+                removed.append(str(f.relative_to(docs_dir)))
+    return removed
 
 
 def build_glossary_term_pages(docs_dir: Path, entries: list, site_url: str, verification: dict,
@@ -1148,6 +1192,8 @@ def main():
     glossary_entries = group_glossary_by_slug(glossary_terms)
     glossary_count = build_glossary_page(docs_dir, glossary_entries, site_url, verification, generic_og_image_url, nav_counts)
     term_page_count = build_glossary_term_pages(docs_dir, glossary_entries, site_url, verification, generic_og_image_url, nav_counts)
+    glossary_slugs = {e["slug"] for e in glossary_entries}
+    pruned_glossary = prune_stale_glossary_pages(docs_dir, glossary_slugs)
     topic_page_count, tagged_count = build_topic_pages(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
     archive_index_days = build_archive_index(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
     site_data = build_data_page(docs_dir, archive_dir, site_url, verification, generic_og_image_url, nav_counts)
@@ -1279,7 +1325,9 @@ def main():
     # archive JSON이 이미 저장된 뒤여야 오늘자가 첫 항목으로 들어간다.
     feed_count = seo_utils.build_rss_feed(docs_dir, site_url, "ko")
     seo_utils.build_rss_feed(docs_dir, site_url, "en")
-    sitemap_count = seo_utils.build_sitemap(docs_dir, site_url, date)
+    # sitemap에 슬러그 집합을 넘긴다. 위에서 이미 고아 파일을 지웠으므로 디렉터리를
+    # 훑어도 결과는 같지만, 둘 중 하나가 실패해도 낡은 URL이 새어 나가지 않게 이중으로 막는다.
+    sitemap_count = seo_utils.build_sitemap(docs_dir, site_url, date, glossary_slugs)
 
     print(f"생성 완료: {docs_dir / 'index.html'}, {archive_dir / f'{date}.html'}")
     print(
@@ -1287,6 +1335,8 @@ def main():
         f"용어사전 {glossary_count}건, 토픽 페이지 {topic_page_count}개(분류된 기사 {tagged_count}건), "
         f"아카이브 목록 {archive_index_days}일, 피드 {feed_count}건, sitemap {sitemap_count}건"
     )
+    if pruned_glossary:
+        print(f"용어 고아 페이지 {len(pruned_glossary)}개 삭제: {', '.join(pruned_glossary)}")
 
 
 if __name__ == "__main__":

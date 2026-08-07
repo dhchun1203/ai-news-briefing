@@ -57,12 +57,15 @@ def collect_glossary_slugs(docs_dir: Path, date: str) -> list:
     try:
         import json
 
-        from generate_site import glossary_slug
+        from generate_site import glossary_slug, load_glossary_aliases
 
         data = json.loads((docs_dir / "archive" / f"{date}.json").read_text(encoding="utf-8"))
+        # 별칭 맵을 같이 태워야 은퇴한 슬러그를 통보하지 않는다. 안 그러면 301로
+        # 튕기는 주소를 매일 "바뀐 URL"이라고 밀어 넣게 된다.
+        aliases = load_glossary_aliases()
         slugs = []
         for term in data.get("glossary") or []:
-            slug = glossary_slug(term.get("term_en"), term.get("term_ko"))
+            slug = glossary_slug(term.get("term_en"), term.get("term_ko"), aliases)
             if slug and slug not in slugs:
                 slugs.append(slug)
         return slugs

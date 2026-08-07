@@ -1,0 +1,8 @@
+{
+  "_comment": "용어 개별 페이지 슬러그의 별칭. 왼쪽(옛/변형 슬러그)을 오른쪽(대표 슬러그)으로 접는다. 슬러그는 term_en을 슬러그화한 값이라, 브리핑이 날마다 'open weight' / 'open weights' / 'open weight model'처럼 조금씩 다르게 쓰면 같은 개념이 서로 다른 URL로 갈라진다. 실제로 오픈웨이트가 4개 URL로 흩어져 넷 다 near-duplicate가 됐다. 여기 등록하면 group_glossary_by_slug가 한 페이지로 합치고 밀려난 한국어 표기는 별칭으로 남는다. 은퇴시킨 슬러그는 vercel.json에 301도 함께 넣어야 이미 색인된 URL이 404가 되지 않는다. 자동 판정(유사 슬러그 자동 병합)은 일부러 하지 않는다 — 'agent'와 'agents'는 같아도 'transformer'와 'transformers'는 다를 수 있어, 잘못 합치면 URL이 조용히 사라진다.",
+  "aliases": {
+    "open-weight": "open-weight-model",
+    "open-weights": "open-weight-model",
+    "open-weight-models": "open-weight-model"
+  }
+}

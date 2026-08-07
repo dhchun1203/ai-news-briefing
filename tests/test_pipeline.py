@@ -1354,6 +1354,105 @@ class TestUnbrokenStreak(unittest.TestCase):
         from generate_site import _is_unbroken_streak
 
         self.assertFalse(_is_unbroken_streak(["not-a-date", "2026-07-24"]))
+class TestGlossarySlugAliases(unittest.TestCase):
+    """같은 개념이 표기 차이로 여러 URL에 흩어지는 것을 막는 별칭 맵.
+
+    실제로 오픈웨이트가 open-weight / open-weights / open-weight-model /
+    open-weight-models 4개 URL로 갈라졌고, 용어사전이 링크하지 않는 2개는 sitemap에만
+    살아남아 구글이 낡은 페이지를 보고 있었다."""
+
+    def test_alias_collapses_variants(self):
+        from generate_site import glossary_slug
+        aliases = {"open-weight": "open-weight-model", "open-weights": "open-weight-model",
+                   "open-weight-models": "open-weight-model"}
+        for term_en in ("open weight", "Open Weights", "open-weight models", "open weight model"):
+            self.assertEqual(glossary_slug(term_en, "", aliases), "open-weight-model", term_en)
+
+    def test_no_alias_map_keeps_old_behavior(self):
+        """맵이 비어 있으면 예전과 똑같이 동작해야 한다(설정 파일이 없어도 생성은 돈다)."""
+        from generate_site import glossary_slug
+        self.assertEqual(glossary_slug("open weights"), "open-weights")
+
+    def test_group_merges_aliased_terms_into_one_page(self):
+        from generate_site import group_glossary_by_slug
+        terms = [
+            {"term_ko": "오픈웨이트", "term_en": "open weights",
+             "definition_ko": "옛 설명", "seen_dates": ["2026-07-25"], "last_seen": "2026-07-25"},
+            {"term_ko": "오픈웨이트 모델", "term_en": "open-weight models",
+             "definition_ko": "새 설명", "seen_dates": ["2026-08-06"], "last_seen": "2026-08-06"},
+        ]
+        merged = group_glossary_by_slug(terms, {"open-weights": "open-weight-model",
+                                                "open-weight-models": "open-weight-model"})
+        self.assertEqual(len(merged), 1)
+        entry = merged[0]
+        self.assertEqual(entry["slug"], "open-weight-model")
+        self.assertEqual(entry["definition_ko"], "새 설명")  # 최근 것이 대표
+        self.assertIn("오픈웨이트", entry["aliases_ko"])     # 밀려난 표기는 별칭으로 보존
+        # 등장 날짜는 합쳐야 "이 용어가 나온 브리핑"이 실제보다 적어 보이지 않는다.
+        self.assertEqual(entry["seen_dates"], ["2026-07-25", "2026-08-06"])
+
+    def test_retired_slugs_have_redirects(self):
+        """별칭에 넣어 은퇴시킨 슬러그는 vercel.json에 301이 있어야 한다.
+
+        그냥 지우면 이미 색인된 URL이 404가 된다. 별칭만 추가하고 리다이렉트를 잊는
+        것이 정확히 그 사고이므로, 설정 두 개가 어긋나면 여기서 잡는다."""
+        import json
+        root = Path(__file__).resolve().parent.parent
+        aliases = json.loads((root / "config" / "glossary_aliases.json").read_text(encoding="utf-8"))["aliases"]
+        redirects = json.loads((root / "vercel.json").read_text(encoding="utf-8")).get("redirects", [])
+        pairs = {(r["source"], r["destination"]) for r in redirects if r.get("permanent")}
+        for old_slug, new_slug in aliases.items():
+            for prefix in ("", "/en"):
+                self.assertIn((f"{prefix}/glossary/{old_slug}", f"{prefix}/glossary/{new_slug}"), pairs,
+                              f"{prefix}/glossary/{old_slug} 301 누락")
+
+
+class TestPruneStaleGlossaryPages(unittest.TestCase):
+    def test_removes_only_unlisted_glossary_pages(self):
+        from generate_site import prune_stale_glossary_pages
+        with tempfile.TemporaryDirectory() as d:
+            docs = Path(d)
+            for sub in ("glossary", "en/glossary", "archive"):
+                (docs / sub).mkdir(parents=True)
+            (docs / "glossary" / "open-weight-model.html").write_text("keep", encoding="utf-8")
+            (docs / "glossary" / "open-weights.html").write_text("stale", encoding="utf-8")
+            (docs / "en" / "glossary" / "open-weights.html").write_text("stale", encoding="utf-8")
+            (docs / "archive" / "2026-08-07.html").write_text("건드리면 안 됨", encoding="utf-8")
+            (docs / "glossary.html").write_text("인덱스", encoding="utf-8")
+
+            removed = prune_stale_glossary_pages(docs, {"open-weight-model"})
+
+            self.assertEqual(len(removed), 2, removed)
+            self.assertTrue((docs / "glossary" / "open-weight-model.html").exists())
+            self.assertFalse((docs / "glossary" / "open-weights.html").exists())
+            self.assertFalse((docs / "en" / "glossary" / "open-weights.html").exists())
+            # 용어 디렉터리 밖은 절대 건드리지 않는다.
+            self.assertTrue((docs / "archive" / "2026-08-07.html").exists())
+            self.assertTrue((docs / "glossary.html").exists())
+
+
+class TestSitemapExcludesRetiredGlossary(unittest.TestCase):
+    def test_sitemap_skips_files_not_in_index(self):
+        """정리가 실패해 파일이 남아도 sitemap에는 새어 나가지 않아야 한다(이중 방어).
+
+        예전에는 sitemap이 docs/glossary/*.html을 통째로 훑어서, 인덱스가 링크하지 않는
+        낡은 파일이 검색엔진에만 계속 제출됐다."""
+        import seo_utils
+        with tempfile.TemporaryDirectory() as d:
+            docs = Path(d)
+            (docs / "glossary").mkdir(parents=True)
+            (docs / "glossary.html").write_text("인덱스", encoding="utf-8")
+            (docs / "glossary" / "open-weight-model.html").write_text("x", encoding="utf-8")
+            (docs / "glossary" / "open-weights.html").write_text("x", encoding="utf-8")
+
+            seo_utils.build_sitemap(docs, "https://example.com", "2026-08-07", {"open-weight-model"})
+            xml = (docs / "sitemap.xml").read_text(encoding="utf-8")
+            self.assertIn("https://example.com/glossary/open-weight-model<", xml)
+            self.assertNotIn("open-weights", xml)
+
+            # 슬러그를 안 넘기면 예전 동작(전량 포함) — 주간 빌드는 용어 목록을 모른다.
+            seo_utils.build_sitemap(docs, "https://example.com", "2026-08-07")
+            self.assertIn("open-weights", (docs / "sitemap.xml").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

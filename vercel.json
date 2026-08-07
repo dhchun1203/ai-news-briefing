@@ -1,4 +1,36 @@
 {
   "outputDirectory": "docs",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/glossary/open-weight",
+      "destination": "/glossary/open-weight-model",
+      "permanent": true
+    },
+    {
+      "source": "/glossary/open-weights",
+      "destination": "/glossary/open-weight-model",
+      "permanent": true
+    },
+    {
+      "source": "/glossary/open-weight-models",
+      "destination": "/glossary/open-weight-model",
+      "permanent": true
+    },
+    {
+      "source": "/en/glossary/open-weight",
+      "destination": "/en/glossary/open-weight-model",
+      "permanent": true
+    },
+    {
+      "source": "/en/glossary/open-weights",
+      "destination": "/en/glossary/open-weight-model",
+      "permanent": true
+    },
+    {
+      "source": "/en/glossary/open-weight-models",
+      "destination": "/en/glossary/open-weight-model",
+      "permanent": true
+    }
+  ]
 }
