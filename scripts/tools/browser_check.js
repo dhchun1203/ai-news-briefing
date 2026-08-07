@@ -288,7 +288,10 @@ async function main() {
     const y0 = await y();
     const w0 = await colWidth();
 
-    await page.locator(".term-link").first().click();
+    // 서랍과 같은 이유로 locator.click()을 쓰지 않는다 — 요소를 화면에 스크롤해
+    // 넣고 누르기 때문에, 검사하려는 스크롤 위치 자체가 바뀌어버린다. 본문 레이아웃이
+    // 조금만 달라져도 첫 용어 링크가 화면 밖으로 나가 그때부터 깨진다(실제로 겪었다).
+    await page.evaluate(() => document.querySelector(".term-link").click());
     await page.waitForTimeout(250);
     check("용어 패널이 열림", await page.locator(".term-panel").isVisible());
 
@@ -310,7 +313,7 @@ async function main() {
     // 열린 채 다른 용어를 누르면 잠금이 두 번 걸려 영영 안 풀릴 수 있다.
     await page.evaluate(() => window.scrollTo(0, 1500));
     await page.waitForTimeout(150);
-    await page.locator(".term-link").first().click();
+    await page.evaluate(() => document.querySelector(".term-link").click());
     await page.waitForTimeout(200);
     await page.evaluate(() => {
       const links = document.querySelectorAll(".term-link");

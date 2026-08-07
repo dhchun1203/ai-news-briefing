@@ -583,9 +583,14 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   color: var(--accent);
 }
 
+/* 지켜볼 신호 — 이 브리핑에서 유일하게 앞을 내다보는 문장이다. "무슨 일이 있었나"는
+   어디서든 읽을 수 있지만 "그래서 다음에 뭘 보면 되나"는 여기서만 나온다.
+   실측 16/16일 빠짐없이 채워지는데도 페이지에서 가장 작고(0.9rem) 가장 흐린
+   (muted) 텍스트라 각주처럼 보였다 — 시사점이 같은 상태였던 것과 같은 실수다.
+   본문 색으로 올리고 크기도 요약과 비슷한 수준까지 세운다. */
 .insight-watch {
   font-family: var(--sans);
-  color: var(--text-muted);
+  color: var(--text);
   border-top: 1px solid var(--border);
   margin: 0;
 }
@@ -595,7 +600,7 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   letter-spacing: 0.05em;
   color: var(--accent);
 }
-.insight-watch-label::after { content: " · "; color: var(--text-muted); }
+.insight-watch-label::after { content: " · "; color: var(--border); }
 
 /* ---------- 목차 ---------- */
 .toc {
