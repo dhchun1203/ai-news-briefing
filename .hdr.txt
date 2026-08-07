@@ -1,0 +1,3 @@
+/data      skip-link O · header-inner O · utility-bar in header O
+/archive   skip-link O · header-inner O · utility-bar in header O
+/about     skip-link O · header-inner O · utility-bar in header O

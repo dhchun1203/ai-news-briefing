@@ -933,11 +933,14 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
    다시 계산하지 않는다(햄버거 서랍과 같은 방식).
 
    좁은 화면에서는 아예 만들지 않는다 — 본문을 밀어내면 읽기가 더 나빠진다. */
-.toc-rail {
+/* 왼쪽 기둥 — 데이터 카드와 목차 레일을 위아래로 담는다.
+   둘을 따로 fixed로 띄우면 레일의 top을 카드 높이만큼 밀어야 하는데, 그 높이가
+   내용에 따라 달라져 CSS 상수로 둘 수 없다. 한 기둥에 담으면 저절로 쌓인다. */
+.side-rail {
   display: none;
 }
 @media (min-width: 1280px) {
-  .toc-rail {
+  .side-rail {
     display: block;
     position: fixed;
     /* 본문 칼럼(720px) 왼쪽 바깥. 오른쪽 끝이 칼럼에서 24px 떨어지도록 놓는다. */
@@ -950,6 +953,28 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
     font-family: var(--sans);
   }
 }
+.toc-rail { display: block; }
+
+/* 기둥 안의 데이터 카드는 폭이 200px뿐이라 본문에 있을 때보다 더 조여야 한다. */
+.side-rail .data-card {
+  border-top: 0;
+  border-bottom: 1px solid var(--border);
+  margin: 0 0 16px;
+  padding: 0 0 14px;
+}
+.side-rail .data-card-bars { display: block; margin-bottom: 10px; }
+.side-rail .data-card-bars li {
+  grid-template-columns: minmax(0, 1fr) 44px 34px;
+  gap: 6px;
+  padding: 2px 0;
+}
+.side-rail .data-card-bars li:nth-child(n+4) { display: grid; }
+.side-rail .data-card-flow { font-size: 1.05rem; margin-bottom: 10px; }
+.side-rail .data-card-label,
+.side-rail .data-card-pct,
+.side-rail .data-card-meta,
+.side-rail .data-card-link { font-size: 11px; }
+.side-rail .data-card-unit, .side-rail .data-card-arrow { font-size: 11px; }
 .toc-rail-title {
   font-size: 11px;
   font-weight: 700;
@@ -1004,6 +1029,22 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   font-family: var(--sans);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+}
+
+/* 좁은 화면에는 막대를 펼칠 자리가 없다 — 목차 앞을 카드 하나가 통째로 차지하면
+   본문 도달이 그만큼 밀린다. 왼쪽 기둥이 없는 폭에서는 링크 한 줄만 남기고,
+   나머지는 상단 메뉴의 "데이터"가 담당한다. */
+@media (max-width: 1279px) {
+  .data-card {
+    border-top: 0;
+    margin: 0 0 20px;
+    padding: 0;
+  }
+  .data-card-title,
+  .data-card-flow,
+  .data-card-bars,
+  .data-card-meta { display: none; }
+  .data-card-link { display: inline-block; padding: 10px 0 0; }
 }
 .data-card-title {
   font-size: 11px;

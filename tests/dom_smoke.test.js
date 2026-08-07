@@ -422,7 +422,10 @@ function finishPage(label, doc, window, opts, relPath) {
   if (doc.querySelector(".article-list")) {
     const card = doc.querySelector(".data-card");
     check(label, "데이터 요약 카드 존재", !!card);
-    // 목차 바로 위여야 한다. 독자가 "무엇을 읽을까"를 정하기 직전에 보여주는 자리다.
+    // HTML 상으로는 목차 바로 앞이다. 1280px 이상에서는 site.js가 이 요소를 왼쪽
+    // 기둥(.side-rail) 안 목차 레일 위로 **옮긴다**(복제가 아니다 — 두 벌이면
+    // 스크린리더가 두 번 읽는다). 좁은 화면에서는 여기 그대로 남고 CSS가 링크
+    // 한 줄만 남긴다. 실제 배치는 browser_check.js가 본다.
     const toc = doc.querySelector("nav.toc");
     if (card && toc) {
       // `Node`는 jsdom의 window 안에 있는 DOM 전역이다. Node.js 스코프에는 없어서

@@ -562,7 +562,36 @@
       railItems.push(li);
     });
     rail.appendChild(railOl);
-    document.body.appendChild(rail);
+
+    // 레일을 감싸는 왼쪽 기둥. 데이터 카드가 이 안 맨 위에 오고 목차가 그 아래에 온다.
+    // 카드를 따로 fixed로 띄우면 레일의 top을 카드 높이만큼 밀어야 하는데, 그 높이가
+    // 내용에 따라 달라져 CSS 상수로 둘 수 없다. 한 기둥에 담으면 저절로 쌓인다.
+    var sideRail = document.createElement("div");
+    sideRail.className = "side-rail";
+    sideRail.appendChild(rail);
+    document.body.appendChild(sideRail);
+
+    // 데이터 카드는 넓은 화면에서는 이 기둥 맨 위로, 좁은 화면에서는 본문(목차 앞)으로
+    // 돌아간다. **복제하지 않고 옮긴다** — 같은 내용이 두 벌 있으면 스크린리더가 두 번
+    // 읽고 크롤러도 중복으로 본다. 기둥은 좁은 화면에서 통째로 숨겨지므로, 옮긴 채
+    // 두면 모바일에서 카드가 사라진다.
+    var dataCard = document.querySelector(".data-card");
+    var cardHome = dataCard ? dataCard.nextElementSibling : null;  // 원래 자리(목차) 표시
+    // matchMedia가 없는 환경(jsdom 등)에서는 손대지 않고 본문에 그대로 둔다 —
+    // 가드 없이 부르면 이 스크립트가 통째로 죽어 서랍·검색까지 함께 멈춘다.
+    if (dataCard && cardHome && window.matchMedia) {
+      var wideEnough = window.matchMedia("(min-width: 1280px)");
+      var placeDataCard = function () {
+        if (wideEnough.matches) {
+          if (dataCard.parentNode !== sideRail) sideRail.insertBefore(dataCard, rail);
+        } else if (dataCard.parentNode === sideRail) {
+          cardHome.parentNode.insertBefore(dataCard, cardHome);
+        }
+      };
+      placeDataCard();
+      // addEventListener는 구형 사파리에 없다 — 그쪽은 첫 배치만 하고 넘어간다.
+      if (wideEnough.addEventListener) wideEnough.addEventListener("change", placeDataCard);
+    }
 
     /* --- 모바일 진행 바 --- */
     var progress = document.createElement("div");

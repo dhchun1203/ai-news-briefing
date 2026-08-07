@@ -473,34 +473,89 @@ async function main() {
   // 목차 바로 위라 이 블록이 길어지면 정작 기사 목록이 화면 밖으로 밀린다.
   // 픽셀 높이는 브라우저에서만 잡힌다.
   console.log("\n--- 데이터 요약 카드 ---");
-  for (const [vp, w, h, mob] of [["데스크톱", 1440, 900, false], ["모바일", 390, 844, true]]) {
+  // 1280px 이상: 왼쪽 기둥(.side-rail) 안, 목차 레일 위.
+  // 그 아래: 기둥이 없으므로 본문 목차 앞에 링크 한 줄만. 막대를 그대로 두면
+  //          카드 하나가 첫 화면을 차지해 기사 목록이 그만큼 밀린다.
+  for (const [vp, w, h, mob] of [
+    ["데스크톱1440", 1440, 900, false],
+    ["경계1280", 1280, 900, false],
+    ["경계1279", 1279, 900, false],
+    ["태블릿820", 820, 1100, false],
+    ["모바일390", 390, 844, true],
+  ]) {
     const ctx = await browser.newContext({
       viewport: { width: w, height: h }, locale: "ko-KR", isMobile: mob, hasTouch: mob,
       reducedMotion: "reduce",
     });
     const page = await ctx.newPage();
     await page.goto(`${BASE}/index.html`, { waitUntil: "load" });
+    await page.waitForTimeout(200);
+    const wide = w >= 1280;
     const card = page.locator(".data-card");
-    check(`${vp}: 카드 표시`, await card.isVisible());
-
     const box = await card.boundingBox();
-    const col = await page.locator("main.content").boundingBox();
-    check(`${vp}: 본문 폭 안에 들어옴`,
-      box && col && box.x >= col.x - 1 && box.x + box.width <= col.x + col.width + 1,
-      JSON.stringify(box));
-    // 화면의 3분의 1을 넘으면 기사 목록이 첫 화면에서 사라진다.
-    check(`${vp}: 높이가 화면의 30%를 넘지 않음`, box && box.height < h * 0.3,
-      `${Math.round(box.height)}px / ${h}`);
 
-    const tocY = await page.locator("nav.toc").boundingBox();
-    check(`${vp}: 목차보다 위에 있음`, box && tocY && box.y < tocY.y,
-      JSON.stringify({ card: Math.round(box.y), toc: Math.round(tocY.y) }));
+    check(`${vp}: 카드가 하나만 존재`, (await card.count()) === 1);
+    check(`${vp}: /data 링크 표시`, await page.locator(".data-card-link").isVisible());
+    check(`${vp}: 상단 메뉴에 데이터 항목`,
+      (await page.locator(".utility-bar .site-nav-link", { hasText: "데이터" }).count()) >= 1);
+    check(`${vp}: 막대 ${wide ? "표시" : "숨김"}`,
+      (await page.locator(".data-card-bars").isVisible()) === wide);
 
-    const tracks = await page.locator(".data-card-bars li:visible .data-card-track")
-      .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().width)));
-    check(`${vp}: 카드 막대 트랙 폭 일정`, new Set(tracks).size <= 2, JSON.stringify(tracks));
+    if (wide) {
+      const inRail = await page.evaluate(() => {
+        const c = document.querySelector(".data-card");
+        return !!(c && c.closest(".side-rail"));
+      });
+      check(`${vp}: 카드가 왼쪽 기둥 안`, inRail);
+      const rail = await page.locator("#toc-rail").boundingBox();
+      const col = await page.locator("main.content").boundingBox();
+      check(`${vp}: 목차 레일보다 위`, box && rail && box.y + box.height <= rail.y + 1,
+        JSON.stringify({ cardEnd: Math.round(box.y + box.height), rail: Math.round(rail.y) }));
+      check(`${vp}: 본문과 겹치지 않음`, box && col && box.x + box.width <= col.x + 1,
+        JSON.stringify({ cardEnd: Math.round(box.x + box.width), col: Math.round(col.x) }));
+      check(`${vp}: 기둥이 화면 왼쪽 밖으로 나가지 않음`, box && box.x >= 0, String(Math.round(box.x)));
+      const sr = await page.locator(".side-rail").boundingBox();
+      check(`${vp}: 기둥이 화면 아래로 넘치지 않음`, sr && sr.y + sr.height <= h + 1,
+        JSON.stringify({ end: Math.round(sr.y + sr.height), h }));
+      const tracks = await page.locator(".data-card-bars li:visible .data-card-track")
+        .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().width)));
+      check(`${vp}: 카드 막대 트랙 폭 일정`, new Set(tracks).size <= 2, JSON.stringify(tracks));
+    } else {
+      const col = await page.locator("main.content").boundingBox();
+      check(`${vp}: 본문 폭 안`, box && col && box.x >= col.x - 1 && box.x + box.width <= col.x + col.width + 1,
+        JSON.stringify(box));
+      const toc = await page.locator("nav.toc").boundingBox();
+      check(`${vp}: 목차보다 위`, box && toc && box.y < toc.y,
+        JSON.stringify({ card: Math.round(box.y), toc: Math.round(toc.y) }));
+      // 링크 한 줄이면 70px 안쪽이다. 넘으면 접기 규칙이 어딘가에서 덮인 것이다 —
+      // site-desktop.css가 site-base.css 뒤에 실려 실제로 그랬다(768~1279px 구간).
+      check(`${vp}: 카드가 링크 한 줄 높이`, box && box.height < 70, `${Math.round(box.height)}px`);
+    }
+    check(`${vp}: 가로 스크롤 없음`,
+      !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
     await ctx.close();
   }
+
+  // 창 크기를 오가도 카드가 사라지거나 두 벌이 되지 않아야 한다.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/index.html`, { waitUntil: "load" });
+    await page.waitForTimeout(200);
+    const where = () => page.evaluate(() =>
+      document.querySelector(".data-card").closest(".side-rail") ? "rail" : "flow");
+    check("리사이즈: 1440에서 기둥", (await where()) === "rail");
+    await page.setViewportSize({ width: 1000, height: 900 });
+    await page.waitForTimeout(300);
+    check("리사이즈: 1000으로 줄이면 본문 복귀", (await where()) === "flow");
+    check("리사이즈: 줄인 뒤에도 링크 표시", await page.locator(".data-card-link").isVisible());
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(300);
+    check("리사이즈: 넓히면 다시 기둥", (await where()) === "rail");
+    check("리사이즈: 왕복 후에도 카드는 하나", (await page.locator(".data-card").count()) === 1);
+    await ctx.close();
+  }
+
 
   // ---------- 2. 언어 안내 배너 ----------
   console.log("\n--- 언어 안내 배너 ---");

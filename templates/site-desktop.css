@@ -198,3 +198,15 @@ body {
 .data-card-label, .data-card-pct, .data-card-meta, .data-card-link { font-size: 0.85rem; }
 /* 넓은 화면에서는 막대를 두 칸으로 — 세로로 길어지면 기사 목록이 밀린다. */
 .data-card-bars { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; }
+
+/* 이 파일은 site-base.css **뒤에** 실린다 — 위의 display: grid가 base의 접기 규칙을
+   덮는다. 그래서 왼쪽 기둥이 없는 768~1279px 구간의 접기를 여기서 다시 선언한다.
+   기둥이 뜨는 1280px부터는 카드가 그 안에서 온전히 펼쳐진다. */
+@media (max-width: 1279px) {
+  .data-card { margin: 0 0 20px; padding: 0; border-top: 0; }
+  .data-card-title,
+  .data-card-flow,
+  .data-card-bars,
+  .data-card-meta { display: none; }
+  .data-card-link { display: inline-block; padding: 10px 0 0; }
+}
