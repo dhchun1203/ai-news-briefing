@@ -246,6 +246,30 @@ function finishPage(label, doc, window, opts, relPath) {
     check(label, "FAQ가 없어야 하는 페이지에 없음", doc.querySelectorAll(".faq-item").length === 0);
   }
 
+  // --- 템플릿 부스러기가 화면에 새지 않았는가 ---
+  // Jinja 주석은 중첩되지 않는다. 주석 본문에 닫는 기호를 글자로 적으면 거기서 주석이
+  // 끝나고 나머지가 페이지에 그대로 출력된다. 실제로 그렇게 만들어 222개 페이지 상단에
+  // 개발자 메모가 노출된 채 배포됐다. 요소 단위 검사는 이런 걸 못 잡는다 —
+  // 어떤 선택자에도 걸리지 않는 맨몸 텍스트이기 때문이다.
+  {
+    // JSON-LD와 인라인 스크립트에는 `}}`가 정상적으로 들어간다(중첩 객체의 끝).
+    // 그 블록을 걷어낸 뒤에 본다 — 안 그러면 정상 페이지가 매번 실패한다.
+    const src = fs
+      .readFileSync(path.join(DOCS, relPath), "utf-8")
+      .replace(/<script[\s\S]*?<\/script>/g, "")
+      .replace(/<style[\s\S]*?<\/style>/g, "");
+    const markers = ["{#", "#}", "{%", "%}", "{{", "}}"];
+    const found = markers.filter((m) => src.includes(m));
+    check(label, "템플릿 문법 기호가 출력에 남지 않음", found.length === 0, found.join(" "));
+
+    // <body> 바로 아래에 태그 밖 맨몸 텍스트가 있으면 대개 주석이 샌 것이다.
+    const body = doc.body;
+    const strays = [...body.childNodes]
+      .filter((n) => n.nodeType === 3 && n.textContent.trim().length > 0)
+      .map((n) => n.textContent.trim().slice(0, 60));
+    check(label, "body 최상단에 떠도는 텍스트 없음", strays.length === 0, strays.join(" | "));
+  }
+
   // --- 내비게이션에 데이터 메뉴 ---
   // 통계 줄의 작은 링크 하나로는 이 페이지가 있다는 걸 알기 어려웠다.
   {
