@@ -179,18 +179,7 @@ def compute_cross_source_counts(candidates: list) -> None:
 
 SAME_STORY_MAX_DOC_FREQ = 6  # 이보다 많은 서로 다른 제목에 등장하면 "흔한 키워드"로 본다
 
-# 클러스터링에서 "이것만 겹치는 건 같은 사건이라는 근거가 못 된다"고 보는 이름들 —
-# 회사·기관명과, 그 아래 수많은 무관한 소식이 달리는 **우산 브랜드**다.
-#
-# 회사는 하루에도 서로 무관한 일을 여러 건 만든다("구글이 데이터센터 계약을 했다"와
-# "구글 검색 점유율 데이터가 나왔다"는 같은 사건이 아니다). 우산 브랜드도 똑같이
-# 행동한다 — "ChatGPT 음성 모드"와 "ChatGPT 헬스"와 "ChatGPT 취약점"은 전부 다른
-# 사건인데 실제로 한 묶음이 됐다. 반면 제품 세부명·모델·버전("GPT-6", "Opus",
-# "Flash", "AlphaFold")은 그 자체가 특정 사건을 가리킨다.
-#
-# 문서빈도 임계값으로는 이 둘을 못 가른다 — 후보 44건에서 "Google"이 5개 제목,
-# 5개 매체가 다룬 진짜 대형 발표의 제품명도 5개 제목이라 수치가 같다. 그래서
-# 명시적 목록으로 구분한다.
+
 CLUSTER_STOP_ENTITIES = {
     # 회사·기관
     "Google", "Alphabet", "DeepMind", "OpenAI", "Anthropic", "Meta", "Microsoft",
@@ -203,80 +192,79 @@ CLUSTER_STOP_ENTITIES = {
 }
 
 
-def build_same_story_clusters(candidates: list) -> list:
-    """제목 키워드가 겹치는 후보들을 "같은 사건"으로 묶는다(union-find).
+def _same_story(shared: set) -> bool:
+    """두 제목이 같은 사건을 다룬다고 볼 만한 근거가 있는가.
 
-    후보 전체에서 각 키워드가 몇 개의 서로 다른 제목에 등장하는지(document frequency)를
-    센 뒤, 흔한 키워드(`SAME_STORY_MAX_DOC_FREQ`개 초과 제목에 등장)는 "사건을 특정하지
-    못하는 일반 명사"로 보고 매칭에서 제외한다.
-
-    남은 키워드가 겹칠 때 **무엇이 겹쳤는지**가 이 함수의 핵심이다. 예전에는 무엇이든
-    하나만 겹쳐도 묶었는데, 그러면 회사명 하나로 완전히 무관한 기사들이 통째로
-    합쳐진다. 2026-07-29에 실측한 실제 사례(후보 44건):
+    회사·우산브랜드 이름은 근거에서 뺀다(`CLUSTER_STOP_ENTITIES`). 회사는 하루에도
+    무관한 일을 여러 건 만든다. 2026-07-29 실측(후보 44건)에서 "Google" 하나만
+    공유하는 다섯 건이 한 사건으로 묶여 네 건이 폐기됐다:
 
         Google AI Blog    5 ways to host the ultimate dinner party with Google Search
-        Ars Technica AI   Despite AI hype, Google's data shows workers aren't automating…
         Ars Technica AI   "Google and Reddit do not own the Internet," web scraper says
-        Ars Technica AI   Verizon touts $1B dark fiber deal for Google data centers
-        TechCrunch AI     Google's AI search is rapidly becoming the default, new data…
+        TechCrunch AI     Google's AI search is rapidly becoming the default…
 
-    다섯 건이 공유하는 키워드는 "Google" 하나뿐인데 같은 사건으로 묶였고, 선별 루프가
-    클러스터당 하나만 채택하므로 **나머지 네 건이 중복으로 폐기됐다.**
+    흔한 키워드 임계값(`SAME_STORY_MAX_DOC_FREQ`)을 조정해서는 못 고친다 — 다섯 매체가
+    다룬 진짜 대형 발표도 제품명이 다섯 제목에 등장하므로 수치가 같다. 그래서 회사명을
+    근거에서 빼고, 남은 제품·모델·버전명은 하나만 겹쳐도 사건을 특정하는 것으로 본다.
 
-    흔한 키워드 임계값(6)을 조정하는 방식으로는 못 고친다 — 다섯 매체가 다룬 진짜
-    대형 발표도 제품명이 다섯 제목에 등장하므로 수치가 같다. "몇 개가 겹쳤나"로도
-    못 가른다 — 제품명이 하나만 겹치는 정상 클러스터가 흔하다("GPT-6"만 공유하는
-    세 건은 같은 사건이 맞다).
+    "둘 이상 겹칠 때만 묶는다"로 조여봤다가 되돌렸다. 세 매체가 "GPT-6" 하나만
+    공유하는 정상 클러스터가 갈라졌다(기존 회귀 테스트가 잡았다). 잘못 묶이는 문제는
+    개수 조건이 아니라 **연쇄 병합**이 원인이라, 그쪽만 끊는 것이 맞다.
+    """
+    return bool(shared - CLUSTER_STOP_ENTITIES)
 
-    그래서 **회사명은 병합 근거에서 뺀다**(`CLUSTER_STOP_ENTITIES`). 회사는 하루에도
-    무관한 일을 여러 건 만들지만, 제품·모델·버전명은 그 자체로 사건을 특정한다.
-    회사명만 겹치는 경우에도 서로 다른 회사가 둘 이상 함께 겹치면 같은 사건일
-    가능성이 높아 그때만 예외로 병합한다.
 
-    이 변경으로 "회사명만 공유하는 진짜 같은 사건"(예: 제목에 금액·제품명이 없는
-    투자 유치 기사 두 건)은 갈라질 수 있다. 그쪽이 안전한 실패다 — 잘못 묶으면
-    정상 기사가 폐기되지만, 갈라지면 비슷한 기사 두 건이 실릴 뿐이고 화제성은
-    `compute_cross_source_counts`가 따로 잡아 순위로 반영한다.
+def build_same_story_clusters(candidates: list) -> list:
+    """제목 키워드가 겹치는 후보들을 "같은 사건"으로 묶는다.
 
-    `compute_cross_source_counts`(순위 매기기용, 느슨한 기준)와는 다른 용도라 별도
-    함수로 둔다 — 이건 "최종 선택에서 하나만 남길지" 판단에 쓰인다."""
+    **union-find를 쓰지 않는다.** 예전에는 짝만 맞으면 union으로 이어 붙였는데,
+    그러면 A–B가 한 키워드로, B–C가 다른 키워드로 걸릴 때 A–C까지 한 덩어리가 된다.
+    2026-08-07 실측(후보 119건)에서 이 전이 때문에 서로 무관한 9건이 묶였다:
+
+        VentureBeat   Meta enters the AI coding wars with Muse Spark 1.2
+        MarkTechPost  Cloudflare Introduces Kitesurf: An Agent-First Web Browser
+        MarkTechPost  Prime Intellect Releases Prime Agent
+        MarkTechPost  NVIDIA Releases Alpamayo 2 Super: Vision-Language-Action Model
+        MarkTechPost  CopilotKit Open Sources Channels SDK
+        ... (모두 다른 사건)
+
+    선별 루프가 클러스터당 하나만 채택하므로(`used_clusters`) 나머지 8건이 폐기된다.
+    후보를 늘릴수록 이 연쇄가 길어져서, 후보 확대의 발목을 잡는 지점이었다.
+
+    대신 **완전연결(complete linkage)** 로 묶는다. 어떤 후보가 클러스터에 들어가려면
+    그 안의 **모든** 멤버와 짝 조건을 만족해야 한다. 한 다리 건너 엮이는 일이 없다.
+
+    후보는 이 시점에 이미 순위순으로 정렬돼 있어(main 참고) 결과가 실행마다 흔들리지
+    않는다. 같은 값이면 순위가 높은 쪽이 클러스터의 기준이 된다.
+
+    `compute_cross_source_counts`(순위 가점용, 느슨한 기준)와는 용도가 다르다 —
+    이건 "최종 선택에서 하나만 남길지"를 정한다.
+    """
     n = len(candidates)
-    parent = list(range(n))
-
-    def find(x):
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
-
-    def union(a, b):
-        ra, rb = find(a), find(b)
-        if ra != rb:
-            parent[ra] = rb
-
     keyword_sets = [extract_keywords(c["title"]) for c in candidates]
     doc_freq = {}
     for kws in keyword_sets:
         for kw in kws:
             doc_freq[kw] = doc_freq.get(kw, 0) + 1
+
     specific_sets = [{kw for kw in kws if doc_freq[kw] <= SAME_STORY_MAX_DOC_FREQ} for kws in keyword_sets]
 
+    cluster_of = [None] * n
+    clusters = []  # 각 원소는 멤버 인덱스 리스트
     for i in range(n):
-        if not specific_sets[i]:
-            continue
-        for j in range(i + 1, n):
-            shared = specific_sets[i] & specific_sets[j]
-            if not shared:
-                continue
-            # 제품·모델·버전명이 하나라도 겹치면 같은 사건으로 본다. 회사·브랜드명만
-            # 겹치는 건 근거가 못 된다 — 개수를 세는 것도 소용없다. "OpenAI"와
-            # "ChatGPT"처럼 한 회사의 이름 쌍은 늘 함께 등장해서, 둘 다 겹쳤다고
-            # 병합하면 무관한 ChatGPT 기사들이 union-find 전이로 줄줄이 엮인다
-            # (실제로 음성 모드 기사가 헬스 기사 묶음에 딸려 들어갔다).
-            if shared - CLUSTER_STOP_ENTITIES:
-                union(i, j)
+        placed = False
+        if specific_sets[i]:
+            for cid, members in enumerate(clusters):
+                if all(_same_story(specific_sets[i] & specific_sets[j]) for j in members):
+                    members.append(i)
+                    cluster_of[i] = cid
+                    placed = True
+                    break
+        if not placed:
+            cluster_of[i] = len(clusters)
+            clusters.append([i])
 
-    return [find(i) for i in range(n)]
+    return cluster_of
 
 
 def entry_published_at(entry, tz_name=None):

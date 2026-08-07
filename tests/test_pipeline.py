@@ -13,6 +13,7 @@ import json
 import sys
 import tempfile
 import unittest
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -150,6 +151,60 @@ class TestSameStoryClustering(unittest.TestCase):
             len(set(ids)), len(titles),
             "회사명 하나만 겹치는 무관한 기사들이 같은 사건으로 묶였다 — 나머지가 폐기된다",
         )
+
+    def test_chain_merge_does_not_propagate(self):
+        """A–B가 한 키워드로, B–C가 다른 키워드로 걸려도 A–C까지 묶이면 안 된다.
+
+        예전에는 union-find라 짝만 맞으면 이어 붙었고, 그 전이 때문에 서로 아무
+        관계도 없는 A와 C가 한 덩어리가 됐다. 완전연결로 바꿔 클러스터에 들어가려면
+        **모든** 멤버와 짝 조건을 만족해야 한다.
+        """
+        ids = self.cluster([
+            "Cloudflare Introduces Kitesurf Browser",   # A: Cloudflare, Kitesurf
+            "Cloudflare open-sources Vibe platform",    # B: Cloudflare, Vibe  (A와 Cloudflare 공유)
+            "Vibe coding takes over Replit workflows",  # C: Vibe, Replit      (B와 Vibe 공유)
+        ])
+        self.assertNotEqual(ids[0], ids[2], "A와 C가 B를 거쳐 잘못 묶였다(전이 병합)")
+
+    def test_real_nine_way_chain_stays_apart(self):
+        """2026-08-07 실측 회귀. 후보 119건에서 서로 무관한 9건이 한 덩어리가 됐고,
+        선별 루프가 클러스터당 하나만 채택하므로 8건이 통째로 폐기됐다.
+        후보를 늘릴수록 이 연쇄가 길어져 후보 확대의 발목을 잡던 지점이다."""
+        titles = [
+            "Meta enters the AI coding wars with Muse Spark 1.2 and Muse Code",
+            "Cloudflare Introduces Kitesurf: An Agent-First Web Browser",
+            "Adaptive Experimentation with Meta's Ax: A Practical Coding Guide",
+            "Prime Intellect Releases Prime Agent: An Open-Source RLM Harness",
+            "Microsoft's SkillOpt Shows Optimized Agent Skill Artifacts Transfer",
+            "Meta AI Releases Muse Code (Beta): A Terminal Coding Agent",
+            "NVIDIA Releases Alpamayo 2 Super: A 34B Open Vision-Language-Action Model",
+            "CopilotKit Open Sources Channels SDK: An MIT Licensed Library",
+            "Cloudflare open-sources vibe-coding platform for people who aren't coders",
+        ]
+        ids = self.cluster(titles)
+        biggest = max(Counter(ids).values())
+        self.assertLessEqual(
+            biggest, 3,
+            f"무관한 기사 {biggest}건이 한 사건으로 묶였다 — 그중 {biggest - 1}건이 폐기된다")
+
+    def test_clustering_is_deterministic(self):
+        """매일 무인으로 도는 단계라, 같은 입력에 결과가 흔들리면 원인 추적이 불가능하다."""
+        titles = [
+            "Anthropic launches Opus 5",
+            "Anthropic releases Opus 5 with new capabilities",
+            "Google DeepMind Releases AlphaFold 4",
+            "Meta Open-Sources A New Speech Model",
+        ]
+        first = self.cluster(titles)
+        for _ in range(5):
+            self.assertEqual(self.cluster(titles), first)
+
+    def test_every_candidate_gets_exactly_one_cluster(self):
+        """선별 루프가 인덱스로 짝지어 쓰므로 길이가 어긋나면 조용히 엉뚱한 기사가 빠진다."""
+        titles = ["Alpha One", "Beta Two", "Gamma Three", "Alpha One Again"]
+        ids = self.cluster(titles)
+        self.assertEqual(len(ids), len(titles))
+        self.assertTrue(all(isinstance(i, int) for i in ids))
 
     def test_two_shared_keywords_still_merge(self):
         # 위 수정이 진짜 클러스터링까지 죽이면 안 된다. 제품명+버전이 함께 겹치면
