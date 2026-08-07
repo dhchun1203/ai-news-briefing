@@ -14,6 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from remind_unconfirmed import (  # noqa: E402
+    DEFAULT_AFTER_DAYS,
     MAX_PER_RUN,
     REMINDER_COPY,
     normalize_lang,
@@ -200,6 +201,52 @@ class TestTargetSelection(unittest.TestCase):
         self.assertEqual(q.get("reminded_at"), "is.null")
         self.assertEqual(q.get("confirmed_at"), "is.null")
         self.assertEqual(q.get("unsubscribed_at"), "is.null")
+
+
+class TestDailyRunTiming(unittest.TestCase):
+    """--after-days는 실제 대기 시간이 아니다.
+
+    이 스크립트는 매일 08:00 KST 파이프라인에서 한 번만 돈다. 가입 시각이 그보다
+    뒤면 그날 실행은 놓치고 다음 날로 밀리므로, 실제 대기는 N~N+1일이 된다.
+
+    2로 뒀을 때 실제로 사고가 났다 — 08:19 KST 가입자가 47.7시간 시점의 실행에서
+    20분 차이로 걸러지고 결국 71.7시간을 기다렸다.
+    """
+
+    RUN_HOUR_UTC = 23  # 08:00 KST = 전날 23:00 UTC
+
+    def first_eligible_run(self, created: datetime) -> datetime:
+        """이 사람이 실제로 리마인더를 받게 되는 첫 실행 시각."""
+        run = created.replace(hour=self.RUN_HOUR_UTC, minute=0, second=0, microsecond=0)
+        while run <= created or (run - created) < timedelta(days=DEFAULT_AFTER_DAYS):
+            run += timedelta(days=1)
+        return run
+
+    def test_worst_case_wait_stays_within_two_days(self):
+        """가입 시각이 어떻든 이틀 안에는 나가야 한다. 사흘이면 이미 늦다."""
+        base = datetime(2026, 8, 4, tzinfo=timezone.utc)
+        worst = timedelta(0)
+        for minute_of_day in range(0, 24 * 60, 7):  # 하루를 촘촘히 훑는다
+            created = base + timedelta(minutes=minute_of_day)
+            worst = max(worst, self.first_eligible_run(created) - created)
+        self.assertLessEqual(
+            worst, timedelta(hours=48),
+            f"최악의 대기가 {worst} — DEFAULT_AFTER_DAYS={DEFAULT_AFTER_DAYS}가 크다")
+
+    def test_never_sends_sooner_than_a_day(self):
+        """가입 직후에 재촉하면 성가시다. 최소 하루는 둔다."""
+        base = datetime(2026, 8, 4, tzinfo=timezone.utc)
+        shortest = timedelta(days=99)
+        for minute_of_day in range(0, 24 * 60, 7):
+            created = base + timedelta(minutes=minute_of_day)
+            shortest = min(shortest, self.first_eligible_run(created) - created)
+        self.assertGreaterEqual(shortest, timedelta(hours=24), f"최단 대기가 {shortest}")
+
+    def test_the_case_that_actually_went_wrong(self):
+        """08:19 KST 가입자(= 23:19 UTC). 이전 기본값 2에서 71.7시간을 기다렸다."""
+        created = datetime(2026, 8, 4, 23, 19, 59, tzinfo=timezone.utc)
+        waited = self.first_eligible_run(created) - created
+        self.assertLess(waited, timedelta(hours=48), f"여전히 {waited} 기다린다")
 
 
 class TestConfirmLink(unittest.TestCase):
