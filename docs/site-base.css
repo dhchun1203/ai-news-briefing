@@ -943,8 +943,10 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   .side-rail {
     display: block;
     position: fixed;
-    /* 본문 칼럼(720px) 왼쪽 바깥. 오른쪽 끝이 칼럼에서 24px 떨어지도록 놓는다. */
-    left: calc(50% - 360px - 24px - 200px);
+    /* 본문 칼럼(720px) 왼쪽 바깥. 오른쪽 끝이 칼럼에서 40px 떨어지도록 놓는다.
+       24px일 때는 레일 글자와 본문이 한 덩어리로 붙어 보였다. 1280px에서도
+       왼쪽에 40px이 남아 화면 밖으로 밀리지 않는다(640-360-40-200 = 40). */
+    left: calc(50% - 360px - 40px - 200px);
     top: 96px;
     width: 200px;
     max-height: calc(100vh - 140px);
@@ -959,8 +961,8 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .side-rail .data-card {
   border-top: 0;
   border-bottom: 1px solid var(--border);
-  margin: 0 0 16px;
-  padding: 0 0 14px;
+  margin: 0 0 26px;
+  padding: 0 0 18px;
 }
 .side-rail .data-card-bars { display: block; margin-bottom: 10px; }
 .side-rail .data-card-bars li {
