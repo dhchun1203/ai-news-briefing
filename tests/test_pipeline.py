@@ -92,6 +92,42 @@ class TestFreshnessDefaults(unittest.TestCase):
         self.assertGreater(STALE_FEED_THRESHOLD_DAYS, 7)
 
 
+class TestSourcedField(unittest.TestCase):
+    """원문을 읽었는지(`sourced`)를 아카이브에 보존한다.
+
+    "헤드라인이 아니라 원문을 읽는다"가 이 브리핑의 첫 번째 포지셔닝인데 그것만
+    숫자가 없었다. 다만 이 값 때문에 **과거 아카이브가 바뀌면 안 된다** — 그게
+    이 저장소의 1번 규칙이다.
+    """
+
+    def save(self, articles, tmp):
+        from generate_site import save_archive_json
+        save_archive_json(tmp, {"date": "2026-08-08", "generated_at": "x", "articles": articles})
+        return json.loads((tmp / "2026-08-08.json").read_text(encoding="utf-8"))
+
+    def test_value_is_preserved(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = self.save([{"link": "a", "sourced": "fulltext"},
+                             {"link": "b", "sourced": "rss_summary"}], Path(d))
+        self.assertEqual([a["sourced"] for a in out["articles"]], ["fulltext", "rss_summary"])
+
+    def test_missing_value_drops_the_key_entirely(self):
+        """null을 써 넣으면 그것만으로 과거 아카이브 전체에 diff가 난다."""
+        with tempfile.TemporaryDirectory() as d:
+            out = self.save([{"link": "a"}], Path(d))
+        self.assertNotIn("sourced", out["articles"][0])
+
+    def test_regeneration_is_byte_identical(self):
+        """같은 입력으로 두 번 저장하면 파일이 한 바이트도 달라지면 안 된다."""
+        with tempfile.TemporaryDirectory() as d:
+            tmp = Path(d)
+            arts = [{"link": "a", "sourced": "fulltext"}, {"link": "b"}]
+            self.save(arts, tmp)
+            first = (tmp / "2026-08-08.json").read_bytes()
+            self.save(arts, tmp)
+            self.assertEqual((tmp / "2026-08-08.json").read_bytes(), first)
+
+
 class TestFunnelAccounting(unittest.TestCase):
     """퍼널은 **사후 집계**다. 선별 로직에 끼어들면 안 되고, 합이 맞아야 한다."""
 

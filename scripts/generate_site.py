@@ -304,6 +304,10 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
                 "topics": a.get("topics") or [],
                 "cross_source_count": a.get("cross_source_count", 0),
                 "related": a.get("related") or [],
+                # 원문을 읽고 썼는지("fulltext") 피드 요약으로 대체했는지("rss_summary").
+                # "원문을 읽는다"가 이 브리핑의 첫 번째 포지셔닝인데 그것만 숫자가
+                # 없었다. title_en과 같은 이유로 값이 있을 때만 키를 남긴다.
+                "sourced": a.get("sourced") or None,
             }
             for a in raw_digest.get("articles", [])
         ],
@@ -314,8 +318,9 @@ def save_archive_json(archive_dir: Path, raw_digest: dict):
         if payload.get(optional) is None:
             payload.pop(optional, None)
     for a in payload["articles"]:
-        if a.get("title_en") is None:
-            a.pop("title_en", None)
+        for optional in ("title_en", "sourced"):
+            if a.get(optional) is None:
+                a.pop(optional, None)
     (archive_dir / f"{date}.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )
