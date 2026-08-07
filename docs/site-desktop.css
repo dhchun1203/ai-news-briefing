@@ -167,7 +167,12 @@ body {
 /* 탭은 높이를 고정하지 않고 위아래 패딩으로 만든다 — 아래쪽에 3px 밑줄이 붙으므로
    height를 박으면 글자가 위로 밀린다. 첫 항목만 왼쪽 패딩을 빼서 메뉴 첫 글자가
    아래 마스트헤드·본문의 왼쪽 끝과 정확히 맞게 한다. */
-.site-nav-group > .site-nav-link { padding: 9px 16px 8px; font-size: 0.92rem; }
+/* 위아래 패딩이 9/8이면 글자가 바의 세로 가운데보다 4px 아래 앉는다 — 상자 아래
+   10px이 음수 margin으로 바 바깥(밑줄 자리)에 걸쳐 있어서, 레이아웃상 아래 패딩은
+   사실상 1px밖에 안 되기 때문이다. 오른쪽 컨트롤은 정직하게 가운데 있었으므로 메뉴
+   글자만 혼자 내려앉아 보였다. 상자 높이(=밑줄 위치)는 그대로 두고 안쪽 배분만
+   5/12로 바꿔 글자를 컨트롤과 같은 높이에 올린다. */
+.site-nav-group > .site-nav-link { padding: 5px 16px 12px; font-size: 0.92rem; }
 .site-nav-group > .site-nav-link:first-child { padding-left: 0; }
 .site-nav-link-count { font-size: 0.82rem; }
 .glossary-intro { font-size: 1.05rem; line-height: 1.7; margin: 24px 0 16px; }

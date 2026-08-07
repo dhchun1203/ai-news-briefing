@@ -158,7 +158,11 @@ body {
    모바일에서는 링크를 서랍으로 보내고 햄버거만 남긴다(→ 약 250px). 서랍 안의
    복제본은 .nav-drawer 하위라 이 규칙에 걸리지 않는다. */
 .utility-bar .site-nav-group { display: none; }
-.nav-toggle { display: inline-flex; width: 44px; height: 44px; margin-right: auto; }
+/* margin-right: auto를 주던 자리다 — 바 왼쪽에 햄버거밖에 없던 시절 컨트롤을
+   오른쪽 끝으로 밀기 위한 것이었다. 지금은 .utility-actions가 margin-left: auto로
+   같은 일을 하고, 여기에 auto가 남아 있으면 남는 폭을 둘이 나눠 가져 홈 마크가
+   햄버거에서 68px 떨어진 허공에 떴다. */
+.nav-toggle { display: inline-flex; width: 44px; height: 44px; }
 
 .nav-drawer { width: 78vw; max-width: 300px; padding: 56px 0 24px; }
 .nav-drawer-title { font-size: 0.66rem; padding: 0 20px; margin-bottom: 12px; }
