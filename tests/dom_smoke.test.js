@@ -246,6 +246,24 @@ function finishPage(label, doc, window, opts, relPath) {
     check(label, "FAQ가 없어야 하는 페이지에 없음", doc.querySelectorAll(".faq-item").length === 0);
   }
 
+  // --- 헤더 뼈대 ---
+  // 새 페이지를 만들 때마다 이 구조를 손으로 옮겨 적다 보니 빠뜨린다. /data를 만들면서
+  // .header-inner를 빼먹어 제목이 화면 왼쪽 끝에 붙어 나갔다 — 이 래퍼가 max-width와
+  // 좌우 여백을 주는데, 없으면 h1이 뷰포트 전체를 차지한다.
+  const header = doc.querySelector("header.site-header");
+  check(label, "site-header 존재", !!header);
+  if (header) {
+    check(label, "header-inner 래퍼 존재(제목 여백·폭을 준다)",
+      !!header.querySelector(".header-inner"));
+    check(label, "제목이 header-inner 안에 있음",
+      !!header.querySelector(".header-inner h1"),
+      header.querySelector("h1") ? "h1이 래퍼 밖에 있다" : "h1 없음");
+    // 유틸리티 바도 헤더 안에 있어야 스크롤 동작이 다른 페이지와 같다.
+    check(label, "유틸리티 바가 헤더 안에 있음", !!header.querySelector(".utility-bar"));
+  }
+  // 키보드 사용자가 매번 내비게이션을 통과하지 않도록.
+  check(label, "본문 건너뛰기 링크 존재", !!doc.querySelector("a.skip-link"));
+
   // --- 언어 전환 링크 (드롭다운을 대체) ---
   // 언어가 URL로 분리되면서 CSS 토글이 사라졌다. 상대 언어판으로 가는 링크와
   // hreflang이 없으면 다른 언어판이 발견되지 않는다.
@@ -489,6 +507,14 @@ function finishPage(label, doc, window, opts, relPath) {
   await exercise("en/index.html", "en/index", { expectTopicChips: true, expectFaq: true });
   await exercise("glossary.html", "glossary");
   await exercise("archive/2026-07-25.html", "archive", { expectNoFaq: true });
+  // /data는 기사 목록이 없는 페이지다. 헤더 뼈대를 빠뜨린 채 나간 적이 있어
+  // 검사 대상에 넣는다 — 만들어놓고 안 보면 회귀 테스트가 아무것도 못 지킨다.
+  if (fs.existsSync(path.join(DOCS, "data.html"))) {
+    await exercise("data.html", "data", { expectArticles: false, expectNoFaq: true });
+  }
+  if (fs.existsSync(path.join(DOCS, "en", "data.html"))) {
+    await exercise("en/data.html", "en/data", { expectArticles: false, expectNoFaq: true });
+  }
   if (fs.existsSync(path.join(DOCS, "weekly"))) {
     const wk = fs.readdirSync(path.join(DOCS, "weekly"))[0];
     if (wk) await exercise(path.join("weekly", wk), "weekly");
@@ -623,6 +649,14 @@ function finishPage(label, doc, window, opts, relPath) {
     checkCleanUrlLinks("glossary/mcp.html", "https://www.dailyaithread.com/glossary/mcp", "glossary/mcp (clean URL)");
   }
   checkCleanUrlLinks("archive/2026-07-25.html", "https://www.dailyaithread.com/archive/2026-07-25", "archive (clean URL)");
+  // /data는 세그먼트 하나짜리 경로라 /topics와 같은 상대경로 함정에 걸릴 수 있다.
+  if (fs.existsSync(path.join(DOCS, "data.html"))) {
+    checkCleanUrlLinks("data.html", "https://www.dailyaithread.com/data", "data (clean URL)");
+  }
+  if (fs.existsSync(path.join(DOCS, "en", "data.html"))) {
+    checkCleanUrlLinks("en/data.html", "https://www.dailyaithread.com/en/data", "en/data (clean URL)");
+    checkNoLanguageLeak("en/data.html", "https://www.dailyaithread.com/en/data", "en/data (언어 누수)");
+  }
   // 아카이브 목록은 /topics와 같은 깊이(세그먼트 1개)라 같은 함정이 있는 자리다.
   if (fs.existsSync(path.join(DOCS, "archive", "index.html"))) {
     checkCleanUrlLinks("archive/index.html", "https://www.dailyaithread.com/archive", "archive/index (clean URL)");
