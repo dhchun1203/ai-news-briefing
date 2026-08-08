@@ -84,7 +84,7 @@
        "몇 분이면 되는지"를 맨 앞에 크게 쓴다. 우리는 기능이 더 많은데도 h1이
        "AI 뉴스 브리핑" 하나뿐이라, 처음 온 사람이 자기 얘기인지 판단할 근거가 없었다. #}
     <p class="hero-sub">
-      {% if lang == 'ko' %}회의에서 뒤처지지 않을 만큼만, 매일 아침 10건{% else %}Enough to keep up in the meeting. Ten stories, every morning.{% endif %}
+      {% if lang == 'ko' %}전부 읽을 필요 없이, 매일 아침 10건{% else %}Enough to keep up. Ten stories, every morning{% endif %}
     </p>
     <p class="tagline">
       {% if lang == 'ko' %}매일 아침 8시 · AI 기사 {{ articles|length }}건의 요약과 시사점{% else %}Daily at 8AM KST · Summaries and takeaways from {{ articles|length }} AI articles{% endif %}
