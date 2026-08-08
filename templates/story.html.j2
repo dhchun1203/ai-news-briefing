@@ -119,6 +119,13 @@
     </ol>
   </section>
 
+  {# /about에서 "요약은 사실, 시사점은 판단"으로 나눈다고 밝혀놨다. 이 페이지도
+     같은 선을 눈에 보이게 그어야 한다 — 위 전개는 그날 기사로 확인되는 사실이고,
+     아래 두 절은 우리 해석이다. 구분이 안 보이면 독자가 판단을 사실로 읽는다. #}
+  <p class="story-judgment-note">
+    {% if lang == 'ko' %}아래 두 절은 사실 정리가 아니라 <strong>이 사이트의 판단</strong>입니다. 위 전개의 각 항목은 그날 기사로 확인하실 수 있습니다.{% else %}The two sections below are <strong>our judgment</strong>, not a record of facts. Every entry above links back to the reporting it came from.{% endif %}
+  </p>
+
   <section class="story-section">
     <h3 class="story-heading">
       {% if lang == 'ko' %}지금까지의 흐름{% else %}Where it stands{% endif %}
