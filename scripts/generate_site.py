@@ -7,6 +7,7 @@ import json
 import re
 from datetime import date as date_cls
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -16,6 +17,8 @@ import seo_utils
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = ROOT / "templates"
 CONFIG_DIR = ROOT / "config"
+# 발행 기준 시간대. "오늘/어제"를 서버 시간대로 판정하면 자정 근처에서 하루가 어긋난다.
+KST = ZoneInfo("Asia/Seoul")
 DEFAULT_DOCS_DIR = ROOT / "docs"
 
 MAX_ARCHIVE_LINKS = 60
@@ -91,6 +94,58 @@ def lang_up_prefix(dir_depth: int = 0, lang: str = "ko") -> str:
 
 KO_CHARS_PER_MINUTE = 500  # 한국어는 음절 수 기준(띄어쓰기 단위 "단어"가 불명확해서)
 EN_WORDS_PER_MINUTE = 200  # 영어는 공백 기준 단어 수
+
+
+def is_recent_date(date: str, today: str = None, days: int = 1) -> bool:
+    """오늘 또는 어제 날짜인가. 공유 카드에서 "(지난 기록)"을 뺄지 정하는 데 쓴다."""
+    try:
+        d = datetime.strptime(date, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return False
+    base = (datetime.strptime(today, "%Y-%m-%d").date() if today
+            else datetime.now(KST).date())
+    return 0 <= (base - d).days <= days
+
+
+# 공유 카드에 들어갈 설명의 길이 상한. 플랫폼마다 자르는 지점이 달라서(카카오톡이
+# 가장 짧고 슬랙·팀즈는 넉넉하다) 가장 짧은 쪽에 맞추면 슬랙에서 정보가 모자라고,
+# 긴 쪽에 맞추면 카톡에서 문장이 잘린다. 한국어는 같은 뜻을 더 짧게 담으므로 값을
+# 따로 둔다. 여기서 자르는 것은 "문장 끝"이지 글자 수가 아니다.
+OG_DESC_LIMIT = {"ko": 120, "en": 200}
+
+
+def truncate_at_sentence(text: str, limit: int) -> str:
+    """문장 중간에서 끊기지 않게 자른다.
+
+    공유 카드는 플랫폼이 한 번 더 자르므로, 우리가 자를 때 최소한 말이 되는 단위로
+    끝나야 한다. 문장 끝(마침표·물음표·느낌표)을 먼저 찾고, 없으면 어절 경계에서
+    자른 뒤 줄임표를 붙인다."""
+    text = " ".join((text or "").split())
+    if len(text) <= limit:
+        return text
+    head = text[:limit]
+    # 문장 끝이 있으면 거기까지. 너무 앞에서 끊기면(절반 미만) 차라리 어절로 자른다.
+    ends = [m.end() for m in re.finditer(r"[.!?。](?=\s|$)", head)]
+    if ends and ends[-1] >= limit * 0.5:
+        return head[:ends[-1]].strip()
+    cut = head.rsplit(" ", 1)[0] if " " in head else head
+    return cut.rstrip(" ,·-") + "…"
+
+
+def og_description(daily_insight: dict, lang: str, date: str) -> str:
+    """공유 카드에 뜨는 한 줄. 그날 인사이트 헤드라인을 그대로 쓴다.
+
+    예전에는 "2026-08-08자 AI 뉴스 요약과 시사점"이라 어느 날짜든 같은 문장이었다.
+    슬랙·팀즈·카톡에 링크를 붙였을 때 받는 사람이 보는 설득 문구가 이것뿐인데,
+    거기에 그날 무슨 일이 있었는지가 한 글자도 없었다.
+
+    헤드라인이 없거나 비어 있으면 예전 문구로 돌아간다 — 공유 카드 하나 때문에
+    페이지 생성이 실패하면 안 된다."""
+    headline = ((daily_insight or {}).get("headline_en" if lang == "en" else "headline_ko") or "").strip()
+    if headline:
+        return truncate_at_sentence(headline, OG_DESC_LIMIT.get(lang, 160))
+    return (f"Daily AI news summaries and takeaways — {date}" if lang == "en"
+            else f"{date}자 AI 뉴스 요약과 시사점")
 
 
 def reading_time(value: int, per_minute: int) -> dict:
@@ -1277,6 +1332,8 @@ def main():
                 nav_current="",
                 home_link=None,
                 is_archive=False,
+                is_recent=True,
+                og_desc=og_description(daily_insight, lang, date),
                 site_stats=site_stats,
                 site_data=site_data,
                 nav_counts=nav_counts,
@@ -1325,6 +1382,11 @@ def main():
                 nav_current="archive",
                 home_link=lup_archive + "index.html",
                 is_archive=True,
+                # "(지난 기록)"은 오래된 페이지에만. 오늘·어제 링크를 공유했는데
+                # 카드에 "지난"이라고 뜨면 최신 글이 아닌 것처럼 읽힌다.
+                # 생성 시점 기준이라, 과거 페이지는 다음 전체 재생성 때 갱신된다.
+                is_recent=is_recent_date(date),
+                og_desc=og_description(daily_insight, lang, date),
                 site_stats=site_stats,
                 site_data=site_data,
                 nav_counts=nav_counts,

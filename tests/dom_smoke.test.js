@@ -57,7 +57,9 @@ function load(relPath, urlOverride) {
 // base로 놓고 모든 상대 링크/자산이 실제 파일로 해석되는지 전수 검사해, 같은 종류의
 // 사고가 어느 페이지에서도 조용히 재발하지 않게 한다.
 function resolveExists(absUrl) {
-  let p = absUrl.replace(/^https?:\/\/[^/]+/, "").replace(/^\//, "");
+  // #프래그먼트는 파일 이름의 일부가 아니다. about.html#sharing을 그대로 두면
+  // 그런 이름의 파일을 찾다가 없다고 실패한다(실제로 그렇게 빨갛게 떴다).
+  let p = absUrl.replace(/#.*$/, "").replace(/^https?:\/\/[^/]+/, "").replace(/^\//, "");
   if (p === "") p = "index.html";
   const candidates = [path.join(DOCS, p), path.join(DOCS, p + ".html"), path.join(DOCS, p, "index.html")];
   return candidates.some((c) => fs.existsSync(c));

@@ -1,10 +1,14 @@
 <!DOCTYPE html>
-{% set title_ko = "AI 뉴스 브리핑 — " + date + (" (지난 기록)" if is_archive else "") %}
-{% set title_en = "AI News Briefing — " + date + (" (Archive)" if is_archive else "") %}
-{% set desc_ko = date + "자 AI 뉴스 요약과 시사점" %}
-{% set desc_en = "Daily AI news summaries and takeaways — " + date %}
+{# "(지난 기록)"은 오래된 날짜에만 붙인다 — 오늘·어제 링크를 슬랙에 붙였는데
+   카드 제목이 "지난 기록"이면 최신 글이 아닌 것으로 읽힌다. #}
+{% set past_mark_ko = " (지난 기록)" if is_archive and not is_recent else "" %}
+{% set past_mark_en = " (Archive)" if is_archive and not is_recent else "" %}
+{% set title_ko = "AI 뉴스 브리핑 — " + date + past_mark_ko %}
+{% set title_en = "AI News Briefing — " + date + past_mark_en %}
+{# 설명은 그날 인사이트 헤드라인이다(generate_site.og_description이 문장 단위로
+   자른다). 예전에는 날짜만 바뀌는 같은 문장이라 공유 카드에 정보가 없었다. #}
+{% set desc_default = og_desc %}
 {% set title_default = title_en if lang == 'en' else title_ko %}
-{% set desc_default = desc_en if lang == 'en' else desc_ko %}
 <html lang="{{ lang }}" data-lang="{{ lang }}"
       data-default-lang="{{ lang }}" data-asset-prefix="{{ css_prefix }}" data-archive-prefix="{{ archive_link_prefix }}">
 <head>
@@ -412,6 +416,12 @@
 <footer class="site-footer">
   <p>
     {% if lang == 'ko' %}매일 08:00 KST 자동 생성 · 마지막 생성: {{ generated_at }}{% else %}Auto-generated daily at 08:00 KST · Last updated: {{ generated_at }}{% endif %}
+  </p>
+  {# 사내 공유를 막는 것은 관심이 아니라 "이거 옮겨도 되나"라는 멈춤이다. 그 답을
+     찾아 헤매지 않게 눈에 띄는 자리에 한 줄로 둔다. 자세한 조건은 /about#sharing. #}
+  <p class="share-permit">
+    {% if lang == 'ko' %}사내 공유·인용 자유롭게 하셔도 됩니다{% else %}Free to share internally or cite with a link{% endif %}
+    <a class="share-permit-link" href="{{ lang_prefix }}about.html#sharing">{% if lang == 'ko' %}자세히{% else %}details{% endif %}</a>
   </p>
   <p class="footer-links">
     <a href="{{ feed_href }}">RSS</a>

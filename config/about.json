@@ -44,6 +44,13 @@
       "heading_en": "Independence",
       "body_ko": "어떤 매체나 기업으로부터도 대가를 받지 않습니다. 광고, 협찬 기사, 제휴 링크가 없습니다. 특정 매체를 고정적으로 우대하지 않으며, 출처 가중치는 발행량이 많은 매체가 순위를 독점하는 것을 막기 위한 장치입니다. 이메일 주소는 브리핑 발송에만 쓰고 제3자에게 제공하거나 판매하지 않습니다.",
       "body_en": "No outlet or company pays for placement. There is no advertising, no sponsored content, and no affiliate links. No publication receives standing preference; source weighting exists to stop high-volume outlets from crowding out everyone else. Subscriber email addresses are used only to deliver the briefing and are never shared or sold."
+    },
+    {
+      "anchor": "sharing",
+      "heading_ko": "공유와 인용",
+      "heading_en": "Sharing and citation",
+      "body_ko": "회사 슬랙·팀즈·카카오톡에 링크를 옮기거나, 사내 회의·보고 자료에 요약과 시사점을 인용하셔도 됩니다. 별도로 허락을 받으실 필요가 없습니다. 인용하실 때는 출처를 'AI 뉴스 브리핑(dailyaithread.com)'으로 적고 해당 날짜 페이지 링크를 함께 남겨 주세요 — 읽는 분이 원문과 그날 전체 맥락을 확인할 수 있어야 하기 때문입니다. 각 기사의 원문 저작권은 해당 매체에 있으므로, 원문 본문을 그대로 옮기는 것은 그 매체의 정책을 따릅니다. 전체를 그대로 복제해 별도 매체나 뉴스레터로 재발행하는 것만 삼가 주세요.",
+      "body_en": "You are welcome to paste links into your company Slack, Teams, or KakaoTalk, and to quote the summaries and takeaways in internal meetings or reports. No permission request is needed. When citing, please credit “AI News Briefing (dailyaithread.com)” and include the link to that day's page, so readers can check the original and the full context of that day. Copyright in each underlying article belongs to its outlet, so reproducing an original article's text follows that outlet's policy. The one thing we ask you not to do is republish this briefing wholesale as a separate publication or newsletter."
     }
   ],
   "contact_label_ko": "문의·정정 요청",

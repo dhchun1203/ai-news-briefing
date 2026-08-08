@@ -126,6 +126,12 @@
   <p>
     {% if lang == 'ko' %}매일 08:00 KST 자동 갱신 · 마지막 생성: {{ generated_at }}{% else %}Auto-updated daily at 08:00 KST · Last updated: {{ generated_at }}{% endif %}
   </p>
+  {# 사내 공유를 막는 것은 관심이 아니라 "이거 옮겨도 되나"라는 멈춤이다.
+     그 답을 찾아 헤매지 않게 모든 페이지 푸터에 한 줄로 둔다. 조건은 /about#sharing. #}
+  <p class="share-permit">
+    {% if lang == 'ko' %}사내 공유·인용 자유롭게 하셔도 됩니다{% else %}Free to share internally or cite with a link{% endif %}
+    <a class="share-permit-link" href="{{ lup }}about.html#sharing">{% if lang == 'ko' %}자세히{% else %}details{% endif %}</a>
+  </p>
   <p class="footer-links">
     <a href="{{ lup }}feed.xml">RSS</a>
     <span aria-hidden="true">·</span>
