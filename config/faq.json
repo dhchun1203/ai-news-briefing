@@ -10,8 +10,14 @@
     {
       "question_ko": "다른 AI 뉴스레터와 무엇이 다른가요?",
       "question_en": "How is this different from other AI newsletters?",
-      "answer_ko": "세 가지가 다릅니다. 첫째, 기사를 나열하는 데서 끝내지 않고 그날 10건을 가로질러 하나의 흐름으로 종합한 '오늘의 인사이트'를 씁니다. 둘째, 기사마다 요약과 별개로 '이 기사가 시사하는 점'을 판단해 덧붙입니다. 셋째, 본문에 나온 어려운 용어는 클릭하면 그 자리에서 쉬운 말 설명이 열립니다.",
-      "answer_en": "Three things. First, it doesn't stop at a list — a daily insight synthesizes all 10 stories into a single through-line. Second, every article gets a separate 'why it matters' judgment, not just a summary. Third, jargon in the text is clickable and explains itself in plain language on the spot."
+      "answer_ko": "기사 원문을 끝까지 읽고 씁니다. RSS가 주는 발췌를 옮기지 않고, 원문을 읽을 수 없는 기사는 다른 후보로 교체합니다.\n\n무엇을 골랐는지만이 아니라 어떻게 골랐는지를 공개합니다. 그날 몇 건을 훑어 어느 단계에서 얼마나 걸러졌는지가 데이터 페이지에 매일 남습니다.\n\n기사 목록으로 끝내지 않습니다. 10건을 가로질러 오늘 하루가 무엇을 말하는지 한 편으로 쓰고, 여러 날에 걸쳐 이어지는 사건은 이슈 페이지에 시간순으로 쌓습니다.\n\n어려운 용어는 그날 바로 설명이 붙고, 한국어와 영어를 각각 별도 페이지로 발행합니다. 무료이며 광고나 유료 등급이 없습니다.",
+      "answer_en": "We read the source articles in full. We don't pass along the RSS excerpt, and when an article can't be read, it gets swapped for another candidate.\n\nWe publish how the ten were chosen, not just what they were. The data page shows how many items came in each morning and where they were filtered out.\n\nWe don't stop at a list. One piece cuts across all ten to say what the day adds up to, and events that unfold over several days are stacked in chronological order on their own issue page.\n\nEvery difficult term gets an explainer the same day, and Korean and English are published as separate pages. Free, no ads, no paid tier."
+    },
+    {
+      "question_ko": "누가 읽으면 좋은가요?",
+      "question_en": "Who is this for?",
+      "answer_ko": "AI를 만드는 사람보다, 업무 때문에 AI 동향을 놓치면 안 되는 분들을 생각하고 씁니다. 회의에서 맥락을 알아야 하거나, 위에 보고해야 하거나, 도입을 검토하는 자리에 계신 분들입니다. 기술 배경이 없어도 읽을 수 있도록 어려운 용어에는 그날 바로 설명을 붙입니다.",
+      "answer_en": "We write for people who need to keep up with AI because of their work, rather than people who build it. Someone who has to follow the context in a meeting, report upward, or evaluate whether to adopt something. No technical background is assumed, and difficult terms get an explainer the same day."
     },
     {
       "question_ko": "기사는 어떤 기준으로 고르나요?",

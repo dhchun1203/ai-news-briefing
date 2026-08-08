@@ -80,6 +80,12 @@
         {% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}
       </a>
     </h1>
+    {# 경쟁 뉴스레터(TLDR AI·The Rundown·Superhuman)는 셋 다 "누구를 위한 것인지"와
+       "몇 분이면 되는지"를 맨 앞에 크게 쓴다. 우리는 기능이 더 많은데도 h1이
+       "AI 뉴스 브리핑" 하나뿐이라, 처음 온 사람이 자기 얘기인지 판단할 근거가 없었다. #}
+    <p class="hero-sub">
+      {% if lang == 'ko' %}회의에서 뒤처지지 않을 만큼만, 매일 아침 10건{% else %}Enough to keep up in the meeting. Ten stories, every morning.{% endif %}
+    </p>
     <p class="tagline">
       {% if lang == 'ko' %}매일 아침 8시 · AI 기사 {{ articles|length }}건의 요약과 시사점{% else %}Daily at 8AM KST · Summaries and takeaways from {{ articles|length }} AI articles{% endif %}
     </p>
@@ -404,9 +410,14 @@
       <summary class="faq-question">
         {% if lang == 'ko' %}{{ f.question_ko }}{% else %}{{ f.question_en }}{% endif %}
       </summary>
-      <p class="faq-answer">
-        {% if lang == 'ko' %}{{ f.answer_ko }}{% else %}{{ f.answer_en }}{% endif %}
-      </p>
+      {# 답변에 빈 줄이 있으면 문단으로 나눈다 — "무엇이 다른가"처럼 근거를 네 가지
+         대는 답변이 한 <p>에 붙어 있으면 벽이 되어 아무도 안 읽는다. 문단이 하나인
+         기존 답변은 예전과 똑같이 <p> 하나로 나온다. #}
+      {% for para in (f.answer_ko if lang == 'ko' else f.answer_en).split('
+
+') %}
+      <p class="faq-answer">{{ para }}</p>
+      {% endfor %}
     </details>
     {% endfor %}
   </section>

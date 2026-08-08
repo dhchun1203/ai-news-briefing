@@ -2121,3 +2121,13 @@ a.topic-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offse
   border-left: 3px solid var(--accent);
 }
 .story-judgment-note strong { color: var(--text); }
+
+/* 히어로 부제 — h1 바로 아래. 제목보다 작고 tagline보다 크게 두어, 처음 온 사람이
+   "이게 나를 위한 것인가"를 두 번째 줄에서 판단하게 한다. */
+.hero-sub {
+  font-family: var(--serif);
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--text);
+  margin: 6px 0 8px;
+}
