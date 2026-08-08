@@ -100,9 +100,12 @@
     <h2 class="about-heading">
       {% if lang == 'ko' %}{{ s.heading_ko }}{% else %}{{ s.heading_en }}{% endif %}
     </h2>
-    <p class="about-body">
-      {% if lang == 'ko' %}{{ s.body_ko }}{% else %}{{ s.body_en }}{% endif %}
-    </p>
+    {# 본문에 빈 줄이 있으면 문단으로 나눈다. 한 <p>에 통째로 넣으면 긴 절이
+       벽처럼 보여서 "허락 없이 써도 된다"는 핵심 문장이 묻힌다. 문단이 하나인
+       기존 섹션은 예전과 똑같이 <p> 하나로 나온다. #}
+    {% for para in (s.body_ko if lang == 'ko' else s.body_en).split('\n\n') %}
+    <p class="about-body">{{ para }}</p>
+    {% endfor %}
   </section>
   {% endfor %}
 
