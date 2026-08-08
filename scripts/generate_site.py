@@ -1061,6 +1061,24 @@ def _is_unbroken_streak(days: list) -> bool:
     return len(set(parsed)) == span
 
 
+def collect_story_slugs() -> list:
+    """config/stories.json의 이슈 슬러그. llms.txt의 링크 목록에만 쓴다.
+
+    generate_story_site를 import하지 않고 파일만 읽는다 — 이슈 페이지 생성은 일부러
+    분리해둔 별도 스크립트이고, 일간 생성이 그쪽 실패에 엮이면 분리한 의미가 없다.
+    파일이 없거나 깨져 있으면 빈 목록이다."""
+    path = CONFIG_DIR / "stories.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    # (슬러그, 영어 제목) — llms.txt의 링크 라벨은 사람이 읽는 이름이어야 한다.
+    return [(s["slug"], s.get("title_en") or s["slug"])
+            for s in data.get("stories", []) if s.get("slug")]
+
+
 def collect_site_stats(archive_dir: Path, glossary_count: int) -> dict:
     """랜딩에 띄울 누적 지표(브리핑 일수·기사 수·용어 수·시작일).
 
@@ -1413,12 +1431,16 @@ def main():
     # sitemap에 슬러그 집합을 넘긴다. 위에서 이미 고아 파일을 지웠으므로 디렉터리를
     # 훑어도 결과는 같지만, 둘 중 하나가 실패해도 낡은 URL이 새어 나가지 않게 이중으로 막는다.
     sitemap_count = seo_utils.build_sitemap(docs_dir, site_url, date, glossary_slugs)
+    # 답변엔진용 안내. 숫자와 링크가 낡지 않도록 매 생성마다 다시 쓴다.
+    llms_lines = seo_utils.build_llms_txt(
+        docs_dir, site_url, site_stats, topic_page_count, collect_story_slugs())
 
     print(f"생성 완료: {docs_dir / 'index.html'}, {archive_dir / f'{date}.html'}")
     print(
         f"기사 {len(articles)}건, 지난 아카이브 {len(past_archives)}건, 검색 인덱스 {indexed_count}건, "
         f"용어사전 {glossary_count}건, 토픽 페이지 {topic_page_count}개(분류된 기사 {tagged_count}건), "
-        f"아카이브 목록 {archive_index_days}일, 피드 {feed_count}건, sitemap {sitemap_count}건"
+        f"아카이브 목록 {archive_index_days}일, 피드 {feed_count}건, sitemap {sitemap_count}건, "
+        f"llms.txt {llms_lines}줄"
     )
     if pruned_glossary:
         print(f"용어 고아 페이지 {len(pruned_glossary)}개 삭제: {', '.join(pruned_glossary)}")

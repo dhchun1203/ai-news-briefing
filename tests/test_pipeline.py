@@ -1578,5 +1578,83 @@ class TestStoryCandidateFinder(unittest.TestCase):
         self.assertEqual(cands[0]["days"], ["2026-07-23", "2026-07-25"])
 
 
+class TestLlmsTxt(unittest.TestCase):
+    """/llms.txt — 답변엔진이 이 사이트를 어떻게 설명할지 우리가 쓰는 파일.
+
+    자동 생성인 이유가 곧 테스트할 것이다: 손으로 적으면 숫자가 낡고, 낡은 안내는
+    없느니만 못하다(틀린 숫자를 그대로 인용당한다)."""
+
+    def _cfg(self, path):
+        path.write_text(json.dumps({
+            "title": "Test Site", "summary": "one line",
+            "sections": [{"heading": "What", "lines": ["a", "b"]}],
+            "closing": "the end",
+        }, ensure_ascii=False), encoding="utf-8")
+
+    def test_numbers_come_from_generation_time(self):
+        import seo_utils
+        with tempfile.TemporaryDirectory() as d:
+            docs = Path(d)
+            self._cfg(docs / "llms.json")
+            seo_utils.CONFIG_DIR = docs
+            try:
+                seo_utils.build_llms_txt(docs, "https://example.com",
+                                         {"days": 17, "articles": 165, "terms": 78,
+                                          "since": "2026-07-23", "unbroken": True},
+                                         topic_count=11,
+                                         story_slugs=[("hf-breach", "The breach")])
+                text = (docs / "llms.txt").read_text(encoding="utf-8")
+            finally:
+                seo_utils.CONFIG_DIR = Path(seo_utils.ROOT) / "config"
+        self.assertIn("17 days", text)
+        self.assertIn("165 articles", text)
+        self.assertIn("78 glossary", text)
+        self.assertIn("11 topics", text)
+        # 링크 라벨은 슬러그가 아니라 사람이 읽는 제목이어야 한다.
+        self.assertIn("[The breach](https://example.com/story/hf-breach)", text)
+        # 크롤러용 파일 하나에 한국어·영어 URL이 **둘 다** 있어야 한다.
+        self.assertIn("https://example.com/data", text)
+        self.assertIn("https://example.com/en/data", text)
+
+    def test_missing_config_writes_nothing(self):
+        """설정이 없으면 조용히 넘어간다 — 빈 파일을 남기면 크롤러가 그걸 읽는다."""
+        import seo_utils
+        with tempfile.TemporaryDirectory() as d:
+            docs = Path(d)
+            seo_utils.CONFIG_DIR = docs   # llms.json 없음
+            try:
+                n = seo_utils.build_llms_txt(docs, "https://example.com", {"days": 1})
+            finally:
+                seo_utils.CONFIG_DIR = Path(seo_utils.ROOT) / "config"
+            self.assertEqual(n, 0)
+            self.assertFalse((docs / "llms.txt").exists())
+
+    def test_write_failure_is_swallowed(self):
+        """생성 실패가 사이트 생성을 막으면 안 된다(seo_utils 선례)."""
+        import seo_utils
+        n = seo_utils.build_llms_txt(Path("/no-such-dir-for-llms"), "https://example.com",
+                                     {"days": 1})
+        self.assertEqual(n, 0)
+
+    def test_robots_points_at_llms(self):
+        import seo_utils
+        with tempfile.TemporaryDirectory() as d:
+            docs = Path(d)
+            seo_utils.write_robots_txt(docs, "https://example.com")
+            robots = (docs / "robots.txt").read_text(encoding="utf-8")
+        self.assertIn("Llms-txt: https://example.com/llms.txt", robots)
+        # Sitemap 줄이 사라지면 안 된다.
+        self.assertIn("Sitemap: https://example.com/sitemap.xml", robots)
+
+    def test_real_config_produces_expected_shape(self):
+        from generate_site import collect_story_slugs
+        import seo_utils
+        cfg = seo_utils.load_llms_config()
+        self.assertTrue(cfg.get("title"))
+        self.assertTrue(cfg.get("sections"))
+        slugs = collect_story_slugs()
+        self.assertTrue(all(isinstance(x, tuple) and len(x) == 2 for x in slugs), slugs)
+
+
 if __name__ == "__main__":
     unittest.main()

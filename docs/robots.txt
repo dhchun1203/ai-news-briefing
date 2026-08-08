@@ -39,3 +39,4 @@ Allow: /
 Disallow: /archive/*.json
 
 Sitemap: https://www.dailyaithread.com/sitemap.xml
+Llms-txt: https://www.dailyaithread.com/llms.txt

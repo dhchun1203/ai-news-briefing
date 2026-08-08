@@ -8,6 +8,7 @@ generate_site.py와 generate_weekly_site.py 양쪽에서 import해서 쓴다. �
 """
 import json
 import shutil
+import sys
 from datetime import date as date_cls
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
@@ -92,6 +93,102 @@ def get_site_url() -> str:
     return os.environ.get("SITE_URL", DEFAULT_SITE_URL).rstrip("/")
 
 
+def load_llms_config() -> dict:
+    """config/llms.json의 고정 문안. 없거나 깨져 있으면 빈 dict를 돌려준다 —
+    부가 산출물 하나 때문에 매일 도는 사이트 생성이 멈추면 안 된다(load_faq와 같은 태도)."""
+    path = CONFIG_DIR / "llms.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def build_llms_txt(docs_dir: Path, site_url: str, stats: dict = None,
+                   topic_count: int = 0, story_slugs=None) -> int:
+    """`/llms.txt`를 만든다. 답변엔진이 이 사이트를 어떻게 설명할지 우리가 쓰는 파일.
+
+    **왜 자동 생성인가**: 손으로 적으면 용어 수·섹션·이슈 목록이 바뀔 때 낡는다.
+    낡은 안내는 없느니만 못하다 — 틀린 숫자를 그대로 인용당한다. 그래서 문안(고정)은
+    config/llms.json에 두고, 숫자와 링크 목록만 생성 시점 값으로 채운다.
+
+    **왜 영어 하나인가**: 크롤러용이라 사람이 언어를 고르는 파일이 아니다. 대신 한국어와
+    영어 URL을 **둘 다** 담아, 어느 쪽을 인용해도 실재하는 주소가 되게 한다.
+
+    실패는 삼킨다. 이 파일이 없다고 사이트가 못 나갈 이유가 없다(0을 돌려준다).
+    다만 호출부가 결과를 보고 완료 보고에 적을 수 있도록 줄 수를 반환한다.
+    """
+    try:
+        cfg = load_llms_config()
+        if not cfg.get("title"):
+            return 0
+        stats = stats or {}
+        lines = [f"# {cfg['title']}", ""]
+        if cfg.get("summary"):
+            lines += [f"> {cfg['summary']}", ""]
+
+        # 생성 시점 값. 여기가 자동화의 전부다.
+        facts = []
+        if stats.get("days"):
+            facts.append(f"Published {stats['days']} days so far"
+                         + (f", starting {stats['since']}" if stats.get("since") else "")
+                         + (" without a gap" if stats.get("unbroken") else ""))
+        if stats.get("articles"):
+            facts.append(f"{stats['articles']} articles summarized")
+        if stats.get("terms"):
+            facts.append(f"{stats['terms']} glossary entries")
+        if topic_count:
+            facts.append(f"{topic_count} topics")
+        if facts:
+            lines += ["## Current scale", ""] + [f"- {f}" for f in facts] + [""]
+
+        for section in cfg.get("sections", []):
+            if not section.get("heading"):
+                continue
+            lines += [f"## {section['heading']}", ""]
+            lines += [f"- {line}" for line in section.get("lines", [])]
+            lines += [""]
+
+        # 링크 목록 — 한국어와 영어를 나란히 둔다.
+        def pair(label: str, path: str, note: str = "") -> str:
+            ko = f"{site_url}{path}"
+            en = f"{site_url}/en{path}" if path != "/" else f"{site_url}/en"
+            tail = f": {note}" if note else ""
+            return f"- [{label}]({ko}) | [English]({en}){tail}"
+
+        lines += ["## Key pages", ""]
+        lines += [
+            pair("Today's briefing", "/", "the current edition, replaced every morning"),
+            pair("Archive index", "/archive", "every past edition, permanent per-date URLs"),
+            pair("Data", "/data", "what was scanned and what ran, published daily"),
+            pair("Glossary", "/glossary", "every term explained on the day it appeared"),
+            pair("Topics", "/topics", "articles grouped by subject"),
+            pair("Story timelines", "/stories", "events that unfolded over several days"),
+            pair("About", "/about", "method, limits, independence, and citation policy"),
+            f"- [RSS (Korean)]({site_url}/feed.xml) | [RSS (English)]({site_url}/en/feed.xml)",
+            "",
+        ]
+
+        if story_slugs:
+            # 위 "Key pages"에 목록 페이지가 이미 있으므로 제목을 달리한다.
+            lines += ["## Open story timelines", ""]
+            for entry in story_slugs:
+                slug, label = entry if isinstance(entry, (tuple, list)) else (entry, entry)
+                lines.append(f"- [{label}]({site_url}/story/{slug}) | "
+                             f"[English]({site_url}/en/story/{slug})")
+            lines.append("")
+
+        if cfg.get("closing"):
+            lines += ["## Notes", "", cfg["closing"], ""]
+
+        (docs_dir / "llms.txt").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+        return len(lines)
+    except Exception as e:  # noqa: BLE001 — 부가 산출물이 생성을 막으면 안 된다
+        print(f"llms.txt 생성 실패(사이트 생성은 계속): {type(e).__name__}: {e}", file=sys.stderr)
+        return 0
+
+
 def write_robots_txt(docs_dir: Path, site_url: str) -> None:
     # Disallow는 반드시 User-agent 그룹 "안"에 있어야 한다 — 빈 줄이 그룹을 끝내므로,
     # 마지막 그룹 뒤에 떼어 놓으면 robots.txt 규격상 어느 그룹에도 속하지 않아 통째로
@@ -101,6 +198,11 @@ def write_robots_txt(docs_dir: Path, site_url: str) -> None:
     for ua in AI_CRAWLERS:
         lines += [f"User-agent: {ua}", "Allow: /", "Disallow: /archive/*.json", ""]
     lines.append(f"Sitemap: {site_url}/sitemap.xml")
+    # 규격에 없는 줄이다. robots.txt 파서는 모르는 필드를 무시하도록 되어 있어
+    # 해가 없고, 크롤러가 llms.txt를 찾아가는 경로가 하나 늘어난다.
+    lines.append(f"Llms-txt: {site_url}/llms.txt")
+    # 규격에 없는 줄이다. robots.txt 파서는 모르는 필드를 무시하도록 되어 있어
+    # 해가 없고, 크롤러가 llms.txt를 찾아가는 경로가 하나 늘어난다.
     (docs_dir / "robots.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
