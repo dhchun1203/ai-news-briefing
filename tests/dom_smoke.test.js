@@ -611,6 +611,18 @@ function finishPage(label, doc, window, opts, relPath) {
   if (fs.existsSync(path.join(DOCS, "en", "data.html"))) {
     await exercise("en/data.html", "en/data", { expectArticles: false, expectNoFaq: true });
   }
+  // 이슈 타임라인. 기사 목록이 없는 페이지이고 /story/<slug>는 세그먼트가 둘이라
+  // 상대경로 함정이 걸리는 자리다(용어 개별 페이지와 같은 깊이).
+  if (fs.existsSync(path.join(DOCS, "story"))) {
+    const st = fs.readdirSync(path.join(DOCS, "story")).filter((f) => f.endsWith(".html"))[0];
+    if (st) await exercise(path.join("story", st), "story/" + st,
+      { expectArticles: false, expectNoFaq: true });
+  }
+  if (fs.existsSync(path.join(DOCS, "en", "story"))) {
+    const st = fs.readdirSync(path.join(DOCS, "en", "story")).filter((f) => f.endsWith(".html"))[0];
+    if (st) await exercise(path.join("en", "story", st), "en/story/" + st,
+      { expectArticles: false, expectNoFaq: true });
+  }
   if (fs.existsSync(path.join(DOCS, "weekly"))) {
     const wk = fs.readdirSync(path.join(DOCS, "weekly"))[0];
     if (wk) await exercise(path.join("weekly", wk), "weekly");
@@ -753,6 +765,37 @@ function finishPage(label, doc, window, opts, relPath) {
     checkCleanUrlLinks("en/data.html", "https://www.dailyaithread.com/en/data", "en/data (clean URL)");
     checkNoLanguageLeak("en/data.html", "https://www.dailyaithread.com/en/data", "en/data (언어 누수)");
   }
+  // 이슈 페이지의 "그날 브리핑에서 보기" 링크는 이 페이지의 존재 이유다 — 끊기면
+  // 독자가 원문으로 돌아갈 길이 사라진다. 앵커까지 붙은 링크라 검사에서 잘 빠진다.
+  if (fs.existsSync(path.join(DOCS, "story"))) {
+    const st = fs.readdirSync(path.join(DOCS, "story")).filter((f) => f.endsWith(".html"))[0];
+    if (st) {
+      const slug = st.replace(/\.html$/, "");
+      checkCleanUrlLinks(path.join("story", st),
+        `https://www.dailyaithread.com/story/${slug}`, `story/${slug} (clean URL)`);
+      if (fs.existsSync(path.join(DOCS, "en", "story", st))) {
+        checkCleanUrlLinks(path.join("en", "story", st),
+          `https://www.dailyaithread.com/en/story/${slug}`, `en/story/${slug} (clean URL)`);
+        checkNoLanguageLeak(path.join("en", "story", st),
+          `https://www.dailyaithread.com/en/story/${slug}`, `en/story/${slug} (언어 누수)`);
+      }
+      // 앵커가 실제 기사 카드를 가리키는지 — 파일만 있고 앵커가 없으면 페이지 맨
+      // 위로 떨어져 "그 기사"를 못 찾는다.
+      const { doc } = load(path.join("story", st));
+      const bad = [];
+      doc.querySelectorAll(".story-source a").forEach((a) => {
+        const href = a.getAttribute("href") || "";
+        const m = href.match(/archive\/([\d-]+)\.html#(article-\d+)/);
+        if (!m) { bad.push(href); return; }
+        const page = path.join(DOCS, "archive", `${m[1]}.html`);
+        if (!fs.existsSync(page) || !fs.readFileSync(page, "utf-8").includes(`id="${m[2]}"`)) {
+          bad.push(href);
+        }
+      });
+      check("story", "모든 사건이 그날 기사 앵커로 연결됨", bad.length === 0, bad.join(" | "));
+    }
+  }
+
   // 아카이브 목록은 /topics와 같은 깊이(세그먼트 1개)라 같은 함정이 있는 자리다.
   if (fs.existsSync(path.join(DOCS, "archive", "index.html"))) {
     checkCleanUrlLinks("archive/index.html", "https://www.dailyaithread.com/archive", "archive/index (clean URL)");

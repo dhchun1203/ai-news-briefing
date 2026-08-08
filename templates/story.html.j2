@@ -1,0 +1,163 @@
+{#
+  /story/<slug> — 하나의 사건이 여러 날에 걸쳐 어떻게 전개됐는지.
+
+  이 페이지가 답하는 질문은 "오늘 무슨 일이 있었나"가 아니라 회의에서 나오는
+  "그거 어떻게 됐죠?"다. 그래서 최신순이 아니라 **시간순**이고, 각 항목은 그날
+  브리핑으로 되돌아가는 링크를 갖는다 — 우리 요약을 믿으라고 하는 대신 원본으로
+  갈 수 있어야 한다.
+
+  주간 회고 템플릿의 크롬(head·헤더·푸터)을 그대로 따른다. 구조가 페이지마다
+  갈라지면 유틸리티 바나 헤더 래퍼를 빠뜨리는 사고가 반복된다.
+#}<!DOCTYPE html>
+{% set title = (story.title_ko if lang == 'ko' else story.title_en) %}
+{% set page_title = title + (" — 이슈 흐름" if lang == 'ko' else " — Story timeline") %}
+<html lang="{{ lang }}" data-lang="{{ lang }}"
+      data-default-lang="{{ lang }}" data-asset-prefix="{{ up }}" data-archive-prefix="{{ lup }}archive/">
+<head>
+<meta charset="UTF-8">
+<title>{{ page_title }}</title>
+<meta name="description" content="{{ story.summary_ko if lang == 'ko' else story.summary_en }}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ page_title }}">
+<meta property="og:description" content="{{ story.summary_ko if lang == 'ko' else story.summary_en }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ page_title }}">
+<meta name="twitter:description" content="{{ story.summary_ko if lang == 'ko' else story.summary_en }}">
+<link rel="canonical" href="{{ canonical_url }}">
+<meta name="robots" content="index, follow">
+<link rel="alternate" hreflang="ko" href="{{ hreflang_ko_url }}">
+<link rel="alternate" hreflang="en" href="{{ hreflang_en_url }}">
+<link rel="alternate" hreflang="x-default" href="{{ hreflang_ko_url }}">
+<meta property="og:url" content="{{ canonical_url }}">
+<meta property="og:image" content="{{ og_image_url }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{% if lang == 'ko' %}AI 뉴스 브리핑 · Daily AI Thread{% else %}Daily AI Thread · AI News Briefing{% endif %}">
+<meta name="twitter:image" content="{{ og_image_url }}">
+<link rel="icon" type="image/svg+xml" href="{{ up }}favicon.svg">
+<link rel="icon" type="image/png" sizes="96x96" href="{{ up }}favicon.png">
+<link rel="alternate" type="application/rss+xml" title="{% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}" href="{{ lup }}feed.xml">
+{% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
+{% if naver_site_verification %}<meta name="naver-site-verification" content="{{ naver_site_verification }}">{% endif %}
+<script type="application/ld+json">{{ jsonld|tojson }}</script>
+<script>
+(function () {
+  function getCookie(name) {
+    var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+  try {
+    var t = getCookie("theme");
+    if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="{{ up }}site-base.css">
+<link rel="stylesheet" href="{{ up }}site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="{{ up }}site-desktop.css" media="(min-width: 768px)">
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">
+  {% if lang == 'ko' %}본문으로 건너뛰기{% else %}Skip to content{% endif %}
+</a>
+<header class="site-header">
+  {% set nav_p = lup %}
+  {% set nav_current = '' %}
+  {% include '_utility-bar.html.j2' %}
+  <div class="header-inner">
+    <h1>
+      <a href="{{ lup }}index.html">
+        {% if lang == 'ko' %}AI 뉴스 브리핑{% else %}AI News Briefing{% endif %}
+      </a>
+    </h1>
+    <p class="tagline">
+      {% if lang == 'ko' %}이슈 흐름 · {{ story.first_date }} ~ {{ story.last_date }} · 브리핑 {{ story.events|length }}건{% else %}Story timeline · {{ story.first_date }} – {{ story.last_date }} · {{ story.events|length }} briefings{% endif %}
+    </p>
+  </div>
+</header>
+
+<main class="content" id="main-content">
+  <div class="date-bar">
+    <span class="date-label">{% if lang == 'ko' %}이슈 흐름{% else %}Story{% endif %}</span>
+    <a class="back-link" href="{{ lup }}index.html">
+      {% if lang == 'ko' %}오늘자 브리핑 보기 →{% else %}View today's briefing →{% endif %}
+    </a>
+  </div>
+
+  <h2 class="story-title">{{ title }}</h2>
+  <p class="story-summary">{{ story.summary_ko if lang == 'ko' else story.summary_en }}</p>
+
+  {# 시간순 사건 목록. 각 항목은 그날 브리핑의 해당 기사 앵커로 간다. #}
+  <section class="story-section">
+    <h3 class="story-heading">
+      {% if lang == 'ko' %}시간순으로 본 전개{% else %}How it unfolded{% endif %}
+    </h3>
+    <ol class="story-timeline">
+      {% for e in story.events %}
+      <li class="story-event">
+        <div class="story-event-head">
+          <span class="story-date">{{ e.date }}</span>
+          <span class="story-phase">{{ e.phase_ko if lang == 'ko' else e.phase_en }}</span>
+        </div>
+        <p class="story-line">{{ e.line_ko if lang == 'ko' else e.line_en }}</p>
+        <p class="story-source">
+          <a href="{{ lup }}archive/{{ e.date }}.html#article-{{ e.article }}">
+            {% if lang == 'ko' %}그날 브리핑에서 보기 →{% else %}Read it in that day's briefing →{% endif %}
+          </a>
+          <span class="story-outlet">{{ e.source }}</span>
+        </p>
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <section class="story-section">
+    <h3 class="story-heading">
+      {% if lang == 'ko' %}지금까지의 흐름{% else %}Where it stands{% endif %}
+    </h3>
+    <div class="story-flow">
+      {% for para in (story.flow_ko if lang == 'ko' else story.flow_en) %}<p>{{ para }}</p>{% endfor %}
+    </div>
+  </section>
+
+  <section class="story-section">
+    <h3 class="story-heading">
+      {% if lang == 'ko' %}다음 관전 포인트{% else %}What to watch next{% endif %}
+    </h3>
+    <ul class="story-watch">
+      {% for w in (story.watch_ko if lang == 'ko' else story.watch_en) %}<li>{{ w }}</li>{% endfor %}
+    </ul>
+  </section>
+
+  <p class="story-note">
+    {% if lang == 'ko' %}이 페이지는 매일 발행한 브리핑에서 같은 사건을 다룬 기사만 모아 시간순으로 엮은 것입니다. 각 항목의 링크로 그날 원문과 전체 맥락을 확인하실 수 있습니다.{% else %}This page collects the articles about a single event from our daily briefings and lays them out in order. Each entry links back to that day's briefing, where you can reach the original reporting and the full context.{% endif %}
+  </p>
+</main>
+
+<footer class="site-footer">
+  <p>
+    {% if lang == 'ko' %}마지막 갱신: {{ generated_at }}{% else %}Last updated: {{ generated_at }}{% endif %}
+  </p>
+  <p class="share-permit">
+    {% if lang == 'ko' %}사내 공유·인용 자유롭게 하셔도 됩니다{% else %}Free to share internally or cite with a link{% endif %}
+    <a class="share-permit-link" href="{{ lup }}about.html#sharing">{% if lang == 'ko' %}자세히{% else %}details{% endif %}</a>
+  </p>
+  <p class="footer-links">
+    <a href="{{ lup }}feed.xml">RSS</a>
+    <span aria-hidden="true">·</span>
+    <a href="{{ lup }}topics/index.html">{% if lang == 'ko' %}주제별 보기{% else %}Topics{% endif %}</a>
+    <span aria-hidden="true">·</span>
+    <a href="{{ lup }}glossary.html">{% if lang == 'ko' %}용어사전{% else %}Glossary{% endif %}</a>
+    <span aria-hidden="true">·</span>
+    <a href="{{ lup }}about.html">{% if lang == 'ko' %}소개{% else %}About{% endif %}</a>
+  </p>
+</footer>
+
+<script defer src="{{ up }}site.js"></script>
+</body>
+</html>

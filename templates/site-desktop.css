@@ -217,3 +217,9 @@ body {
   .data-card-meta { display: none; }
   .data-card-link { display: inline-block; padding: 10px 0 0; }
 }
+.story-title { font-size: 1.9rem; }
+.story-summary { font-size: 1.08rem; }
+.story-heading { font-size: 1.05rem; }
+.story-date, .story-phase { font-size: 0.88rem; }
+.story-line, .story-flow p, .story-watch li { font-size: 1.05rem; }
+.story-source, .story-note { font-size: 0.88rem; }

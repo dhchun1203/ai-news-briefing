@@ -1505,5 +1505,78 @@ class TestFunnelReconciliation(unittest.TestCase):
         self.assertNotIn("dropped_unwritable", original)
 
 
+class TestStoryConfig(unittest.TestCase):
+    """이슈 타임라인(config/stories.json)은 손으로 쓰는 데이터라 오타가 곧 깨진 페이지다.
+
+    특히 event의 date/article이 틀리면 "그날 브리핑에서 보기" 링크가 엉뚱한 곳으로
+    간다 — 원본으로 되돌아갈 수 있다는 것이 이 페이지의 존재 이유이므로 치명적이다."""
+
+    def test_real_config_is_valid(self):
+        from generate_story_site import load_stories
+        stories = load_stories()
+        self.assertTrue(stories, "이슈가 하나도 없습니다")
+        for s in stories:
+            self.assertTrue(s["slug"].islower() and " " not in s["slug"], s["slug"])
+            # 시간순이 이 페이지의 전부다.
+            dates = [e["date"] for e in s["events"]]
+            self.assertEqual(dates, sorted(dates), s["slug"])
+            self.assertEqual(s["first_date"], dates[0])
+            self.assertEqual(s["last_date"], dates[-1])
+            for e in s["events"]:
+                for key in ("line_ko", "line_en", "phase_ko", "phase_en", "source"):
+                    self.assertTrue(e.get(key), f"{s['slug']} {e['date']} {key}")
+
+    def test_events_point_at_real_articles(self):
+        """event가 가리키는 날짜의 아카이브에 그 번호의 기사가 실제로 있는가."""
+        from generate_story_site import load_stories
+        root = Path(__file__).resolve().parent.parent
+        for s in load_stories():
+            for e in s["events"]:
+                path = root / "docs" / "archive" / f"{e['date']}.json"
+                self.assertTrue(path.exists(), f"{e['date']} 아카이브 없음")
+                day = json.loads(path.read_text(encoding="utf-8"))
+                self.assertLessEqual(e["article"], len(day.get("articles", [])),
+                                     f"{s['slug']}: {e['date']}에 {e['article']}번 기사 없음")
+
+    def test_missing_field_raises(self):
+        from generate_story_site import load_stories
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "stories.json"
+            p.write_text(json.dumps({"stories": [{"slug": "x", "title_ko": "제목"}]}), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_stories(p)
+
+    def test_events_are_sorted_even_if_written_out_of_order(self):
+        from generate_story_site import load_stories
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "stories.json"
+            p.write_text(json.dumps({"stories": [{
+                "slug": "x", "title_ko": "제", "title_en": "t", "summary_ko": "요", "summary_en": "s",
+                "events": [{"date": "2026-07-31", "article": 1}, {"date": "2026-07-23", "article": 2}],
+            }]}, ensure_ascii=False), encoding="utf-8")
+            s = load_stories(p)[0]
+            self.assertEqual([e["date"] for e in s["events"]], ["2026-07-23", "2026-07-31"])
+            self.assertEqual(s["first_date"], "2026-07-23")
+
+
+class TestStoryCandidateFinder(unittest.TestCase):
+    def test_pairs_beat_single_company_names(self):
+        """단일 회사명이 아니라 키워드 쌍으로 묶여야 이슈 단위가 된다."""
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts" / "tools"))
+        from find_story_candidates import find_candidates
+        arts = [
+            {"date": "2026-07-23", "article": 1, "title": "t1", "source": "a",
+             "keywords": {"Hugging", "Face"}},
+            {"date": "2026-07-25", "article": 2, "title": "t2", "source": "b",
+             "keywords": {"Hugging", "Face"}},
+            {"date": "2026-07-27", "article": 3, "title": "t3", "source": "c",
+             "keywords": {"Reddit"}},
+        ]
+        cands = find_candidates(arts, min_days=2)
+        self.assertEqual(len(cands), 1)
+        self.assertEqual(cands[0]["pair"], ("Face", "Hugging"))
+        self.assertEqual(cands[0]["days"], ["2026-07-23", "2026-07-25"])
+
+
 if __name__ == "__main__":
     unittest.main()

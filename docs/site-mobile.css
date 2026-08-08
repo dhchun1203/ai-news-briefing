@@ -236,3 +236,9 @@ body {
 .data-card-unit, .data-card-arrow { font-size: 0.85rem; }
 .data-card-label, .data-card-pct, .data-card-meta, .data-card-link { font-size: 0.82rem; }
 .data-card-bars li { grid-template-columns: minmax(0, 6.5rem) 1fr 2.8rem; gap: 6px; }
+.story-title { font-size: 1.4rem; }
+.story-summary { font-size: 0.98rem; }
+.story-heading { font-size: 0.95rem; }
+.story-date, .story-phase { font-size: 0.82rem; }
+.story-line, .story-flow p, .story-watch li { font-size: 0.98rem; }
+.story-source, .story-note { font-size: 0.84rem; }
