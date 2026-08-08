@@ -180,6 +180,9 @@ body {
 .data-scope { font-size: 0.9rem; }
 .data-caveat { font-size: 0.88rem; line-height: 1.65; padding: 12px 14px; }
 .data-note { font-size: 0.84rem; line-height: 1.55; }
+/* 좁은 화면은 세로로 길어지니 섹션 간격을 데스크톱보다 조금 줄인다. */
+.data-section { margin-bottom: 44px; }
+.data-section + .data-section { padding-top: 32px; }
 .bar-row {
   grid-template-columns: 1fr auto;
   grid-template-areas: "label value" "track track";
@@ -213,7 +216,8 @@ body {
 .pair-row > .pair-value { grid-area: value; font-size: 0.82rem; width: 4.2rem; }
 .share-bar { height: 8px; }
 
-.flow-step { padding-right: 20px; }
+.flow-step { padding-right: 34px; }
+.flow-step:not(:last-child)::after { right: 12px; }
 .flow-value { font-size: 1.35rem; }
 .flow-label { font-size: 0.78rem; }
 .data-subheading { font-size: 0.92rem; }

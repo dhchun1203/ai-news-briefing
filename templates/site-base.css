@@ -682,17 +682,24 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   border-radius: 0 3px 3px 0;
   margin: 0 0 28px;
 }
-.data-section { margin: 0 0 34px; }
+/* 섹션 사이는 넉넉히 벌린다. 34px일 때는 앞 섹션의 마지막 막대와 다음 제목이
+   붙어 보여서 어디까지가 한 이야기인지 경계가 흐렸다. 위쪽에 옅은 선을 하나 그어
+   경계를 눈으로도 확인할 수 있게 한다(첫 섹션에는 긋지 않는다). */
+.data-section { margin: 0 0 56px; }
+.data-section + .data-section {
+  padding-top: 40px;
+  border-top: 1px solid var(--rule);
+}
 .data-heading {
   font-family: var(--sans);
   font-size: 1rem;
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   color: var(--text);
 }
 .data-note {
   font-family: var(--sans);
   color: var(--text-muted);
-  margin: 0 0 14px;
+  margin: 0 0 18px;
 }
 .data-footnote { margin-top: 28px; }
 
@@ -765,19 +772,25 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
    뒤쪽이 3px 선이 되어 안 읽힌다. */
 .flow {
   list-style: none;
-  margin: 0 0 10px;
+  margin: 0 0 14px;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0;
+  /* 가로 간격은 .flow-step의 padding이 만든다(화살표가 그 안에 앉아야 해서).
+     여기 row-gap은 좁은 화면에서 줄이 바뀔 때만 쓰인다. */
+  gap: 12px 0;
 }
-.flow-step { display: flex; flex-direction: column; padding-right: 26px; position: relative; }
+/* 단계 사이를 넉넉히 벌린다. 26px일 때는 숫자·화살표·다음 숫자가 한 덩어리로
+   붙어 읽혀서, 네 단계가 하나의 긴 수식처럼 보였다. 화살표 좌우에 같은 여백이
+   남도록 padding과 화살표 위치를 함께 잡는다(줄바꿈되는 폭에서는 row-gap이 받는다). */
+.flow-step { display: flex; flex-direction: column; padding-right: 46px; position: relative; }
+.flow-step:last-child { padding-right: 0; }
 /* 단계 사이 화살표. 마지막에는 붙이지 않는다. */
 .flow-step:not(:last-child)::after {
   content: "→";
   position: absolute;
-  right: 8px;
+  right: 16px;
   top: 0.35em;
   color: var(--border);
 }
@@ -795,7 +808,7 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   font-family: var(--sans);
   font-weight: 700;
   color: var(--text);
-  margin: 22px 0 8px;
+  margin: 32px 0 10px;
 }
 
 /* 범례 — 스택 막대 조각과 색을 맞춘다. */
