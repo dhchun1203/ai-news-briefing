@@ -312,6 +312,19 @@ function finishPage(label, doc, window, opts, relPath) {
       }
     }
   }
+  // 모바일/데스크톱 분기점은 **모든 페이지가 같아야 한다.** /data만 719/720이었던
+  // 탓에 720~767px에서 이 페이지만 데스크톱 CSS로 그려졌다 — 같은 폭에서 다른
+  // 페이지는 햄버거가 나오는데 /data만 메뉴가 펼쳐진 채였다.
+  const mediaOf = (name) => {
+    const link = [...doc.querySelectorAll("link[rel=stylesheet]")]
+      .find((l) => (l.getAttribute("href") || "").endsWith(name));
+    return link ? link.getAttribute("media") : null;
+  };
+  check(label, "모바일 CSS 분기점 (max-width: 767px)",
+    mediaOf("site-mobile.css") === "(max-width: 767px)", String(mediaOf("site-mobile.css")));
+  check(label, "데스크톱 CSS 분기점 (min-width: 768px)",
+    mediaOf("site-desktop.css") === "(min-width: 768px)", String(mediaOf("site-desktop.css")));
+
   // 키보드 사용자가 매번 내비게이션을 통과하지 않도록.
   check(label, "본문 건너뛰기 링크 존재", !!doc.querySelector("a.skip-link"));
 

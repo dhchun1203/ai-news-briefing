@@ -1455,5 +1455,55 @@ class TestSitemapExcludesRetiredGlossary(unittest.TestCase):
             self.assertIn("open-weights", (docs / "sitemap.xml").read_text(encoding="utf-8"))
 
 
+class TestFunnelReconciliation(unittest.TestCase):
+    """퍼널의 '채택'은 선정 단계 기록이라, 글 쓰는 단계에서 빠진 기사를 모른다.
+
+    2026-08-08에 퍼널은 10, 실제 브리핑은 9였다 — 그대로 두면 "무엇을 골랐나"를
+    보여주는 페이지가 브리핑과 다른 숫자를 말한다."""
+
+    def _funnel(self, selected):
+        return {"candidates_total": 62, "selected": selected, "dropped_rank": 51,
+                "dropped_same_story": 1, "dropped_source_cap": 0}
+
+    def test_selected_follows_actual_articles(self):
+        from generate_site import _reconcile_funnel
+        day = {"articles": [{}] * 9}
+        merged = _reconcile_funnel(self._funnel(10), day)
+        self.assertEqual(merged["selected"], 9)
+        self.assertEqual(merged["dropped_unwritable"], 1)
+        # 조각의 합이 후보 수와 같아야 스택 막대가 검산이 된다.
+        total = (merged["selected"] + merged["dropped_rank"] + merged["dropped_same_story"]
+                 + merged["dropped_source_cap"] + merged["dropped_unwritable"])
+        self.assertEqual(total, merged["candidates_total"])
+
+    def test_no_change_when_counts_match(self):
+        from generate_site import _reconcile_funnel
+        merged = _reconcile_funnel(self._funnel(10), {"articles": [{}] * 10})
+        self.assertNotIn("dropped_unwritable", merged)
+        self.assertEqual(merged["selected"], 10)
+
+    def test_collect_site_data_applies_reconciliation(self):
+        """직접 호출뿐 아니라 **호출부까지** 지킨다 — 함수만 있고 안 부르면 소용없다."""
+        from generate_site import collect_site_data
+        with tempfile.TemporaryDirectory() as d:
+            archive = Path(d)
+            (archive / "2026-08-08.json").write_text(json.dumps({
+                "date": "2026-08-08",
+                "funnel": self._funnel(10),
+                "articles": [{"title": f"t{i}", "source": "TechCrunch AI"} for i in range(9)],
+            }, ensure_ascii=False), encoding="utf-8")
+            data = collect_site_data(archive)
+        self.assertEqual(data["funnel"]["selected"], 9)
+        self.assertEqual(data["funnel"]["dropped_unwritable"], 1)
+
+    def test_does_not_mutate_archive_payload(self):
+        """아카이브 JSON은 영속 원본이라 재생성해도 바뀌면 안 된다."""
+        from generate_site import _reconcile_funnel
+        original = self._funnel(10)
+        _reconcile_funnel(original, {"articles": [{}] * 9})
+        self.assertEqual(original["selected"], 10)
+        self.assertNotIn("dropped_unwritable", original)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -690,6 +690,29 @@ def build_topic_pages(docs_dir: Path, archive_dir: Path, site_url: str, verifica
 DATA_PAGE_TOP_SOURCES = 8
 
 
+def _reconcile_funnel(funnel: dict, day: dict) -> dict:
+    """퍼널의 `selected`를 그날 **실제로 실린 기사 수**에 맞춘다.
+
+    퍼널은 선정 단계(fetch_articles)에서 기록되므로 "10건을 골랐다"까지만 안다.
+    그 뒤 글을 쓰는 단계에서 원문을 끝내 못 읽으면 예비 후보로 갈아끼우고, 그마저
+    없으면 그날은 10건을 채우지 않는다(/about에 적어둔 방침). 실제로 2026-08-08에
+    퍼널은 10, 브리핑은 9였다 — 그대로 두면 "무엇을 골랐나"를 보여주는 페이지가
+    브리핑과 다른 숫자를 말하게 된다.
+
+    빠진 만큼은 버리지 않고 `dropped_unwritable`로 옮긴다. 이 페이지의 스택 막대는
+    조각의 합이 후보 수와 정확히 같아야 검산이 되는데, selected만 줄이면 합이 어긋난다.
+
+    원본(day)은 건드리지 않는다 — 아카이브 JSON은 영속 원본이다."""
+    published = len(day.get("articles") or [])
+    selected = funnel.get("selected")
+    if not published or not isinstance(selected, int) or published >= selected:
+        return funnel
+    merged = dict(funnel)
+    merged["selected"] = published
+    merged["dropped_unwritable"] = merged.get("dropped_unwritable", 0) + (selected - published)
+    return merged
+
+
 def collect_site_data(archive_dir: Path) -> dict:
     """`/data` 페이지가 쓰는 집계. **채택된 기사만** 센다.
 
@@ -724,7 +747,7 @@ def collect_site_data(archive_dir: Path) -> dict:
         if funnel:
             funnel_days += 1
             if latest_funnel_date is None or date >= latest_funnel_date:
-                latest_funnel, latest_funnel_date = funnel, date
+                latest_funnel, latest_funnel_date = _reconcile_funnel(funnel, day), date
         for a in day.get("articles", []):
             article_total += 1
             source = a.get("source")

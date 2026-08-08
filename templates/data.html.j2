@@ -35,8 +35,11 @@
 <link rel="icon" href="{{ up }}favicon.svg" type="image/svg+xml">
 <link rel="alternate" type="application/rss+xml" title="AI News Briefing" href="{{ lup }}feed.xml">
 <link rel="stylesheet" href="{{ up }}site-base.css">
-<link rel="stylesheet" href="{{ up }}site-mobile.css" media="(max-width: 719px)">
-<link rel="stylesheet" href="{{ up }}site-desktop.css" media="(min-width: 720px)">
+{# 분기점은 다른 페이지와 반드시 같아야 한다. 이 파일만 719/720이었던 탓에
+   720~767px에서는 /data만 데스크톱 CSS로 그려졌다 — 같은 폭에서 다른 페이지는
+   햄버거가 나오는데 이 페이지만 메뉴가 펼쳐진 채였다. #}
+<link rel="stylesheet" href="{{ up }}site-mobile.css" media="(max-width: 767px)">
+<link rel="stylesheet" href="{{ up }}site-desktop.css" media="(min-width: 768px)">
 <script type="application/ld+json">{{ jsonld|tojson }}</script>
 <script>
 (function () {
@@ -138,12 +141,13 @@
       {% if lang == 'ko' %}훑은 {{ "{:,}".format(f.entries_seen) }}건 중 최근 하루치는 {{ f.in_lookback }}건이고, 이미 실었던 {{ f.skipped_duplicates }}건과 자기홍보 {{ f.skipped_self_promo }}건을 빼면 후보 {{ f.candidates_total }}건이 남습니다.{% else %}Of the {{ "{:,}".format(f.entries_seen) }} items scanned, {{ f.in_lookback }} were published in the last 24 hours; dropping {{ f.skipped_duplicates }} we had already run and {{ f.skipped_self_promo }} self-promotional posts leaves {{ f.candidates_total }} candidates.{% endif %}
     </p>
 
-    {# 후보의 행선지. 네 조각의 합이 정확히 후보 수라 검산이 된다. #}
+    {# 후보의 행선지. 조각의 합이 정확히 후보 수라 검산이 된다. #}
     {% set parts = [
       ('selected', f.selected),
       ('rank', f.dropped_rank),
       ('same', f.dropped_same_story),
       ('cap', f.dropped_source_cap),
+      ('unwritable', f.dropped_unwritable or 0),
     ] %}
     <p class="data-subheading">
       {% if lang == 'ko' %}후보 {{ f.candidates_total }}건은 어디로 갔나{% else %}Where the {{ f.candidates_total }} candidates went{% endif %}
@@ -157,7 +161,7 @@
       <li class="legend-item">
         <span class="legend-dot legend-dot-{{ key }}" aria-hidden="true"></span>
         <span class="legend-label">
-          {% if lang == 'ko' %}{{ {'selected':'채택','rank':'순위 미달','same':'같은 사건','cap':'한 매체 3건 상한'}[key] }}{% else %}{{ {'selected':'published','rank':'outranked','same':'same story','cap':'3-per-outlet cap'}[key] }}{% endif %}
+          {% if lang == 'ko' %}{{ {'selected':'채택','rank':'순위 미달','same':'같은 사건','cap':'한 매체 3건 상한','unwritable':'원문 확인 실패'}[key] }}{% else %}{{ {'selected':'published','rank':'outranked','same':'same story','cap':'3-per-outlet cap','unwritable':'original unreadable'}[key] }}{% endif %}
         </span>
         <span class="legend-value">{{ n }}</span>
       </li>

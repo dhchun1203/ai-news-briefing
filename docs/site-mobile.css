@@ -186,9 +186,17 @@ body {
   gap: 4px 10px;
   padding: 8px 0;
 }
-.bar-label { grid-area: label; font-size: 0.9rem; }
-.bar-value { grid-area: value; font-size: 0.9rem; }
-.bar-track { grid-area: track; }
+/* grid-area는 **.bar-row의 직계 자식에만** 준다. 클래스 전체에 걸었더니 같은
+   .bar-label / .bar-track을 쓰는 "들어온 양과 실린 양"(.pair-row)까지 끌려가
+   레이아웃이 무너졌다 — .pair-row에는 label/track이라는 이름의 영역이 없어서
+   grid-area가 있지도 않은 선을 가리켰고, 브라우저가 암시적 트랙을 만들면서
+   매체명이 오른쪽으로 튕겨 나가고 막대가 왼쪽 절반에 찌그러졌다.
+   글자 크기는 두 행 모두에 필요하므로 grid-area와 분리한다. */
+.bar-label, .pair-row .bar-label { font-size: 0.9rem; }
+.bar-value { font-size: 0.9rem; }
+.bar-row > .bar-label { grid-area: label; }
+.bar-row > .bar-value { grid-area: value; }
+.bar-row > .bar-track { grid-area: track; }
 .data-figures { gap: 20px; }
 .data-figure-value { font-size: 1.6rem; }
 .data-figure-label { font-size: 0.8rem; }

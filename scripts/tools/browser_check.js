@@ -125,8 +125,12 @@ async function main() {
 
     // 읽는 시간
     const times = await page.locator(".article-reading-time").allTextContents();
-    check(`${label}: 모든 기사에 읽는 시간`, times.length >= 10 && times.every((s) => s.trim()),
-      JSON.stringify(times.slice(0, 3)));
+    // 10으로 못박으면 안 된다 — 원문을 못 읽어 그날 9건만 나가는 날이 있다
+    // (실제로 2026-08-08이 그랬고, 이 검사가 그것 때문에 빨갛게 떴다).
+    const cardCount = await page.locator(".article-card").count();
+    check(`${label}: 모든 기사에 읽는 시간`,
+      cardCount > 0 && times.length >= cardCount && times.every((s) => s.trim()),
+      `카드 ${cardCount}개 / 표시 ${times.length}개 ${JSON.stringify(times.slice(0, 3))}`);
     check(`${label}: 읽는 시간이 기사마다 다름`, new Set(times.map((s) => s.trim())).size > 1,
       JSON.stringify(times));
     await ctx.close();
@@ -437,6 +441,39 @@ async function main() {
         return problems;
       });
       check(`${label}/${vp}: 값이 큰 항목의 막대가 더 김`, bad.length === 0, bad.slice(0, 3).join(" | "));
+
+      // "들어온 양과 실린 양"은 라벨·트랙 클래스를 위 막대들과 공유한다. 모바일에서
+      // .bar-label/.bar-track에 grid-area를 클래스 단위로 걸었더니 이 행까지 끌려가
+      // **매체명이 오른쪽으로 튕기고 막대가 왼쪽 절반에 찌그러졌다**(있지도 않은
+      // 이름의 영역을 가리켜 암시적 트랙이 생겼다). 픽셀로만 드러나는 종류다.
+      const pair = await page.evaluate(() => {
+        const row = document.querySelector(".pair-row");
+        if (!row) return null;   // 후보 기록이 없는 날에는 섹션 자체가 없다
+        const box = (el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width }; };
+        const label = box(row.querySelector(".bar-label"));
+        const bars = box(row.querySelector(".pair-bars"));
+        const sec = row.closest(".data-section");
+        return {
+          label, bars,
+          트랙폭: [...new Set([...sec.querySelectorAll(".bar-track")].map(
+            (e) => Math.round(e.getBoundingClientRect().width)))],
+          값x: [...new Set([...sec.querySelectorAll(".pair-value")].map(
+            (e) => Math.round(e.getBoundingClientRect().x)))],
+          넘침: sec.scrollWidth > sec.clientWidth,
+        };
+      });
+      if (pair) {
+        const stacked = mob;   // 좁은 화면에서는 라벨이 막대 위로 올라간다
+        check(`${label}/${vp}: 2단 막대 — 라벨이 ${stacked ? "막대 위" : "막대 왼쪽"}`,
+          stacked ? pair.label.y < pair.bars.y : pair.label.x < pair.bars.x,
+          JSON.stringify({ label: Math.round(pair.label.x) + "," + Math.round(pair.label.y),
+                           bars: Math.round(pair.bars.x) + "," + Math.round(pair.bars.y) }));
+        check(`${label}/${vp}: 2단 막대 트랙 폭이 모두 같음`, pair.트랙폭.length === 1,
+          JSON.stringify(pair.트랙폭));
+        check(`${label}/${vp}: 2단 막대 값이 한 줄로 정렬`, pair.값x.length === 1,
+          JSON.stringify(pair.값x));
+        check(`${label}/${vp}: 2단 막대 섹션 가로 넘침 없음`, !pair.넘침);
+      }
 
       // 막대 폭이 곧 표기된 비율이어야 한다. 최댓값을 100%로 늘려 그리면 1위 막대가
       // 트랙을 꽉 채우는데 옆 숫자는 31.4%라, 막대와 숫자가 서로 다른 말을 한다.
