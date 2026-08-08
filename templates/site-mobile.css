@@ -200,9 +200,17 @@ body {
 .data-figures { gap: 20px; }
 .data-figure-value { font-size: 1.6rem; }
 .data-figure-label { font-size: 0.8rem; }
-.pair-row { grid-template-columns: 1fr; gap: 4px; }
-.pair-line { grid-template-columns: 1fr 2.2rem; }
-.pair-value { font-size: 0.82rem; }
+/* 좁은 화면: 매체명을 한 줄 위로 올리고 아래에 막대와 숫자를 나란히 둔다. */
+.pair-row {
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "label label" "track value";
+  gap: 4px 10px;
+}
+.pair-row > .bar-label { grid-area: label; }
+.pair-row > .pair-track { grid-area: track; }
+/* 값 칸은 고정폭이어야 한다. auto로 두면 "41 → 0"과 "3 → 2"의 글자 폭 차이로
+   트랙이 306/313px로 갈려 같은 비율이 행마다 다른 길이로 그려진다. */
+.pair-row > .pair-value { grid-area: value; font-size: 0.82rem; width: 4.2rem; }
 .share-bar { height: 8px; }
 
 .flow-step { padding-right: 20px; }

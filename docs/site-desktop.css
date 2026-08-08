@@ -190,6 +190,8 @@ body {
 .data-figure-value { font-size: 1.9rem; }
 .data-figure-label { font-size: 0.85rem; }
 .pair-value { font-size: 0.85rem; }
+.pair-track, .pair-in, .pair-out { min-height: 16px; }
+.pair-in, .pair-out { height: 16px; }
 
 .flow-value { font-size: 1.7rem; }
 .flow-label { font-size: 0.85rem; }

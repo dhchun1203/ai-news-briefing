@@ -451,11 +451,33 @@ async function main() {
         if (!row) return null;   // 후보 기록이 없는 날에는 섹션 자체가 없다
         const box = (el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width }; };
         const label = box(row.querySelector(".bar-label"));
-        const bars = box(row.querySelector(".pair-bars"));
+        const bars = box(row.querySelector(".pair-track"));
         const sec = row.closest(".data-section");
+        // 실린 막대는 들어온 막대 안에 겹쳐 그린다 — 밖으로 나가면 "후보보다 많이
+        // 실렸다"는 불가능한 그림이 된다.
+        const overflow = [...sec.querySelectorAll(".pair-row")].filter((r) => {
+          const i = r.querySelector(".pair-in"), o = r.querySelector(".pair-out");
+          return o && i && o.getBoundingClientRect().width > i.getBoundingClientRect().width + 1;
+        }).length;
         return {
-          label, bars,
-          트랙폭: [...new Set([...sec.querySelectorAll(".bar-track")].map(
+          label, bars, overflow,
+          // 0건인 행은 막대를 아예 그리지 않아야 한다(최소 폭이 남으면 "조금 실림"으로 읽힌다).
+          영건막대: [...sec.querySelectorAll(".pair-row")].filter(
+            (r) => r.dataset.published === "0" && r.querySelector(".pair-out")).length,
+          // 막대 길이가 수치에 비례하는지 — 같은 눈금 위에 있어야 행끼리 비교가 된다.
+          비례오차: (() => {
+            const rows = [...sec.querySelectorAll(".pair-row")].map((r) => ({
+              c: Number(r.dataset.candidates), pub: Number(r.dataset.published),
+              inW: r.querySelector(".pair-in").getBoundingClientRect().width,
+              outW: r.querySelector(".pair-out") ? r.querySelector(".pair-out").getBoundingClientRect().width : 0,
+              trackW: r.querySelector(".pair-track").getBoundingClientRect().width,
+            }));
+            const cmax = Math.max(...rows.map((r) => r.c));
+            return rows.filter((r) =>
+              Math.abs(r.inW - r.trackW * r.c / cmax) > 2
+              || Math.abs(r.outW - r.trackW * r.pub / cmax) > 2).length;
+          })(),
+          트랙폭: [...new Set([...sec.querySelectorAll(".pair-track")].map(
             (e) => Math.round(e.getBoundingClientRect().width)))],
           값x: [...new Set([...sec.querySelectorAll(".pair-value")].map(
             (e) => Math.round(e.getBoundingClientRect().x)))],
@@ -464,15 +486,18 @@ async function main() {
       });
       if (pair) {
         const stacked = mob;   // 좁은 화면에서는 라벨이 막대 위로 올라간다
-        check(`${label}/${vp}: 2단 막대 — 라벨이 ${stacked ? "막대 위" : "막대 왼쪽"}`,
+        check(`${label}/${vp}: 들어온/실린 막대 — 라벨이 ${stacked ? "막대 위" : "막대 왼쪽"}`,
           stacked ? pair.label.y < pair.bars.y : pair.label.x < pair.bars.x,
           JSON.stringify({ label: Math.round(pair.label.x) + "," + Math.round(pair.label.y),
                            bars: Math.round(pair.bars.x) + "," + Math.round(pair.bars.y) }));
-        check(`${label}/${vp}: 2단 막대 트랙 폭이 모두 같음`, pair.트랙폭.length === 1,
+        check(`${label}/${vp}: 들어온/실린 막대 트랙 폭이 모두 같음`, pair.트랙폭.length === 1,
           JSON.stringify(pair.트랙폭));
-        check(`${label}/${vp}: 2단 막대 값이 한 줄로 정렬`, pair.값x.length === 1,
+        check(`${label}/${vp}: 들어온/실린 막대 값이 한 줄로 정렬`, pair.값x.length === 1,
           JSON.stringify(pair.값x));
-        check(`${label}/${vp}: 2단 막대 섹션 가로 넘침 없음`, !pair.넘침);
+        check(`${label}/${vp}: 들어온/실린 막대 섹션 가로 넘침 없음`, !pair.넘침);
+        check(`${label}/${vp}: 실린 막대가 들어온 막대를 넘지 않음`, pair.overflow === 0, String(pair.overflow));
+        check(`${label}/${vp}: 0건인 매체는 막대를 그리지 않음`, pair.영건막대 === 0, String(pair.영건막대));
+        check(`${label}/${vp}: 막대 길이가 수치에 비례`, pair.비례오차 === 0, String(pair.비례오차));
       }
 
       // 막대 폭이 곧 표기된 비율이어야 한다. 최댓값을 100%로 늘려 그리면 1위 막대가

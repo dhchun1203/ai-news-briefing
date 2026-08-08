@@ -823,29 +823,55 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   background: repeating-linear-gradient(45deg, var(--text-muted) 0 2px, transparent 2px 5px);
 }
 
-/* 들어온 양 vs 실린 양 — 두 막대를 세로로 붙여 한 매체로 묶어 읽게 한다. */
+/* 들어온 양 vs 실린 양 — 한 줄 막대 안에 실린 부분을 겹쳐 그린다.
+   길이 = 들어온 수, 채움 = 실린 수. 실린 수는 언제나 들어온 수의 부분집합이라
+   이 겹침이 사실 관계 그대로다. 위아래 두 막대로 그리던 방식은 한 매체가 41건,
+   나머지가 2~6건인 날 나머지 전부가 아래쪽 15%에 눌려 구분이 안 됐다. */
 .pair-row {
   display: grid;
-  grid-template-columns: minmax(0, 11rem) 1fr;
+  grid-template-columns: minmax(0, 11rem) 1fr 5.5rem;
   align-items: center;
   gap: 10px;
   padding: 7px 0;
 }
-.pair-bars { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.pair-line {
-  display: grid;
-  grid-template-columns: 1fr 2.5rem;
-  align-items: center;
-  gap: 10px;
+.pair-track {
+  position: relative;
+  display: block;
+  min-width: 0;
+  background: var(--implication-bg);
+  border-radius: 2px;
+  overflow: hidden;
+  min-height: 14px;
 }
+.pair-in, .pair-out {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 14px;
+  border-radius: 2px;
+}
+.pair-in { background: var(--border); }
+/* 실린 부분. 들어온 막대 위에 겹치므로 뒤에 와야 한다. */
+.pair-out { background: var(--accent); }
+.pair-row:hover .pair-out { filter: brightness(1.08); }
 .pair-value {
   font-family: var(--sans);
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
   text-align: right;
+  white-space: nowrap;
 }
-/* 들어온 양은 "아직 고르기 전"이라 채택 막대와 색으로 구분한다. */
-.bar-fill-in { background: var(--border); }
+.pair-num-out { color: var(--accent); font-weight: 700; }
+.pair-arrow { opacity: 0.5; padding: 0 1px; }
+/* 화면에는 안 보이지만 스크린리더는 읽는다 — "41 → 0"만으로는 뜻이 전해지지 않는다. */
+.sr-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 
 .data-figures { display: flex; gap: 28px; margin: 0 0 12px; }
 .data-figure { display: flex; flex-direction: column; }
