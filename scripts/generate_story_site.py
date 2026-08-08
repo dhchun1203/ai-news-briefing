@@ -125,6 +125,45 @@ def main():
                 encoding="utf-8",
             )
 
+    # 목록 페이지 — 내비게이션의 "이슈"가 여기로 온다.
+    index_template = env.get_template("stories.html.j2")
+    ko_index, en_index = f"{site_url}/stories", f"{site_url}/en/stories"
+    # 최근에 움직인 이슈가 위로.
+    listed = sorted(stories, key=lambda s: s["last_date"], reverse=True)
+    for lang in LANGS:
+        page_url = en_index if lang == "en" else ko_index
+        (lang_root(docs_dir, lang) / "stories.html").write_text(
+            index_template.render(
+                lang=lang,
+                lang_alt_url=(ko_index if lang == "en" else en_index),
+                up=up_prefix(lang),
+                lup=lang_up_prefix(lang=lang),
+                stories=listed,
+                nav_counts=nav_counts,
+                generated_at=generated_at,
+                canonical_url=page_url,
+                hreflang_ko_url=ko_index,
+                hreflang_en_url=en_index,
+                og_image_url=f"{site_url}/og-image.png",
+                google_site_verification=verification["google_site_verification"],
+                naver_site_verification=verification["naver_site_verification"],
+                jsonld={
+                    "@context": "https://schema.org",
+                    "@type": "CollectionPage",
+                    "name": "이슈 흐름" if lang == "ko" else "Story timelines",
+                    "url": page_url,
+                    "inLanguage": lang,
+                    "hasPart": [
+                        {"@type": "Article",
+                         "headline": s["title_ko"] if lang == "ko" else s["title_en"],
+                         "url": f"{site_url}{'' if lang == 'ko' else '/en'}/story/{s['slug']}"}
+                        for s in listed
+                    ],
+                },
+            ),
+            encoding="utf-8",
+        )
+
     print(f"이슈 타임라인 {len(stories)}건 생성: " +
           ", ".join(f"/story/{s['slug']}({len(s['events'])}건)" for s in stories))
     if problems:
@@ -154,7 +193,9 @@ def build_story_jsonld(site_url: str, page_url: str, story: dict, lang: str, gen
         "publisher": {"@id": f"{site_url}/#organization"},
         "mainEntity": {
             "@type": "ItemList",
-            "itemListOrder": "https://schema.org/ItemListOrderAscending",
+            # 화면과 같은 순서여야 한다 — 답변엔진이 인용할 때 사람이 보는 순서와
+            # 다르면 "최신 상황"으로 옛 항목을 집는다.
+            "itemListOrder": "https://schema.org/ItemListOrderDescending",
             "numberOfItems": len(story["events"]),
             "itemListElement": [
                 {
@@ -164,7 +205,7 @@ def build_story_jsonld(site_url: str, page_url: str, story: dict, lang: str, gen
                     "description": e["line_ko"] if lang == "ko" else e["line_en"],
                     "url": f"{site_url}{'' if lang == 'ko' else '/en'}/archive/{e['date']}#article-{e['article']}",
                 }
-                for i, e in enumerate(story["events"], 1)
+                for i, e in enumerate(reversed(story["events"]), 1)
             ],
         },
     }

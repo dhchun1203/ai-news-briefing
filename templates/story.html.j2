@@ -2,9 +2,9 @@
   /story/<slug> — 하나의 사건이 여러 날에 걸쳐 어떻게 전개됐는지.
 
   이 페이지가 답하는 질문은 "오늘 무슨 일이 있었나"가 아니라 회의에서 나오는
-  "그거 어떻게 됐죠?"다. 그래서 최신순이 아니라 **시간순**이고, 각 항목은 그날
-  브리핑으로 되돌아가는 링크를 갖는다 — 우리 요약을 믿으라고 하는 대신 원본으로
-  갈 수 있어야 한다.
+  "그거 어떻게 됐죠?"다. 그래서 **최신 항목이 위**에 오고(지금 상태를 먼저 본다),
+  각 항목은 그날 브리핑으로 되돌아가는 링크를 갖는다 — 우리 요약을 믿으라고 하는
+  대신 원본으로 갈 수 있어야 한다.
 
   주간 회고 템플릿의 크롬(head·헤더·푸터)을 그대로 따른다. 구조가 페이지마다
   갈라지면 유틸리티 바나 헤더 래퍼를 빠뜨리는 사고가 반복된다.
@@ -67,7 +67,7 @@
 </a>
 <header class="site-header">
   {% set nav_p = lup %}
-  {% set nav_current = '' %}
+  {% set nav_current = 'stories' %}
   {% include '_utility-bar.html.j2' %}
   <div class="header-inner">
     <h1>
@@ -92,13 +92,16 @@
   <h2 class="story-title">{{ title }}</h2>
   <p class="story-summary">{{ story.summary_ko if lang == 'ko' else story.summary_en }}</p>
 
-  {# 시간순 사건 목록. 각 항목은 그날 브리핑의 해당 기사 앵커로 간다. #}
+  {# 사건 목록. 각 항목은 그날 브리핑의 해당 기사 앵커로 간다. #}
   <section class="story-section">
     <h3 class="story-heading">
-      {% if lang == 'ko' %}시간순으로 본 전개{% else %}How it unfolded{% endif %}
+      {% if lang == 'ko' %}전개 — 최신순{% else %}How it unfolded — newest first{% endif %}
     </h3>
-    <ol class="story-timeline">
-      {% for e in story.events %}
+    {# 최신이 위로. "그거 어떻게 됐죠?"에 답하는 페이지라 지금 상태가 먼저 보여야
+       한다. 데이터는 오름차순으로 들고 있고(first_date/last_date 계산과 검증이
+       거기 기대고 있다) 표시할 때만 뒤집는다. #}
+    <ol class="story-timeline story-timeline-desc">
+      {% for e in story.events|reverse %}
       <li class="story-event">
         <div class="story-event-head">
           <span class="story-date">{{ e.date }}</span>
@@ -135,7 +138,7 @@
   </section>
 
   <p class="story-note">
-    {% if lang == 'ko' %}이 페이지는 매일 발행한 브리핑에서 같은 사건을 다룬 기사만 모아 시간순으로 엮은 것입니다. 각 항목의 링크로 그날 원문과 전체 맥락을 확인하실 수 있습니다.{% else %}This page collects the articles about a single event from our daily briefings and lays them out in order. Each entry links back to that day's briefing, where you can reach the original reporting and the full context.{% endif %}
+    {% if lang == 'ko' %}이 페이지는 매일 발행한 브리핑에서 같은 사건을 다룬 기사만 모아 엮은 것입니다. 각 항목의 링크로 그날 원문과 전체 맥락을 확인하실 수 있습니다.{% else %}This page collects the articles about a single event from our daily briefings and lays them out in order. Each entry links back to that day's briefing, where you can reach the original reporting and the full context.{% endif %}
   </p>
 </main>
 

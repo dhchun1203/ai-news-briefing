@@ -2063,3 +2063,48 @@ a.topic-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offse
   padding-top: 18px;
   border-top: 1px solid var(--rule);
 }
+
+/* ---------- 이슈 목록 (/stories) ---------- */
+.stories-intro {
+  font-family: var(--serif);
+  line-height: 1.8;
+  color: var(--text);
+  margin: 18px 0 26px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--rule);
+}
+.stories-list { list-style: none; margin: 0; padding: 0; }
+.stories-item { padding: 0 0 26px; margin-bottom: 26px; border-bottom: 1px solid var(--border); }
+.stories-item:last-child { border-bottom: 0; }
+.stories-link { display: block; text-decoration: none; }
+.stories-title {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.stories-link:hover .stories-title { color: var(--accent); }
+.stories-meta {
+  display: block;
+  font-family: var(--sans);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* 진행 중인 이슈는 한눈에 구분되게 — 끝난 이야기와 지켜볼 이야기는 성격이 다르다. */
+.stories-status {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.stories-summary {
+  font-family: var(--serif);
+  line-height: 1.75;
+  color: var(--text);
+  margin: 10px 0 0;
+}
